@@ -67,6 +67,10 @@ class ApiService {
       if (e.response!.data != null && e.response!.data['message'] != null) {
         errorMessage = e.response!.data['message'];
       }
+    } else if (e.error != null) {
+      // เพิ่ม log รายละเอียด error
+      _logger.e('Error details: ${e.error}');
+      errorMessage = 'การเชื่อมต่อล้มเหลว: ${e.error}';
     } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
       errorMessage = 'หมดเวลาการเชื่อมต่อ กรุณาลองอีกครั้ง';
     } else if (e.type == DioExceptionType.unknown) {
