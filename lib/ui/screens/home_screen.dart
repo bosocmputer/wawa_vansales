@@ -241,7 +241,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Colors.orange,
               onTap: () {},
             ),
-            _buildQuickActionItem(Icons.assignment, 'ประวัติออร์เดอร์', Colors.blue),
+            // _buildQuickActionItem(Icons.assignment, 'ประวัติออร์เดอร์', Colors.blue),
             _buildQuickActionItem(
               Icons.person_add,
               'เพิ่มลูกค้า',
@@ -296,20 +296,20 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (_) => const CustomerListScreen()),
             );
             break;
-          case 3: // รายงาน
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน'),
-              ),
-            );
-            break;
+          // case 3: // รายงาน
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     const SnackBar(
+          //       content: Text('ฟังก์ชันนี้ยังไม่พร้อมใช้งาน'),
+          //     ),
+          //   );
+          //   break;
         }
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'หน้าหลัก'),
         BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'ขายสินค้า'),
         BottomNavigationBarItem(icon: Icon(Icons.people), label: 'ลูกค้า'),
-        BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'รายงาน'),
+        // BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'รายงาน'),
       ],
     );
   }
