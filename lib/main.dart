@@ -17,6 +17,21 @@ import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
 import 'package:wawa_vansales/ui/screens/splash_screen.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+// Function to determine if we should allow app exit
+bool _isExitAllowed() {
+  // Only allow exits on Android, Windows, Linux, or macOS
+  return !kIsWeb && (Platform.isAndroid || Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+}
+
+// Function to exit the app
+Future<void> _exitApp() async {
+  await SystemNavigator.pop();
+  // For non-Android platforms, this won't exit the app, but that's okay since the WillPopScope
+  // will provide a confirmation dialog on those platforms anyway
+}
 
 void main() async {
   // ตรวจสอบให้แน่ใจว่า Flutter initialization เสร็จสมบูรณ์
@@ -111,8 +126,56 @@ class MyApp extends StatelessWidget {
         title: 'WAWA Van Sales',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.getTheme(),
-        home: const SplashScreen(),
+        home: AppExitHandler(child: const SplashScreen()),
       ),
+    );
+  }
+}
+
+// Widget to handle app exits
+class AppExitHandler extends StatelessWidget {
+  final Widget child;
+
+  const AppExitHandler({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isExitAllowed()) {
+          // Show confirmation dialog
+          final shouldExit = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('ออกจากแอปพลิเคชัน'),
+                  content: const Text('คุณต้องการออกจากแอปพลิเคชันใช่หรือไม่?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('ยกเลิก'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('ใช่', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              ) ??
+              false;
+
+          if (shouldExit) {
+            await _exitApp();
+            return true;
+          }
+          return false;
+        }
+        // For web and iOS, let the system handle the back button
+        return true;
+      },
+      child: child,
     );
   }
 }

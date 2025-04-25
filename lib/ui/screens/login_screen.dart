@@ -8,7 +8,7 @@ import 'package:wawa_vansales/blocs/warehouse/warehouse_event.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
-import 'package:wawa_vansales/ui/screens/warehouse_selection_screen.dart';
+import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
 import 'package:wawa_vansales/ui/widgets/custom_button.dart';
 import 'package:wawa_vansales/ui/widgets/custom_text_field.dart';
 import 'package:wawa_vansales/utils/validators.dart';
@@ -26,7 +26,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final _passwordController = TextEditingController();
 
   bool _isPasswordVisible = false;
-  bool _rememberMe = true;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -73,12 +72,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   void _togglePasswordVisibility() {
     setState(() {
       _isPasswordVisible = !_isPasswordVisible;
-    });
-  }
-
-  void _toggleRememberMe(bool? value) {
-    setState(() {
-      _rememberMe = value ?? true;
     });
   }
 
@@ -225,21 +218,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               const SizedBox(height: 20),
 
                               // ตัวเลือกจำข้อมูลผู้ใช้
-                              Row(
-                                children: [
-                                  Checkbox(
-                                    value: _rememberMe,
-                                    onChanged: _toggleRememberMe,
-                                    activeColor: AppTheme.primaryColor,
-                                  ),
-                                  const Text(
-                                    'จำข้อมูลผู้ใช้',
-                                    style: TextStyle(
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              // Row(
+                              //   children: [
+                              //     Checkbox(
+                              //       value: _rememberMe,
+                              //       onChanged: _toggleRememberMe,
+                              //       activeColor: AppTheme.primaryColor,
+                              //     ),
+                              //     const Text(
+                              //       'จำข้อมูลผู้ใช้',
+                              //       style: TextStyle(
+                              //         color: AppTheme.textSecondary,
+                              //       ),
+                              //     ),
+                              //   ],
+                              // ),
                               const SizedBox(height: 30),
 
                               // ปุ่มเข้าสู่ระบบ

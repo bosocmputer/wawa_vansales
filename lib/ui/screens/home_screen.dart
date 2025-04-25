@@ -14,8 +14,7 @@ import 'package:wawa_vansales/data/models/warehouse_model.dart';
 import 'package:wawa_vansales/ui/screens/customer_form_screen.dart';
 import 'package:wawa_vansales/ui/screens/customer_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
-import 'package:wawa_vansales/ui/screens/product_list_screen.dart';
-import 'package:wawa_vansales/ui/screens/warehouse_selection_screen.dart';
+import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
 import 'package:wawa_vansales/ui/widgets/custom_button.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -236,18 +235,13 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildQuickActionItem(Icons.add_shopping_cart, 'ขายสินค้า', Colors.orange),
-            _buildQuickActionItem(Icons.assignment, 'ประวัติออร์เดอร์', Colors.blue),
             _buildQuickActionItem(
-              Icons.inventory_2,
-              'สินค้าคงคลัง',
-              Colors.green,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ProductListScreen()),
-                );
-              },
+              Icons.add_shopping_cart,
+              'ขายสินค้า',
+              Colors.orange,
+              onTap: () {},
             ),
+            _buildQuickActionItem(Icons.assignment, 'ประวัติออร์เดอร์', Colors.blue),
             _buildQuickActionItem(
               Icons.person_add,
               'เพิ่มลูกค้า',
@@ -293,12 +287,9 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: (index) {
         switch (index) {
           case 0: // หน้าหลัก
-            // อยู่ที่หน้าหลักอยู่แล้ว ไม่ต้องทำอะไร
             break;
-          case 1: // สินค้า
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProductListScreen()),
-            );
+          case 1: // ขายสินค้า
+
             break;
           case 2: // ลูกค้า
             Navigator.of(context).push(
@@ -316,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'หน้าหลัก'),
-        BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'สินค้า'),
+        BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'ขายสินค้า'),
         BottomNavigationBarItem(icon: Icon(Icons.people), label: 'ลูกค้า'),
         BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'รายงาน'),
       ],

@@ -9,7 +9,7 @@ import 'package:wawa_vansales/blocs/warehouse/warehouse_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
-import 'package:wawa_vansales/ui/screens/warehouse_selection_screen.dart';
+import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
