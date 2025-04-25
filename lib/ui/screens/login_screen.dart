@@ -9,8 +9,6 @@ import 'package:wawa_vansales/blocs/warehouse/warehouse_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
-import 'package:wawa_vansales/ui/widgets/custom_button.dart';
-import 'package:wawa_vansales/ui/widgets/custom_text_field.dart';
 import 'package:wawa_vansales/utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -20,42 +18,16 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _userCodeController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _isPasswordVisible = false;
 
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
   @override
   void initState() {
     super.initState();
-
-    // สร้าง animation
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _fadeAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
-
-    _animationController.forward();
-
     // เติมข้อมูลตัวอย่าง (สำหรับการพัฒนา)
     _userCodeController.text = 'test';
     _passwordController.text = '8888';
@@ -65,7 +37,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   void dispose() {
     _userCodeController.dispose();
     _passwordController.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
@@ -99,12 +70,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 // เมื่อ login แล้ว ให้ตรวจสอบว่าได้เลือกคลังและโลเคชั่นหรือยัง
                 context.read<WarehouseBloc>().add(CheckWarehouseSelection());
               } else if (state is AuthFailure) {
-                // แสดงข้อความผิดพลาด
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: AppTheme.errorColor,
-                  ),
+                // แสดง dialog ข้อความผิดพลาด
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text('เข้าสู่ระบบไม่สำเร็จ'),
+                      content: Text(state.message),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('ปิด'),
+                        ),
+                      ],
+                    );
+                  },
                 );
               }
             },
@@ -130,139 +110,128 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Logo หรือภาพแบรนด์
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.3),
-                                blurRadius: 15,
-                                spreadRadius: 2,
-                              ),
-                            ],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Logo หรือภาพแบรนด์แบบเรียบง่าย
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'W',
+                          style: TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
-                          child: const Center(
-                            child: Text(
-                              'W',
-                              style: TextStyle(
-                                fontSize: 60,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'WAWA Van Sales',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'เข้าสู่ระบบเพื่อใช้งาน',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // แบบฟอร์มเข้าสู่ระบบแบบเรียบง่าย
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          // ช่องกรอกรหัสผู้ใช้
+                          TextFormField(
+                            controller: _userCodeController,
+                            decoration: const InputDecoration(
+                              labelText: 'รหัสผู้ใช้',
+                              hintText: 'กรอกรหัสผู้ใช้ของคุณ',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            validator: Validators.validateUserCode,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ช่องกรอกรหัสผ่าน
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: !_isPasswordVisible,
+                            decoration: InputDecoration(
+                              labelText: 'รหัสผ่าน',
+                              hintText: 'กรอกรหัสผ่านของคุณ',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                                ),
+                                onPressed: _togglePasswordVisibility,
                               ),
                             ),
+                            validator: Validators.validatePassword,
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'WAWA Van Sales',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'เข้าสู่ระบบเพื่อใช้งาน',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
+                          const SizedBox(height: 32),
 
-                        // แบบฟอร์มเข้าสู่ระบบ
-                        Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              // ช่องกรอกรหัสผู้ใช้
-                              CustomTextField(
-                                controller: _userCodeController,
-                                label: 'รหัสผู้ใช้',
-                                hint: 'กรอกรหัสผู้ใช้ของคุณ',
-                                keyboardType: TextInputType.text,
-                                prefixIcon: const Icon(Icons.person_outline, color: AppTheme.primaryColor),
-                                validator: Validators.validateUserCode,
-                              ),
-                              const SizedBox(height: 20),
-
-                              // ช่องกรอกรหัสผ่าน
-                              CustomTextField(
-                                controller: _passwordController,
-                                label: 'รหัสผ่าน',
-                                hint: 'กรอกรหัสผ่านของคุณ',
-                                obscureText: !_isPasswordVisible,
-                                prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.primaryColor),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                                    color: AppTheme.primaryColor,
+                          // ปุ่มเข้าสู่ระบบ
+                          BlocBuilder<AuthBloc, AuthState>(
+                            builder: (context, state) {
+                              return SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 15),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
-                                  onPressed: _togglePasswordVisibility,
+                                  onPressed: state is AuthLoading ? null : _submitForm,
+                                  child: state is AuthLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('เข้าสู่ระบบ'),
                                 ),
-                                validator: Validators.validatePassword,
-                              ),
-                              const SizedBox(height: 20),
-
-                              // ตัวเลือกจำข้อมูลผู้ใช้
-                              // Row(
-                              //   children: [
-                              //     Checkbox(
-                              //       value: _rememberMe,
-                              //       onChanged: _toggleRememberMe,
-                              //       activeColor: AppTheme.primaryColor,
-                              //     ),
-                              //     const Text(
-                              //       'จำข้อมูลผู้ใช้',
-                              //       style: TextStyle(
-                              //         color: AppTheme.textSecondary,
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
-                              const SizedBox(height: 30),
-
-                              // ปุ่มเข้าสู่ระบบ
-                              BlocBuilder<AuthBloc, AuthState>(
-                                builder: (context, state) {
-                                  return CustomButton(
-                                    text: 'เข้าสู่ระบบ',
-                                    isLoading: state is AuthLoading,
-                                    onPressed: _submitForm,
-                                    icon: const Icon(Icons.login, color: Colors.white, size: 20),
-                                  );
-                                },
-                              ),
-                            ],
+                              );
+                            },
                           ),
-                        ),
-
-                        const SizedBox(height: 40),
-
-                        // ข้อความด้านล่าง
-                        const Text(
-                          'WAWA Shop Service © 2025',
-                          style: TextStyle(
-                            color: AppTheme.textLight,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+
+                    const SizedBox(height: 24),
+
+                    // ข้อความด้านล่าง
+                    const Text(
+                      'WAWA Shop Service © 2025',
+                      style: TextStyle(
+                        color: AppTheme.textLight,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

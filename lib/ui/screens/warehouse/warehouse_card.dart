@@ -16,16 +16,25 @@ class WarehouseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12.0),
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
-        side: BorderSide(
-          color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-          width: 2.0,
+        border: Border.all(
+          color: isSelected ? AppTheme.primaryColor : Colors.grey.shade200,
+          width: isSelected ? 2.0 : 1.0,
         ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                )
+              ]
+            : null,
       ),
-      elevation: isSelected ? 3 : 1,
       child: InkWell(
         onTap: onSelected,
         borderRadius: BorderRadius.circular(12.0),
@@ -60,46 +69,37 @@ class WarehouseCard extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColorLight.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            warehouse.code,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
-                            ),
-                          ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColorLight.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        warehouse.code,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // Selection indicator
-              if (isSelected)
-                const Icon(
-                  Icons.check_circle,
-                  color: AppTheme.primaryColor,
-                  size: 24,
-                )
-              else
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: AppTheme.textSecondary,
-                  size: 16,
-                ),
+              // Icon
+              Icon(
+                isSelected ? Icons.check_circle : Icons.arrow_forward_ios,
+                color: isSelected ? AppTheme.primaryColor : AppTheme.textSecondary,
+                size: isSelected ? 24 : 16,
+              ),
             ],
           ),
         ),

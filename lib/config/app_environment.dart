@@ -40,6 +40,16 @@ class AppEnvironment {
   // Get the configured logger
   static Logger get logger => _logger ?? Logger();
 
+  static bool get isDebugMode {
+    bool isDebug = false;
+    // This is set to true only during debugging
+    assert(() {
+      isDebug = true;
+      return true;
+    }());
+    return isDebug;
+  }
+
   // Get the appropriate log filter based on environment
   static LogFilter _getLogFilter() {
     if (isProduction) {

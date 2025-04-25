@@ -158,83 +158,85 @@ class _WarehouseSelectionScreenState extends State<WarehouseSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('เลือกคลังและพื้นที่จัดเก็บ'),
-        leading: _currentStep > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: _goBack,
-              )
-            : null,
-        actions: [
-          // Reset button - only show when there's something to reset
-          if ((_currentStep == 0 && _selectedWarehouse != null) || (_currentStep == 1 && _selectedLocation != null))
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _resetCurrentSelection,
-              tooltip: 'เลือกใหม่',
-            ),
-        ],
-      ),
-      body: BlocListener<WarehouseBloc, WarehouseState>(
-        listener: (context, state) {
-          // Handle state changes
-          if (state is WarehouseAndLocationSaved) {
-            // Close loading dialog and navigate to home
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-            );
-          } else if (state is WarehousesLoaded) {
-            setState(() {
-              _warehouses = state.warehouses;
-            });
-          } else if (state is LocationsLoaded) {
-            setState(() {
-              _locations = state.locations;
-            });
-          } else if (state is WarehousesError || state is LocationsError) {
-            final errorMessage = state is WarehousesError ? state.message : (state as LocationsError).message;
-
-            // Show error message
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('เกิดข้อผิดพลาด: $errorMessage'),
-                backgroundColor: AppTheme.errorColor,
-                behavior: SnackBarBehavior.floating,
-                action: SnackBarAction(
-                  label: 'ลองใหม่',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    if (state is WarehousesError) {
-                      context.read<WarehouseBloc>().add(FetchWarehouses());
-                    } else if (state is LocationsError && _selectedWarehouse != null) {
-                      context.read<WarehouseBloc>().add(SelectWarehouse(_selectedWarehouse!));
-                    }
-                  },
-                ),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('เลือกคลังและพื้นที่จัดเก็บ'),
+          leading: _currentStep > 0
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _goBack,
+                )
+              : null,
+          actions: [
+            // Reset button - only show when there's something to reset
+            if ((_currentStep == 0 && _selectedWarehouse != null) || (_currentStep == 1 && _selectedLocation != null))
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _resetCurrentSelection,
+                tooltip: 'เลือกใหม่',
               ),
-            );
-          }
-        },
-        child: Column(
-          children: [
-            // Stepper showing progression through the flow
-            SelectionStepper(
-              currentStep: _currentStep,
-              warehouseSelected: _selectedWarehouse != null,
-              locationSelected: _selectedLocation != null,
-            ),
-
-            // Main content area - changes based on current step
-            Expanded(
-              child: _buildCurrentStepContent(),
-            ),
-
-            // Bottom navigation buttons
-            _buildBottomButtons(),
           ],
+        ),
+        body: BlocListener<WarehouseBloc, WarehouseState>(
+          listener: (context, state) {
+            // Handle state changes
+            if (state is WarehouseAndLocationSaved) {
+              // Close loading dialog and navigate to home
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+              );
+            } else if (state is WarehousesLoaded) {
+              setState(() {
+                _warehouses = state.warehouses;
+              });
+            } else if (state is LocationsLoaded) {
+              setState(() {
+                _locations = state.locations;
+              });
+            } else if (state is WarehousesError || state is LocationsError) {
+              final errorMessage = state is WarehousesError ? state.message : (state as LocationsError).message;
+
+              // Show error message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('เกิดข้อผิดพลาด: $errorMessage'),
+                  backgroundColor: AppTheme.errorColor,
+                  behavior: SnackBarBehavior.floating,
+                  action: SnackBarAction(
+                    label: 'ลองใหม่',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      if (state is WarehousesError) {
+                        context.read<WarehouseBloc>().add(FetchWarehouses());
+                      } else if (state is LocationsError && _selectedWarehouse != null) {
+                        context.read<WarehouseBloc>().add(SelectWarehouse(_selectedWarehouse!));
+                      }
+                    },
+                  ),
+                ),
+              );
+            }
+          },
+          child: Column(
+            children: [
+              // Stepper showing progression through the flow
+              SelectionStepper(
+                currentStep: _currentStep,
+                warehouseSelected: _selectedWarehouse != null,
+                locationSelected: _selectedLocation != null,
+              ),
+
+              // Main content area - changes based on current step
+              Expanded(
+                child: _buildCurrentStepContent(),
+              ),
+
+              // Bottom navigation buttons
+              _buildBottomButtons(),
+            ],
+          ),
         ),
       ),
     );
