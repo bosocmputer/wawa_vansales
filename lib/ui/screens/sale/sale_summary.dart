@@ -23,8 +23,8 @@ class SaleSummary extends StatelessWidget {
     for (final item in items) {
       final quantity = item.quantity ?? 0;
       final price = item.price ?? 0.0;
-      totalAmount += quantity * price;
-      totalItems += quantity;
+      totalAmount += int.parse(quantity.toString()) * int.parse(price.toString());
+      totalItems += int.parse(quantity.toString());
     }
 
     return Container(
@@ -88,32 +88,6 @@ class SaleSummary extends StatelessWidget {
                 ],
               ),
             ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // ปุ่มบันทึกรายการขาย
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // ส่งต่อเหตุการณ์ไปยัง _saveTransaction ใน SaleScreen
-                Navigator.of(context).maybePop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: const Icon(Icons.save),
-              label: const Text(
-                'บันทึกรายการขาย',
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
           ),
         ],
       ),

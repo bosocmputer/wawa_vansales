@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
+import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
@@ -113,6 +114,11 @@ class MyApp extends StatelessWidget {
         ),
         BlocProvider<ProductBloc>(
           create: (context) => ProductBloc(
+            productRepository: productRepository,
+          ),
+        ),
+        BlocProvider<ProductDetailBloc>(
+          create: (context) => ProductDetailBloc(
             productRepository: productRepository,
           ),
         ),

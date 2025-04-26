@@ -55,6 +55,9 @@ dependencies:
   logger: ^2.0.2+1
   connectivity_plus: ^5.0.1
 
+  blue_thermal_printer:
+    path: packages/blue_thermal_printer
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -25,7 +25,7 @@ class SaleItemList extends StatelessWidget {
 
   Widget _buildItemCard(SaleItemModel item, int index) {
     final numberFormat = NumberFormat('#,##0.00', 'th_TH');
-    final totalPrice = (item.price ?? 0) * (item.quantity ?? 0);
+    final totalPrice = int.parse(item.price!) * int.parse(item.quantity!);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
@@ -106,7 +106,7 @@ class SaleItemList extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '฿${numberFormat.format(item.price ?? 0)}',
+                    '฿${numberFormat.format(int.parse(item.price.toString()))}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

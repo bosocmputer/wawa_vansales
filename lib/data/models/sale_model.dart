@@ -16,6 +16,7 @@ class SaleModel {
   String locationcode;
   String locationname;
   List<SaleItemModel>? items;
+  String totalamount;
 
   SaleModel({
     String? docno,
@@ -29,6 +30,7 @@ class SaleModel {
     String? locationcode,
     String? locationname,
     List<SaleItemModel>? items,
+    String? totalamount,
   })  : docno = docno ?? '',
         docdate = docdate ?? '',
         custcode = custcode ?? '',
@@ -39,7 +41,8 @@ class SaleModel {
         whname = whname ?? '',
         locationcode = locationcode ?? '',
         locationname = locationname ?? '',
-        items = items ?? [];
+        items = items ?? [],
+        totalamount = totalamount ?? '0.00';
   factory SaleModel.fromJson(Map<String, dynamic> json) => _$SaleModelFromJson(json);
   Map<String, dynamic> toJson() => _$SaleModelToJson(this);
 }

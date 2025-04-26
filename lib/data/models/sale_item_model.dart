@@ -8,8 +8,8 @@ class SaleItemModel {
   String? itemName;
   String? unitCode;
   String? unitName;
-  int? quantity;
-  double? price;
+  String? quantity;
+  String? price;
 
   SaleItemModel({
     String? barcode,
@@ -17,15 +17,15 @@ class SaleItemModel {
     String? itemName,
     String? unitCode,
     String? unitName,
-    int? quantity,
-    double? price,
+    String? quantity,
+    String? price,
   })  : barcode = barcode ?? '',
         itemCode = itemCode ?? '',
         itemName = itemName ?? '',
         unitCode = unitCode ?? '',
         unitName = unitName ?? '',
-        quantity = quantity ?? 0,
-        price = price ?? 0.0;
+        quantity = quantity ?? '',
+        price = price ?? '';
 
   factory SaleItemModel.fromJson(Map<String, dynamic> json) => _$SaleItemModelFromJson(json);
 

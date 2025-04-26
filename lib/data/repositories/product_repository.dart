@@ -1,4 +1,5 @@
 import 'package:logger/logger.dart';
+import 'package:wawa_vansales/data/models/product_detail_model.dart';
 import 'package:wawa_vansales/data/models/product_model.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
 
@@ -65,6 +66,60 @@ class ProductRepository {
     } catch (e) {
       _logger.e('Get products error: $e');
       return _getMockProducts();
+    }
+  }
+
+  Future<ProductDetailModel?> getProductByBarcode(String barcode, String customerCode) async {
+    try {
+      _logger.i('Fetching product detail with barcode: $barcode for customer: $customerCode');
+
+      final response = await _apiService.get(
+        '/getBarcodeDetail',
+        queryParameters: {
+          'barcode': barcode,
+          'cust_code': customerCode,
+        },
+      );
+
+      _logger.i('Get product detail response: ${response.statusCode}: ${response.data}');
+
+      if (response.statusCode == 404) {
+        _logger.e('API endpoint not found (404)');
+        return null;
+      }
+
+      try {
+        if (response.data == null) {
+          throw Exception('ไม่มีข้อมูลตอบกลับจาก API');
+        }
+
+        // Log response data format
+        _logger.i('Response data type: ${response.data.runtimeType}');
+
+        Map<String, dynamic> validResponse;
+
+        if (response.data is Map && response.data.containsKey('data') && response.data.containsKey('success')) {
+          validResponse = response.data;
+        } else {
+          _logger.w('Invalid response format, using mock data');
+          return null;
+        }
+
+        final productResponse = ProductDetailResponse.fromJson(validResponse);
+
+        if (!productResponse.success || productResponse.data.isEmpty) {
+          _logger.w('Product not found or API returned empty data');
+          return null;
+        }
+
+        return productResponse.data.first;
+      } catch (parseError) {
+        _logger.e('Error parsing response: $parseError');
+        return null;
+      }
+    } catch (e) {
+      _logger.e('Get product detail error: $e');
+      return null;
     }
   }
 

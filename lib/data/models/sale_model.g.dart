@@ -20,6 +20,7 @@ SaleModel _$SaleModelFromJson(Map<String, dynamic> json) => SaleModel(
       items: (json['items'] as List<dynamic>?)
           ?.map((e) => SaleItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      totalamount: json['totalamount'] as String?,
     );
 
 Map<String, dynamic> _$SaleModelToJson(SaleModel instance) => <String, dynamic>{
@@ -34,4 +35,5 @@ Map<String, dynamic> _$SaleModelToJson(SaleModel instance) => <String, dynamic>{
       'locationcode': instance.locationcode,
       'locationname': instance.locationname,
       'items': instance.items,
+      'totalamount': instance.totalamount,
     };
