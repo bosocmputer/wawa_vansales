@@ -11,7 +11,7 @@ class ReceiptTemplate {
 
   static Future<Uint8List> generateReceiptImage(ReceiptModel receipt) async {
     // คำนวณความสูงของใบเสร็จ
-    int receiptHeight = 600 + (receipt.items!.length * 30);
+    int receiptHeight = 700 + (receipt.items!.length * 40);
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -30,19 +30,19 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       "WAWA Shop Service",
-      24,
+      20, // ลดขนาดฟอนต์ลง
       FontWeight.bold,
       TextAlign.center,
       yPosition,
       width: receiptWidth.toDouble(),
     );
-    yPosition += 40;
+    yPosition += 35;
 
     // ที่อยู่และเบอร์โทร
     _drawText(
       canvas,
       "123 ถ.สุขุมวิท กรุงเทพฯ 10110",
-      14,
+      12, // ลดขนาดฟอนต์ลง
       FontWeight.normal,
       TextAlign.center,
       yPosition,
@@ -53,13 +53,13 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       "โทร: 02-123-4567",
-      14,
+      12, // ลดขนาดฟอนต์ลง
       FontWeight.normal,
       TextAlign.center,
       yPosition,
       width: receiptWidth.toDouble(),
     );
-    yPosition += 40;
+    yPosition += 35;
 
     // เส้นคั่น
     _drawDottedLine(canvas, yPosition, receiptWidth - padding * 2);
@@ -69,7 +69,7 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       "ใบเสร็จการขาย",
-      16,
+      14, // ลดขนาดฟอนต์ลง
       FontWeight.bold,
       TextAlign.center,
       yPosition,
@@ -77,11 +77,11 @@ class ReceiptTemplate {
     );
     yPosition += 30;
 
-    // เลขที่เอกสาร
+    // รายละเอียดอื่นๆ (ลดขนาดฟอนต์ลง)
     _drawText(
       canvas,
       "เลขที่: ${receipt.docNo}",
-      14,
+      12,
       FontWeight.normal,
       TextAlign.left,
       yPosition,
@@ -89,12 +89,11 @@ class ReceiptTemplate {
     );
     yPosition += 25;
 
-    // วันที่
     final formattedDate = _formatDate(receipt.date!);
     _drawText(
       canvas,
       "วันที่: $formattedDate",
-      14,
+      12,
       FontWeight.normal,
       TextAlign.left,
       yPosition,
@@ -102,11 +101,10 @@ class ReceiptTemplate {
     );
     yPosition += 25;
 
-    // ลูกค้า
     _drawText(
       canvas,
       "ลูกค้า: ${receipt.customerName}",
-      14,
+      12,
       FontWeight.normal,
       TextAlign.left,
       yPosition,
@@ -114,11 +112,10 @@ class ReceiptTemplate {
     );
     yPosition += 25;
 
-    // รหัสลูกค้า
     _drawText(
       canvas,
       "รหัส: ${receipt.customerCode}",
-      14,
+      12,
       FontWeight.normal,
       TextAlign.left,
       yPosition,
@@ -130,11 +127,11 @@ class ReceiptTemplate {
     _drawDottedLine(canvas, yPosition, receiptWidth - padding * 2);
     yPosition += 20;
 
-    // หัวตารางสินค้า
+    // หัวตารางสินค้า (ลดขนาดฟอนต์)
     _drawText(
       canvas,
       "รายการ",
-      14,
+      12,
       FontWeight.bold,
       TextAlign.left,
       yPosition,
@@ -144,7 +141,7 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       "จำนวน",
-      14,
+      12,
       FontWeight.bold,
       TextAlign.center,
       yPosition,
@@ -154,7 +151,7 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       "ราคา",
-      14,
+      12,
       FontWeight.bold,
       TextAlign.center,
       yPosition,
@@ -164,7 +161,7 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       "รวม",
-      14,
+      12,
       FontWeight.bold,
       TextAlign.right,
       yPosition,
@@ -182,7 +179,7 @@ class ReceiptTemplate {
       _drawText(
         canvas,
         item.itemName ?? '',
-        14,
+        12,
         FontWeight.normal,
         TextAlign.left,
         yPosition,
@@ -194,7 +191,7 @@ class ReceiptTemplate {
       _drawText(
         canvas,
         "${item.quantity}",
-        14,
+        12,
         FontWeight.normal,
         TextAlign.center,
         yPosition,
@@ -202,11 +199,10 @@ class ReceiptTemplate {
       );
 
       // ราคา
-      final priceFormat = NumberFormat('#,##0.00', 'th_TH');
       _drawText(
         canvas,
         item.price!,
-        14,
+        12,
         FontWeight.normal,
         TextAlign.center,
         yPosition,
@@ -214,10 +210,12 @@ class ReceiptTemplate {
       );
 
       // ราคารวม
+      final total = double.parse(item.price!) * double.parse(item.quantity!);
+      final numberFormat = NumberFormat('#,##0.00', 'th_TH');
       _drawText(
         canvas,
-        "${item.price} x ${item.quantity}",
-        14,
+        numberFormat.format(total),
+        12,
         FontWeight.normal,
         TextAlign.right,
         yPosition,
@@ -232,11 +230,10 @@ class ReceiptTemplate {
     yPosition += 20;
 
     // ยอดรวม
-    final numberFormat = NumberFormat('#,##0.00', 'th_TH');
     _drawText(
       canvas,
       "ยอดรวม",
-      16,
+      14,
       FontWeight.bold,
       TextAlign.left,
       yPosition,
@@ -246,7 +243,7 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       receipt.totalAmount!,
-      16,
+      14,
       FontWeight.bold,
       TextAlign.right,
       yPosition,
@@ -258,7 +255,7 @@ class ReceiptTemplate {
     _drawText(
       canvas,
       "ขอบคุณที่ใช้บริการ",
-      14,
+      12,
       FontWeight.normal,
       TextAlign.center,
       yPosition,
@@ -272,9 +269,15 @@ class ReceiptTemplate {
     // แปลงเป็น PNG
     final picture = recorder.endRecording();
     final img = await picture.toImage(receiptWidth, receiptHeight);
+
+    // แปลงเป็น ByteData
     final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
 
-    return byteData!.buffer.asUint8List();
+    if (byteData == null) {
+      throw Exception('Failed to convert image to bytes');
+    }
+
+    return byteData.buffer.asUint8List();
   }
 
   static void _drawText(

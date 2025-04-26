@@ -1,6 +1,8 @@
 // lib/ui/screens/sale/sale_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:logger/logger.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_event.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_state.dart';
@@ -37,6 +39,7 @@ class _SaleScreenState extends State<SaleScreen> {
   final _barcodeNode = FocusNode();
 
   final PrinterService _printerService = PrinterService();
+  final Logger _logger = Logger();
 
   // State variables
   SaleModel? _transaction;
@@ -58,6 +61,7 @@ class _SaleScreenState extends State<SaleScreen> {
 
   @override
   void dispose() {
+    _printerService.disconnectPrinter();
     _barcodeController.dispose();
     _barcodeNode.dispose();
     super.dispose();
@@ -137,6 +141,20 @@ class _SaleScreenState extends State<SaleScreen> {
             customerCode: _selectedCustomer!.code!,
           ),
         );
+  }
+
+  double _calculateTotal() {
+    double total = 0.0;
+    for (var item in _salesItems) {
+      try {
+        double price = double.parse(item.price ?? '0');
+        int quantity = int.parse(item.quantity ?? '0');
+        total += price * quantity;
+      } catch (e) {
+        _logger.e('Error calculating total: $e');
+      }
+    }
+    return total;
   }
 
   void _saveTransaction() async {
@@ -257,44 +275,159 @@ class _SaleScreenState extends State<SaleScreen> {
   Future<void> _printReceipt() async {
     if (_transaction == null) return;
 
-    setState(() => _isLoadingProduct = true);
+    // แสดง loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text('กำลังพิมพ์ใบเสร็จ...'),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  _printerService.resetConnectionStatus();
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('ยกเลิก'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
     try {
       // สร้าง Receipt Model
+      final receipt = _createReceiptModel();
 
-      final receipt = ReceiptModel(
-        date: _transaction?.docdate,
-        docNo: _transaction?.docno,
-        customerName: _transaction?.custname,
-        customerCode: _transaction?.custcode,
-        warehouseName: _transaction?.whname,
-        employeeName: _transaction?.empname,
-        items: _transaction!.items!,
-        totalAmount: _transaction!.totalamount,
-        paymentMethod: 'เงินสด',
-      );
+      // ใช้การพิมพ์แบบที่ทำงานได้ (แบบผสม: ข้อความ + ESC/POS formatting)
+      bool success = await _printerService.printReceipt(receipt);
 
-      // สร้างรูปภาพใบเสร็จ
-      final imageBytes = await ReceiptTemplate.generateReceiptImage(receipt);
+      // ถ้าไม่สำเร็จ ลองพิมพ์แบบข้อความธรรมดา
+      if (!success) {
+        _logger.i('Trying simple print as fallback...');
+        success = await _printerService.printSimpleReceipt(receipt);
+      }
 
-      // พิมพ์
-      final success = await _printerService.printImageBytes(imageBytes);
+      // ปิด loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
 
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('พิมพ์ใบเสร็จสำเร็จ')),
-        );
-      } else {
-        throw Exception('ไม่สามารถเชื่อมต่อเครื่องพิมพ์');
+      // แสดงผลลัพธ์
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('พิมพ์ใบเสร็จสำเร็จ'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+
+          // รีเซ็ตข้อมูล
+          _initTransaction();
+          setState(() {
+            _selectedCustomer = null;
+            _salesItems.clear();
+          });
+        } else {
+          // แสดง dialog แจ้งเตือนว่าพิมพ์ไม่สำเร็จ
+          _showPrinterErrorDialog();
+        }
       }
     } catch (e) {
-      debugPrint('Error printing receipt: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('พิมพ์ใบเสร็จไม่สำเร็จ: ${e.toString()}')),
-      );
+      _logger.e('Error printing receipt: $e');
+
+      // ปิด loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      if (mounted) {
+        _showErrorDialog('เกิดข้อผิดพลาด', e.toString());
+      }
     } finally {
-      setState(() => _isLoadingProduct = false);
+      // รีเซ็ตสถานะ
+      _printerService.resetConnectionStatus();
     }
+  }
+
+  // สร้าง Receipt Model
+  ReceiptModel _createReceiptModel() {
+    double totalAmount = _calculateTotal();
+    final numberFormat = NumberFormat('#,##0.00', 'th_TH');
+
+    return ReceiptModel(
+      date: _transaction?.docdate ?? DateTime.now().toString(),
+      docNo: _transaction?.docno ?? 'S000000',
+      customerName: _transaction?.custname ?? 'ลูกค้าทั่วไป',
+      customerCode: _transaction?.custcode ?? '-',
+      warehouseName: _transaction?.whname ?? 'คลังหลัก',
+      employeeName: _transaction?.empname ?? 'พนักงานขาย',
+      items: _transaction?.items ?? [],
+      totalAmount: numberFormat.format(totalAmount),
+      paymentMethod: 'เงินสด',
+    );
+  }
+
+  // แสดง dialog เมื่อพิมพ์ไม่สำเร็จ
+  void _showPrinterErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('พิมพ์ไม่สำเร็จ'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('ไม่สามารถเชื่อมต่อเครื่องพิมพ์ได้'),
+            const SizedBox(height: 16),
+            const Text('คำแนะนำ:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('1. ตรวจสอบว่าเครื่องพิมพ์เปิดอยู่'),
+            const Text('2. ตรวจสอบบลูทูธ'),
+            const Text('3. ตรวจสอบกระดาษ'),
+            const Text('4. ลองปิดแอปแล้วเปิดใหม่'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('ปิด'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _printReceipt();
+            },
+            child: const Text('ลองอีกครั้ง'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // แสดง dialog error
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
