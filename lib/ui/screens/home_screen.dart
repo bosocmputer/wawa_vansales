@@ -14,6 +14,7 @@ import 'package:wawa_vansales/data/models/warehouse_model.dart';
 import 'package:wawa_vansales/ui/screens/customer_form_screen.dart';
 import 'package:wawa_vansales/ui/screens/customer_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
+import 'package:wawa_vansales/ui/screens/sale/sale_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
 import 'package:wawa_vansales/ui/widgets/custom_button.dart';
 
@@ -239,7 +240,11 @@ class _HomeScreenState extends State<HomeScreen> {
               Icons.add_shopping_cart,
               'ขายสินค้า',
               Colors.orange,
-              onTap: () {},
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SaleScreen()),
+                );
+              },
             ),
             // _buildQuickActionItem(Icons.assignment, 'ประวัติออร์เดอร์', Colors.blue),
             _buildQuickActionItem(
@@ -289,6 +294,9 @@ class _HomeScreenState extends State<HomeScreen> {
           case 0: // หน้าหลัก
             break;
           case 1: // ขายสินค้า
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SaleScreen()),
+            );
 
             break;
           case 2: // ลูกค้า

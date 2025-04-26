@@ -17,7 +17,8 @@ ProductModel _$ProductModelFromJson(Map<String, dynamic> json) => ProductModel(
       ratio: json['ratio'] as String,
     );
 
-Map<String, dynamic> _$ProductModelToJson(ProductModel instance) => <String, dynamic>{
+Map<String, dynamic> _$ProductModelToJson(ProductModel instance) =>
+    <String, dynamic>{
       'item_code': instance.itemCode,
       'item_name': instance.itemName,
       'barcode': instance.barcode,
@@ -28,12 +29,16 @@ Map<String, dynamic> _$ProductModelToJson(ProductModel instance) => <String, dyn
       'ratio': instance.ratio,
     };
 
-ProductResponse _$ProductResponseFromJson(Map<String, dynamic> json) => ProductResponse(
+ProductResponse _$ProductResponseFromJson(Map<String, dynamic> json) =>
+    ProductResponse(
       success: json['success'] as bool,
-      data: (json['data'] as List<dynamic>).map((e) => ProductModel.fromJson(e as Map<String, dynamic>)).toList(),
+      data: (json['data'] as List<dynamic>)
+          .map((e) => ProductModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
-Map<String, dynamic> _$ProductResponseToJson(ProductResponse instance) => <String, dynamic>{
+Map<String, dynamic> _$ProductResponseToJson(ProductResponse instance) =>
+    <String, dynamic>{
       'success': instance.success,
       'data': instance.data,
     };
