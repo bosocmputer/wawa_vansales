@@ -10,6 +10,7 @@ import 'package:wawa_vansales/blocs/product_detail/product_detail_event.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
+import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
 import 'package:intl/intl.dart';
 
 class SaleCartStep extends StatefulWidget {
@@ -111,6 +112,23 @@ class _SaleCartStepState extends State<SaleCartStep> {
     });
   }
 
+  Future<void> _openProductSearch() async {
+    final cartState = context.read<CartBloc>().state;
+    if (cartState is CartLoaded && cartState.selectedCustomer != null) {
+      final result = await Navigator.of(context).push<CartItemModel?>(
+        MaterialPageRoute(
+          builder: (_) => ProductSearchScreen(
+            customerCode: cartState.selectedCustomer!.code!,
+          ),
+        ),
+      );
+
+      if (result != null && mounted) {
+        context.read<CartBloc>().add(AddItemToCart(result));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProductDetailBloc, ProductDetailState>(
@@ -173,12 +191,39 @@ class _SaleCartStepState extends State<SaleCartStep> {
       child: Column(
         children: [
           // ช่องค้นหาบาร์โค้ด
+          // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: Colors.white,
             child: Column(
               children: [
-                // // ปุ่มสลับโหมด
+                // แถวบนสุด: ช่องค้นหาและปุ่มเลือกสินค้า
+                Row(
+                  children: [
+                    // ช่องค้นหาบาร์โค้ด
+                    Expanded(
+                      child: _isScanMode ? _buildScanTextField() : _buildSearchTextField(),
+                    ),
+                    const SizedBox(width: 8),
+                    // ปุ่มเลือกสินค้า (ส่วนที่เพิ่มใหม่)
+                    SizedBox(
+                      height: 40,
+                      child: ElevatedButton.icon(
+                        onPressed: _openProductSearch,
+                        icon: const Icon(Icons.search, size: 20),
+                        label: const Text('เลือกสินค้า', style: TextStyle(fontSize: 14)),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // แถวล่าง: ปุ่มสลับโหมด
                 // Row(
                 //   children: [
                 //     TextButton.icon(
@@ -202,14 +247,9 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 //     ),
                 //   ],
                 // ),
-                // const SizedBox(height: 4),
-
-                // แสดง TextField ตามโหมด
-                _isScanMode ? _buildScanTextField() : _buildSearchTextField(),
               ],
             ),
           ),
-
           // แสดงสถานะการค้นหา
           BlocBuilder<ProductDetailBloc, ProductDetailState>(
             builder: (context, state) {

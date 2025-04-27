@@ -11,6 +11,7 @@ import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
+import 'package:wawa_vansales/ui/screens/home_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_cart_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_customer_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_payment_step.dart';
@@ -333,6 +334,7 @@ class _SaleScreenState extends State<SaleScreen> {
             title: const Text('ขายสินค้า'),
           ),
           body: BlocConsumer<CartBloc, CartState>(
+            // แก้ไขในส่วน BlocConsumer ของ sale_screen.dart
             listener: (context, state) async {
               if (state is CartError) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -342,11 +344,21 @@ class _SaleScreenState extends State<SaleScreen> {
                   ),
                 );
               } else if (state is CartSubmitSuccess) {
+                // แจ้งเตือนว่าบันทึกสำเร็จ
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('บันทึกการขายเรียบร้อยแล้ว'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+
+                // ถามว่าต้องการพิมพ์ใบเสร็จหรือไม่
                 final shouldPrint = await showDialog<bool>(
                   context: context,
+                  barrierDismissible: false,
                   builder: (context) => AlertDialog(
-                    title: const Text('บันทึกเรียบร้อย'),
-                    content: const Text('คุณต้องการพิมพ์ใบเสร็จเลยหรือไม่?'),
+                    title: const Text('การขายสำเร็จ'),
+                    content: Text('เลขที่เอกสาร: ${state.documentNumber}\nคุณต้องการพิมพ์ใบเสร็จหรือไม่?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
@@ -361,29 +373,93 @@ class _SaleScreenState extends State<SaleScreen> {
                 );
 
                 if (shouldPrint == true) {
-                  // เรียกสร้างใบเสร็จ + พิมพ์
+                  // แสดง loading dialog
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const AlertDialog(
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('กำลังพิมพ์ใบเสร็จ...'),
+                        ],
+                      ),
+                    ),
+                  );
+
+                  // พิมพ์ใบเสร็จ
                   if (_isConnected) {
-                    final cartState = context.read<CartBloc>().state;
-                    if (cartState is CartLoaded) {
+                    try {
                       final receiptImage = await _createReceiptImage(
-                        cartState.selectedCustomer!,
-                        cartState.items,
-                        cartState.payments,
-                        cartState.totalAmount,
+                        state.customer,
+                        state.items,
+                        state.payments,
+                        state.totalAmount,
                       );
+
                       if (receiptImage != null) {
                         await _printer.printImageBytes(receiptImage);
+
+                        // ปิด loading dialog
+                        Navigator.of(context).pop();
+
+                        // แสดง dialog ยืนยันการพิมพ์
+                        final printResult = await showDialog<String>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => AlertDialog(
+                            title: const Text('พิมพ์ใบเสร็จเสร็จสิ้น'),
+                            content: const Text('พิมพ์ใบเสร็จเรียบร้อยแล้ว'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop('reprint'),
+                                child: const Text('พิมพ์ใหม่'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.of(context).pop('done'),
+                                child: const Text('ยืนยัน'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (printResult == 'reprint') {
+                          // พิมพ์ใหม่
+                          await _printer.printImageBytes(receiptImage);
+                        }
                       }
-                    } else {
+                    } catch (e) {
+                      // ปิด loading dialog
+                      Navigator.of(context).pop();
+
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ไม่สามารถพิมพ์ได้ กรุณาเชื่อมต่อเครื่องพิมพ์')),
+                        SnackBar(
+                          content: Text('เกิดข้อผิดพลาดในการพิมพ์: $e'),
+                          backgroundColor: AppTheme.errorColor,
+                        ),
                       );
                     }
-                  }
+                  } else {
+                    // ปิด loading dialog
+                    Navigator.of(context).pop();
 
-                  // รีเซ็ตตะกร้า
-                  context.read<CartBloc>().add(ClearCart());
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('ไม่สามารถพิมพ์ได้ กรุณาเชื่อมต่อเครื่องพิมพ์'),
+                        backgroundColor: AppTheme.errorColor,
+                      ),
+                    );
+                  }
                 }
+
+                // รีเซ็ตตะกร้าและกลับหน้าหลัก
+                context.read<CartBloc>().add(ClearCart());
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  (route) => false,
+                );
               }
             },
             builder: (context, state) {

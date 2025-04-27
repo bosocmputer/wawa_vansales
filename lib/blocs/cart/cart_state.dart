@@ -70,7 +70,24 @@ class CartLoaded extends CartState {
 class CartSubmitting extends CartState {}
 
 // บันทึกการขายสำเร็จ
-class CartSubmitSuccess extends CartState {}
+class CartSubmitSuccess extends CartState {
+  final String documentNumber;
+  final CustomerModel customer;
+  final List<CartItemModel> items;
+  final List<PaymentModel> payments;
+  final double totalAmount;
+
+  const CartSubmitSuccess({
+    required this.documentNumber,
+    required this.customer,
+    required this.items,
+    required this.payments,
+    required this.totalAmount,
+  });
+
+  @override
+  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount];
+}
 
 // เกิดข้อผิดพลาด
 class CartError extends CartState {

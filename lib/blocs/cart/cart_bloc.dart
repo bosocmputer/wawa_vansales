@@ -264,9 +264,13 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         final success = await _saleRepository.saveSaleTransaction(transaction);
 
         if (success) {
-          emit(CartSubmitSuccess());
-
-          emit(const CartLoaded());
+          emit(CartSubmitSuccess(
+            documentNumber: docNo,
+            customer: currentState.selectedCustomer!,
+            items: currentState.items,
+            payments: currentState.payments,
+            totalAmount: currentState.totalAmount,
+          ));
         } else {
           emit(const CartError('ไม่สามารถบันทึกการขายได้'));
         }
