@@ -18,6 +18,7 @@ class CustomButton extends StatelessWidget {
   final double fontSize;
   final FontWeight fontWeight;
   final Color? customColor;
+  final bool isCompact;
 
   const CustomButton({
     super.key,
@@ -35,6 +36,7 @@ class CustomButton extends StatelessWidget {
     this.fontSize = 16,
     this.fontWeight = FontWeight.w600,
     this.customColor,
+    this.isCompact = false,
   });
 
   @override
@@ -79,26 +81,52 @@ class CustomButton extends StatelessWidget {
         child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(buttonType == ButtonType.primary ? Colors.white : AppTheme.primaryColor)),
       );
     } else if (icon != null) {
-      const spacing = SizedBox(width: 8);
+      final spacing = SizedBox(width: isCompact ? 4 : 8);
 
       if (iconAfterText) {
         buttonChild = Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [Text(text, style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: fontWeight)), spacing, icon!],
+          children: [
+            Flexible(
+              child: Text(
+                text,
+                style: TextStyle(color: textColor, fontSize: isCompact ? fontSize - 1 : fontSize, fontWeight: fontWeight),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            spacing,
+            icon!,
+          ],
         );
       } else {
         buttonChild = Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [icon!, spacing, Text(text, style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: fontWeight))],
+          children: [
+            icon!,
+            spacing,
+            Flexible(
+              child: Text(
+                text,
+                style: TextStyle(color: textColor, fontSize: isCompact ? fontSize - 1 : fontSize, fontWeight: fontWeight),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         );
       }
     } else {
-      buttonChild = Text(text, style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: fontWeight));
+      buttonChild = Text(
+        text,
+        style: TextStyle(color: textColor, fontSize: isCompact ? fontSize - 1 : fontSize, fontWeight: fontWeight),
+        overflow: TextOverflow.ellipsis,
+      );
     }
 
     // กำหนด style ของปุ่ม
+    final EdgeInsetsGeometry defaultPadding = isCompact ? const EdgeInsets.symmetric(horizontal: 10, vertical: 10) : const EdgeInsets.symmetric(horizontal: 16, vertical: 14);
+
     final buttonStyle = ButtonStyle(
       backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
         if (states.contains(WidgetState.disabled)) {
@@ -118,10 +146,11 @@ class CustomButton extends StatelessWidget {
         }
         return null;
       }),
-      padding: WidgetStateProperty.all<EdgeInsetsGeometry>(padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+      padding: WidgetStateProperty.all<EdgeInsetsGeometry>(padding ?? defaultPadding),
       shape: WidgetStateProperty.all<RoundedRectangleBorder>(
         RoundedRectangleBorder(borderRadius: defaultBorderRadius, side: borderColor != null ? BorderSide(color: borderColor, width: 1.5) : BorderSide.none),
       ),
+      minimumSize: isCompact ? WidgetStateProperty.all<Size>(const Size(0, 36)) : null,
     );
 
     // สร้างปุ่มตามประเภท

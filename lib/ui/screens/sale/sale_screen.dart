@@ -10,7 +10,7 @@ import 'package:wawa_vansales/ui/screens/sale/sale_customer_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_payment_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_stepper_widget.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_summary_step.dart';
-import 'package:wawa_vansales/utils/local_storage.dart';
+import 'package:wawa_vansales/utils/global.dart';
 
 class SaleScreen extends StatefulWidget {
   const SaleScreen({super.key});
@@ -26,25 +26,12 @@ class _SaleScreenState extends State<SaleScreen> {
   @override
   void initState() {
     super.initState();
-    // Don't access Provider in initState
-    // Instead, schedule the warehouse code loading after the widget is built
+    // ดึงค่าจาก Global แทนการโหลดจาก LocalStorage โดยตรง
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadWarehouseCode();
+      setState(() {
+        _warehouseCode = Global.whCode;
+      });
     });
-  }
-
-  Future<void> _loadWarehouseCode() async {
-    try {
-      final warehouse = await context.read<LocalStorage>().getWarehouse();
-      if (mounted) {
-        setState(() {
-          _warehouseCode = warehouse?.code ?? 'NA';
-        });
-      }
-    } catch (e) {
-      // Handle any errors accessing the LocalStorage
-      debugPrint('Error loading warehouse code: $e');
-    }
   }
 
   @override
@@ -126,139 +113,141 @@ class _SaleScreenState extends State<SaleScreen> {
         }
         return true;
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('ขายสินค้า'),
-        ),
-        body: BlocConsumer<CartBloc, CartState>(
-          listener: (context, state) {
-            if (state is CartError) {
-              // แสดงข้อความ error
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: AppTheme.errorColor,
-                ),
-              );
-            } else if (state is CartSubmitSuccess) {
-              // แสดงข้อความสำเร็จ
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('บันทึกการขายเรียบร้อยแล้ว'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              // กลับไปหน้าหลัก
-              Navigator.of(context).pop();
-            }
-          },
-          builder: (context, state) {
-            if (state is CartLoaded) {
-              return Column(
-                children: [
-                  // Stepper แสดงขั้นตอน
-                  SaleStepperWidget(
-                    currentStep: state.currentStep,
-                    isCustomerSelected: state.selectedCustomer != null,
-                    hasItems: state.items.isNotEmpty,
-                    isFullyPaid: state.isFullyPaid,
+      child: SafeArea(
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('ขายสินค้า'),
+          ),
+          body: BlocConsumer<CartBloc, CartState>(
+            listener: (context, state) {
+              if (state is CartError) {
+                // แสดงข้อความ error
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: AppTheme.errorColor,
                   ),
-
-                  // เนื้อหาแต่ละขั้นตอน
-                  Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        // Step 1: เลือกลูกค้า
-                        SaleCustomerStep(
-                          selectedCustomer: state.selectedCustomer,
-                          onNextStep: () => _goToStep(1),
-                        ),
-
-                        // Step 2: เลือกสินค้า
-                        SaleCartStep(
-                          cartItems: state.items,
-                          totalAmount: state.totalAmount,
-                          onNextStep: () => _goToStep(2),
-                          onBackStep: () => _goToStep(0),
-                        ),
-
-                        // Step 3: ชำระเงิน
-                        SalePaymentStep(
-                          totalAmount: state.totalAmount,
-                          payments: state.payments,
-                          remainingAmount: state.remainingAmount,
-                          onBackStep: () => _goToStep(1),
-                          onNextStep: () => _goToStep(3),
-                        ),
-
-                        // Step 4: สรุปรายการ
-                        if (state.selectedCustomer != null)
-                          SaleSummaryStep(
-                            customer: state.selectedCustomer!,
-                            items: state.items,
-                            payments: state.payments,
-                            totalAmount: state.totalAmount,
-                            onBackStep: () => _goToStep(2),
-                            warehouseCode: _warehouseCode,
-                          )
-                        else
-                          Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.warning,
-                                  size: 48,
-                                  color: AppTheme.errorColor,
-                                ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'ไม่พบข้อมูลลูกค้า',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'กรุณากลับไปเลือกลูกค้าก่อน',
-                                  style: TextStyle(
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 24),
-                                ElevatedButton.icon(
-                                  onPressed: () => _goToStep(0),
-                                  icon: const Icon(Icons.arrow_back),
-                                  label: const Text('กลับไปเลือกลูกค้า'),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
+                );
+              } else if (state is CartSubmitSuccess) {
+                // แสดงข้อความสำเร็จ
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('บันทึกการขายเรียบร้อยแล้ว'),
+                    backgroundColor: Colors.green,
                   ),
-                ],
-              );
-            } else if (state is CartSubmitting) {
-              // แสดง loading เมื่อกำลังบันทึก
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                );
+                // กลับไปหน้าหลัก
+                Navigator.of(context).pop();
+              }
+            },
+            builder: (context, state) {
+              if (state is CartLoaded) {
+                return Column(
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('กำลังบันทึกการขาย...'),
+                    // Stepper แสดงขั้นตอน
+                    SaleStepperWidget(
+                      currentStep: state.currentStep,
+                      isCustomerSelected: state.selectedCustomer != null,
+                      hasItems: state.items.isNotEmpty,
+                      isFullyPaid: state.isFullyPaid,
+                    ),
+
+                    // เนื้อหาแต่ละขั้นตอน
+                    Expanded(
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          // Step 1: เลือกลูกค้า
+                          SaleCustomerStep(
+                            selectedCustomer: state.selectedCustomer,
+                            onNextStep: () => _goToStep(1),
+                          ),
+
+                          // Step 2: เลือกสินค้า
+                          SaleCartStep(
+                            cartItems: state.items,
+                            totalAmount: state.totalAmount,
+                            onNextStep: () => _goToStep(2),
+                            onBackStep: () => _goToStep(0),
+                          ),
+
+                          // Step 3: ชำระเงิน
+                          SalePaymentStep(
+                            totalAmount: state.totalAmount,
+                            payments: state.payments,
+                            remainingAmount: state.remainingAmount,
+                            onBackStep: () => _goToStep(1),
+                            onNextStep: () => _goToStep(3),
+                          ),
+
+                          // Step 4: สรุปรายการ
+                          if (state.selectedCustomer != null)
+                            SaleSummaryStep(
+                              customer: state.selectedCustomer!,
+                              items: state.items,
+                              payments: state.payments,
+                              totalAmount: state.totalAmount,
+                              onBackStep: () => _goToStep(2),
+                              warehouseCode: _warehouseCode,
+                            )
+                          else
+                            Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.warning,
+                                    size: 48,
+                                    color: AppTheme.errorColor,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'ไม่พบข้อมูลลูกค้า',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'กรุณากลับไปเลือกลูกค้าก่อน',
+                                    style: TextStyle(
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  ElevatedButton.icon(
+                                    onPressed: () => _goToStep(0),
+                                    icon: const Icon(Icons.arrow_back),
+                                    label: const Text('กลับไปเลือกลูกค้า'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-              );
-            } else {
-              // จัดการ state อื่นๆ
-              return const Center(child: CircularProgressIndicator());
-            }
-          },
+                );
+              } else if (state is CartSubmitting) {
+                // แสดง loading เมื่อกำลังบันทึก
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('กำลังบันทึกการขาย...'),
+                    ],
+                  ),
+                );
+              } else {
+                // จัดการ state อื่นๆ
+                return const Center(child: CircularProgressIndicator());
+              }
+            },
+          ),
         ),
       ),
     );

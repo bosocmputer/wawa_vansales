@@ -119,4 +119,21 @@ class LocalStorage {
   Future<void> saveBool(String key, bool value) async {
     await _secureStorage.write(key: key, value: value.toString());
   }
+
+  /// Retrieve a string value from secure storage
+  Future<String?> getString(String key) async {
+    return await _secureStorage.read(key: key);
+  }
+
+  /// Retrieve a boolean value from secure storage
+  Future<bool?> getBool(String key) async {
+    final value = await _secureStorage.read(key: key);
+    if (value == null) return null;
+    return value.toLowerCase() == 'true';
+  }
+
+  /// Remove a specific key from secure storage
+  Future<void> removeString(String key) async {
+    await _secureStorage.delete(key: key);
+  }
 }

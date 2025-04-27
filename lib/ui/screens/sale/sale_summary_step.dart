@@ -588,7 +588,7 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
         children: [
           Expanded(
             child: CustomButton(
-              text: 'ย้อนกลับ',
+              text: 'กลับ',
               onPressed: widget.onBackStep,
               buttonType: ButtonType.outline,
               icon: const Icon(Icons.arrow_back),
