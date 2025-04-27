@@ -239,12 +239,12 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             /// ทดสอบพิมพ์
             _buildQuickActionItem(
-              Icons.add_shopping_cart,
+              Icons.print,
               'ทดสอบพิมพ์',
               Colors.orange,
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => PrinterPage()),
+                  MaterialPageRoute(builder: (_) => const PrinterPage()),
                 );
               },
             ),

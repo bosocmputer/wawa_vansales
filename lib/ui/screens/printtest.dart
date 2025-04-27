@@ -1,13 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
-import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class PrinterPage extends StatefulWidget {
+  const PrinterPage({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _PrinterPageState createState() => _PrinterPageState();
 }
 
@@ -37,13 +38,18 @@ class _PrinterPageState extends State<PrinterPage> {
         await printer.connect(deviceToConnect);
         // _printTest(); // พิมพ์หลังเชื่อมต่อ
       } else {
-        print("❌ ไม่พบเครื่องพิมพ์ที่มี address: $printerAddress");
+        if (kDebugMode) {
+          print("❌ ไม่พบเครื่องพิมพ์ที่มี address: $printerAddress");
+        }
       }
     } catch (e) {
-      print("❌ ERROR: $e");
+      if (kDebugMode) {
+        print("❌ ERROR: $e");
+      }
     }
   }
 
+  // ignore: unused_element
   void _printTest() {
     printer.printNewLine();
     printer.printCustom("Hello World", 2, 1); // ขนาดตัวอักษร 2, ตรงกลาง
@@ -66,16 +72,16 @@ class _PrinterPageState extends State<PrinterPage> {
 
     // เขียนข้อความ
     final textPainter1 =
-        TextPainter(text: TextSpan(text: "Hello World", style: TextStyle(fontSize: 24, color: Colors.black)), textAlign: TextAlign.center, textDirection: TextDirection.ltr);
+        TextPainter(text: const TextSpan(text: "Hello World", style: TextStyle(fontSize: 24, color: Colors.black)), textAlign: TextAlign.center, textDirection: TextDirection.ltr);
 
     final textPainter2 =
-        TextPainter(text: TextSpan(text: "สวัสดีจ้า", style: TextStyle(fontSize: 16, color: Colors.black)), textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+        TextPainter(text: const TextSpan(text: "สวัสดีจ้า", style: TextStyle(fontSize: 16, color: Colors.black)), textAlign: TextAlign.left, textDirection: TextDirection.ltr);
 
     textPainter1.layout(minWidth: width.toDouble());
     textPainter2.layout(minWidth: width.toDouble());
 
-    textPainter1.paint(canvas, Offset(0, 20));
-    textPainter2.paint(canvas, Offset(0, 70));
+    textPainter1.paint(canvas, const Offset(0, 20));
+    textPainter2.paint(canvas, const Offset(0, 70));
 
     final picture = recorder.endRecording();
     final ui.Image imgFinal = await picture.toImage(width, height);
@@ -90,13 +96,13 @@ class _PrinterPageState extends State<PrinterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("เชื่อมต่อ Printer")),
+      appBar: AppBar(title: const Text("เชื่อมต่อ Printer")),
       body: Column(
         children: [
-          Center(child: Text("กำลังเชื่อมต่อกับเครื่องพิมพ์...")),
-          ElevatedButton(onPressed: _drawTextToImageAndPrint, child: Text("พิมพ์ทดสอบ")),
-          Text('ทดสอบScanner'),
-          TextField(controller: textController, decoration: InputDecoration(labelText: "กรอกข้อความที่ต้องการพิมพ์")),
+          const Center(child: Text("กำลังเชื่อมต่อกับเครื่องพิมพ์...")),
+          ElevatedButton(onPressed: _drawTextToImageAndPrint, child: const Text("พิมพ์ทดสอบ")),
+          const Text('ทดสอบScanner'),
+          TextField(controller: textController, decoration: const InputDecoration(labelText: "กรอกข้อความที่ต้องการพิมพ์")),
         ],
       ),
     );
