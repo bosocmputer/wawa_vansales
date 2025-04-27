@@ -1,5 +1,6 @@
 // lib/ui/screens/sale/sale_cart_step.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
@@ -86,14 +87,26 @@ class _SaleCartStepState extends State<SaleCartStep> {
   void _switchMode() {
     setState(() {
       _isScanMode = !_isScanMode;
+
       if (_isScanMode) {
-        // เปลี่ยนเป็นโหมดสแกน
+        // Scan Mode
         _barcodeSearchController.clear();
-        _barcodeScanFocusNode.requestFocus();
-      } else {
-        // เปลี่ยนเป็นโหมดค้นหา
         _barcodeScanController.clear();
-        _barcodeSearchFocusNode.requestFocus();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          FocusScope.of(context).unfocus(); // ละทิ้ง focus ก่อน
+          await Future.delayed(const Duration(milliseconds: 100));
+          SystemChannels.textInput.invokeMethod('TextInput.hide');
+          _barcodeScanFocusNode.requestFocus(); // โฟกัส แต่ไม่เปิดคีย์บอร์ด
+        });
+      } else {
+        // Search Mode
+        _barcodeScanController.clear();
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          _barcodeSearchFocusNode.requestFocus(); // โฟกัส TextField
+          await Future.delayed(const Duration(milliseconds: 100));
+          SystemChannels.textInput.invokeMethod('TextInput.show'); // แล้วค่อยเปิดคีย์บอร์ด
+        });
       }
     });
   }
@@ -165,31 +178,31 @@ class _SaleCartStepState extends State<SaleCartStep> {
             color: Colors.white,
             child: Column(
               children: [
-                // ปุ่มสลับโหมด
-                Row(
-                  children: [
-                    TextButton.icon(
-                      icon: Icon(
-                        _isScanMode ? Icons.keyboard : Icons.qr_code_scanner,
-                        size: 18,
-                      ),
-                      label: Text(
-                        _isScanMode ? 'ค้นหาด้วยคีย์บอร์ด' : 'สแกนบาร์โค้ด',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                      onPressed: _switchMode,
-                    ),
-                    const Spacer(),
-                    Text(
-                      _isScanMode ? 'โหมดสแกน' : 'โหมดค้นหา',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
+                // // ปุ่มสลับโหมด
+                // Row(
+                //   children: [
+                //     TextButton.icon(
+                //       icon: Icon(
+                //         _isScanMode ? Icons.keyboard : Icons.qr_code_scanner,
+                //         size: 18,
+                //       ),
+                //       label: Text(
+                //         _isScanMode ? 'ค้นหาด้วยคีย์บอร์ด' : 'สแกนบาร์โค้ด',
+                //         style: const TextStyle(fontSize: 13),
+                //       ),
+                //       onPressed: _switchMode,
+                //     ),
+                //     const Spacer(),
+                //     Text(
+                //       _isScanMode ? 'โหมดสแกน' : 'โหมดค้นหา',
+                //       style: TextStyle(
+                //         fontSize: 12,
+                //         color: Colors.grey[600],
+                //       ),
+                //     ),
+                //   ],
+                // ),
+                // const SizedBox(height: 4),
 
                 // แสดง TextField ตามโหมด
                 _isScanMode ? _buildScanTextField() : _buildSearchTextField(),
@@ -304,8 +317,16 @@ class _SaleCartStepState extends State<SaleCartStep> {
           ),
           isDense: true,
         ),
-        keyboardType: TextInputType.number, // แสดง keyboard ตัวเลข
+        keyboardType: TextInputType.text,
         onSubmitted: (_) => _searchBarcode(),
+        showCursor: true,
+        autofocus: !_isScanMode, // กำหนด autofocus เมื่ออยู่ในโหมดค้นหา
+        onTap: () {
+          // ทำให้แน่ใจว่า keyboard จะแสดงเมื่อกดที่ช่องค้นหา
+          if (!_isScanMode) {
+            SystemChannels.textInput.invokeMethod('TextInput.show');
+          }
+        },
       ),
     );
   }

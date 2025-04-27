@@ -265,7 +265,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
         if (success) {
           emit(CartSubmitSuccess());
-          // รีเซ็ตตะกร้า
+
           emit(const CartLoaded());
         } else {
           emit(const CartError('ไม่สามารถบันทึกการขายได้'));

@@ -1,4 +1,3 @@
-// lib/ui/screens/sale/sale_stepper_widget.dart
 import 'package:flutter/material.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 
@@ -21,50 +20,40 @@ class SaleStepperWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 8), // ลด padding
+      color: Colors.white,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildStep(
             context,
             index: 0,
             icon: Icons.person,
-            label: 'เลือกลูกค้า',
+            label: 'ลูกค้า',
             isCompleted: isCustomerSelected,
           ),
-          _buildConnector(isCustomerSelected),
+          _buildConnector(),
           _buildStep(
             context,
             index: 1,
             icon: Icons.shopping_cart,
-            label: 'เลือกสินค้า',
+            label: 'สินค้า',
             isCompleted: hasItems,
           ),
-          _buildConnector(hasItems),
+          _buildConnector(),
           _buildStep(
             context,
             index: 2,
             icon: Icons.payment,
-            label: 'ชำระเงิน',
+            label: 'จ่ายเงิน',
             isCompleted: isFullyPaid,
           ),
-          _buildConnector(isFullyPaid),
+          _buildConnector(),
           _buildStep(
             context,
             index: 3,
             icon: Icons.receipt_long,
-            label: 'สรุปรายการ',
+            label: 'สรุป',
             isCompleted: hasCompletedSummary,
           ),
         ],
@@ -80,29 +69,30 @@ class SaleStepperWidget extends StatelessWidget {
     required bool isCompleted,
   }) {
     final bool isActive = currentStep == index;
+    final bool isPassed = currentStep > index;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 36,
-          height: 36,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? AppTheme.primaryColor : Colors.grey[300],
+            color: (isActive || isPassed) ? AppTheme.primaryColor : Colors.grey[300],
           ),
           child: Icon(
             icon,
             color: Colors.white,
-            size: 18,
+            size: 16,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            fontSize: 11,
-            color: isActive ? AppTheme.primaryColor : Colors.grey[600],
+            fontSize: 10,
+            color: isActive ? AppTheme.primaryColor : Colors.grey[500],
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -110,11 +100,11 @@ class SaleStepperWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildConnector(bool isCompleted) {
+  Widget _buildConnector() {
     return Container(
-      width: 40,
-      height: 2,
-      color: Colors.grey[300],
+      width: 20, // ย่อเส้น connector
+      height: 1,
+      color: Colors.grey[400],
     );
   }
 }
