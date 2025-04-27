@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
+import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
@@ -14,6 +15,7 @@ import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
 import 'package:wawa_vansales/data/repositories/product_repository.dart';
+import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
 import 'package:wawa_vansales/ui/screens/splash_screen.dart';
@@ -95,6 +97,10 @@ class MyApp extends StatelessWidget {
       apiService: apiService,
     );
 
+    final saleRepository = SaleRepository(
+      apiService: apiService,
+    );
+
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
@@ -120,6 +126,12 @@ class MyApp extends StatelessWidget {
         BlocProvider<ProductDetailBloc>(
           create: (context) => ProductDetailBloc(
             productRepository: productRepository,
+          ),
+        ),
+        BlocProvider<CartBloc>(
+          create: (context) => CartBloc(
+            saleRepository: saleRepository,
+            localStorage: localStorage,
           ),
         ),
       ],
