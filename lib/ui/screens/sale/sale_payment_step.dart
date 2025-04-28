@@ -60,31 +60,56 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('ชำระด้วย$paymentName'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              _getPaymentTypeIcon(type),
+              color: _getPaymentTypeColor(type),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'ชำระด้วย$paymentName',
+              style: const TextStyle(fontSize: 18),
+            ),
+          ],
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // ช่องกรอกจำนวนเงิน
               TextField(
                 controller: amountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                ],
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'จำนวนเงิน',
                   prefixText: '฿ ',
-                  border: OutlineInputBorder(),
+                  suffixIcon: TextButton(
+                    onPressed: () {
+                      amountController.text = widget.remainingAmount.toString();
+                    },
+                    child: const Text('ชำระเต็ม'),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 autofocus: true,
               ),
+
+              // ช่องอ้างอิง (ถ้ามี)
               if (type != PaymentType.cash) ...[
                 const SizedBox(height: 16),
                 TextField(
                   controller: refNumberController,
                   decoration: InputDecoration(
                     labelText: type == PaymentType.transfer ? 'หมายเลขอ้างอิง' : 'หมายเลขบัตร',
-                    border: const OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],
@@ -116,6 +141,11 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
               Navigator.of(context).pop();
             },
             child: const Text('ตกลง'),
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
           ),
         ],
       ),
@@ -165,165 +195,223 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ยอดรวมและเงินที่ต้องชำระ
+                // สรุปยอดรวม
                 Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
+                        // ยอดรวมทั้งหมด
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'ยอดรวมทั้งหมด:',
+                              'ยอดรวมทั้งหมด',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             Text(
-                              '${_currencyFormat.format(widget.totalAmount)} ฿',
+                              '฿${_currencyFormat.format(widget.totalAmount)}',
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const Divider(height: 24),
+
+                        // ชำระแล้ว
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'ชำระแล้ว:',
+                              'ชำระแล้ว',
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                                color: Colors.green,
                               ),
                             ),
                             Text(
-                              '${_currencyFormat.format(widget.totalAmount - widget.remainingAmount)} ฿',
+                              '฿${_currencyFormat.format(widget.totalAmount - widget.remainingAmount)}',
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green,
                               ),
                             ),
                           ],
                         ),
-                        const Divider(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'ยังไม่ชำระ:',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+
+                        // ยังไม่ชำระ
+                        if (widget.remainingAmount > 0) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'ยังไม่ชำระ',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: AppTheme.errorColor,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '${_currencyFormat.format(widget.remainingAmount)} ฿',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: widget.remainingAmount > 0 ? AppTheme.errorColor : Colors.green,
+                              Text(
+                                '฿${_currencyFormat.format(widget.remainingAmount)}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.errorColor,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 24),
 
                 // วิธีการชำระเงิน
                 const Text(
                   'เลือกวิธีการชำระเงิน',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-                // ปุ่มชำระเงินแต่ละประเภท
+                // ปุ่มชำระเงิน - แถวเดียว
                 Row(
                   children: [
                     Expanded(
-                      child: _buildPaymentButton(PaymentType.cash),
+                      child: _buildPaymentOptionButton(
+                        PaymentType.cash,
+                        'เงินสด',
+                        Icons.payments,
+                        Colors.green,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildPaymentButton(PaymentType.transfer),
+                      child: _buildPaymentOptionButton(
+                        PaymentType.transfer,
+                        'โอนเงิน',
+                        Icons.account_balance,
+                        Colors.blue,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildPaymentButton(PaymentType.creditCard),
+                      child: _buildPaymentOptionButton(
+                        PaymentType.creditCard,
+                        'บัตรเครดิต',
+                        Icons.credit_card,
+                        Colors.orange,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
 
                 // รายการชำระเงิน
                 if (widget.payments.isNotEmpty) ...[
+                  const SizedBox(height: 24),
                   const Text(
                     'รายการชำระเงิน',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   ...widget.payments.map((payment) => _buildPaymentItem(payment)),
                 ],
-
-                // หมายเหตุ
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _remarkController,
-                  decoration: const InputDecoration(
-                    labelText: 'หมายเหตุ (ถ้ามี)',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
               ],
             ),
           ),
         ),
 
-        // ปุ่มดำเนินการ
-        _buildBottomActions(),
+        // แถบปุ่มด้านล่าง
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Row(
+              children: [
+                // ปุ่มกลับ
+                OutlinedButton(
+                  onPressed: widget.onBackStep,
+                  child: const Text('กลับ'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(80, 44),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // ปุ่มถัดไป
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: widget.remainingAmount <= 0 ? widget.onNextStep : null,
+                    icon: const Icon(Icons.check_circle),
+                    label: const Text('ตรวจสอบ'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 44),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildPaymentButton(PaymentType type) {
-    final paymentName = _getPaymentTypeName(type);
-    final icon = _getPaymentTypeIcon(type);
-    final color = _getPaymentTypeColor(type);
-
+  Widget _buildPaymentOptionButton(
+    PaymentType type,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     return InkWell(
       onTap: () => _showPaymentDialog(type),
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color),
+          border: Border.all(color: color.withOpacity(0.3)),
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 32),
+            Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
             Text(
-              paymentName,
+              label,
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
             ),
           ],
@@ -334,27 +422,26 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
 
   Widget _buildPaymentItem(PaymentModel payment) {
     final type = PaymentModel.intToPaymentType(payment.payType);
-    final name = _getPaymentTypeName(type);
-    final icon = _getPaymentTypeIcon(type);
-    final color = _getPaymentTypeColor(type);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(name),
+        leading: Icon(
+          _getPaymentTypeIcon(type),
+          color: _getPaymentTypeColor(type),
+        ),
+        title: Text(_getPaymentTypeName(type)),
         subtitle: payment.transNumber.isNotEmpty ? Text('อ้างอิง: ${payment.transNumber}') : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '${_currencyFormat.format(payment.payAmount)} ฿',
+              '฿${_currencyFormat.format(payment.payAmount)}',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
             ),
-            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.delete_outline),
               color: AppTheme.errorColor,
@@ -364,45 +451,6 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomActions() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: CustomButton(
-              text: 'กลับ',
-              onPressed: widget.onBackStep,
-              buttonType: ButtonType.outline,
-              icon: const Icon(Icons.arrow_back),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: CustomButton(
-              text: 'ถัดไป',
-              onPressed: widget.remainingAmount <= 0 ? widget.onNextStep : null,
-              icon: const Icon(Icons.arrow_forward, color: Colors.white),
-              buttonType: ButtonType.primary,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -19,50 +19,65 @@ class SaleStepperWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8), // ลด padding
-      color: Colors.white,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStep(
-            context,
-            index: 0,
-            icon: Icons.person,
-            label: 'ลูกค้า',
-            isCompleted: isCustomerSelected,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          color: Colors.white,
+          child: Row(
+            children: [
+              _buildStep(
+                index: 0,
+                icon: Icons.person,
+                label: 'ลูกค้า',
+                isCompleted: isCustomerSelected,
+              ),
+              _buildConnector(0),
+              _buildStep(
+                index: 1,
+                icon: Icons.shopping_cart,
+                label: 'สินค้า',
+                isCompleted: hasItems,
+              ),
+              _buildConnector(1),
+              _buildStep(
+                index: 2,
+                icon: Icons.payment,
+                label: 'ชำระเงิน',
+                isCompleted: isFullyPaid,
+              ),
+              _buildConnector(2),
+              _buildStep(
+                index: 3,
+                icon: Icons.check_circle,
+                label: 'สรุป',
+                isCompleted: hasCompletedSummary,
+              ),
+            ],
           ),
-          _buildConnector(),
-          _buildStep(
-            context,
-            index: 1,
-            icon: Icons.shopping_cart,
-            label: 'สินค้า',
-            isCompleted: hasItems,
+        ),
+        // Progress bar
+        Container(
+          height: 2,
+          color: Colors.grey.shade200,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: constraints.maxWidth * (currentStep / 3),
+                  color: AppTheme.primaryColor,
+                ),
+              );
+            },
           ),
-          _buildConnector(),
-          _buildStep(
-            context,
-            index: 2,
-            icon: Icons.payment,
-            label: 'จ่ายเงิน',
-            isCompleted: isFullyPaid,
-          ),
-          _buildConnector(),
-          _buildStep(
-            context,
-            index: 3,
-            icon: Icons.receipt_long,
-            label: 'สรุป',
-            isCompleted: hasCompletedSummary,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _buildStep(
-    BuildContext context, {
+  Widget _buildStep({
     required int index,
     required IconData icon,
     required String label,
@@ -71,40 +86,58 @@ class SaleStepperWidget extends StatelessWidget {
     final bool isActive = currentStep == index;
     final bool isPassed = currentStep > index;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: (isActive || isPassed) ? AppTheme.primaryColor : Colors.grey[300],
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isActive
+                  ? AppTheme.primaryColor
+                  : isPassed
+                      ? Colors.green.shade400
+                      : Colors.transparent,
+              border: Border.all(
+                color: (isActive || isPassed) ? Colors.transparent : Colors.grey.shade300,
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              isPassed ? Icons.check : icon,
+              color: (isActive || isPassed) ? Colors.white : Colors.grey.shade600,
+              size: 20,
+            ),
           ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 16,
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              color: isActive
+                  ? AppTheme.primaryColor
+                  : isPassed
+                      ? Colors.green.shade600
+                      : Colors.grey.shade600,
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: isActive ? AppTheme.primaryColor : Colors.grey[500],
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildConnector() {
-    return Container(
-      width: 20, // ย่อเส้น connector
-      height: 1,
-      color: Colors.grey[400],
+  Widget _buildConnector(int index) {
+    final bool isCompleted = currentStep > index;
+
+    return Expanded(
+      child: Container(
+        height: 2,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        color: isCompleted ? Colors.green.shade400 : Colors.grey.shade200,
+      ),
     );
   }
 }

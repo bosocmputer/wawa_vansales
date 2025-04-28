@@ -6,7 +6,6 @@ import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/ui/screens/search_screen/customer_search_screen.dart';
-import 'package:wawa_vansales/ui/widgets/custom_button.dart';
 
 class SaleCustomerStep extends StatelessWidget {
   final CustomerModel? selectedCustomer;
@@ -22,56 +21,69 @@ class SaleCustomerStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // หัวข้อ
-                const Text(
-                  'เลือกลูกค้า',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+        // หัวข้อและคำอธิบาย - ทำให้กระชับขึ้น
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.person, color: AppTheme.primaryColor, size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'เลือกลูกค้า',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'ระบุลูกค้าที่ต้องการขายสินค้า',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'กรุณาเลือกลูกค้าก่อนทำรายการขาย',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // แสดงลูกค้าที่เลือกแล้ว
-                if (selectedCustomer != null) _buildSelectedCustomerCard(context) else _buildSelectCustomerButton(context),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
+
+        // แสดงลูกค้าที่เลือกหรือปุ่มเลือกลูกค้า
+        Expanded(
+          child: selectedCustomer != null ? _buildSelectedCustomerCard(context) : _buildSelectCustomerButton(context),
         ),
 
         // ปุ่มถัดไป
         if (selectedCustomer != null)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
+          SafeArea(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.2),
+                    spreadRadius: 1,
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: onNextStep,
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('ถัดไป'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              ],
-            ),
-            child: CustomButton(
-              text: 'ถัดไป',
-              onPressed: onNextStep,
-              icon: const Icon(Icons.arrow_forward, color: Colors.white),
-              buttonType: ButtonType.primary,
+              ),
             ),
           ),
       ],
@@ -79,139 +91,141 @@ class SaleCustomerStep extends StatelessWidget {
   }
 
   Widget _buildSelectedCustomerCard(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const CircleAvatar(
-                  backgroundColor: AppTheme.primaryColor,
-                  child: Icon(
-                    Icons.person,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        selectedCustomer!.name!,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                    child: Text(
+                      selectedCustomer!.name![0].toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'รหัส: ${selectedCustomer!.code}',
-                        style: const TextStyle(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  color: AppTheme.primaryColor,
-                  onPressed: () => _selectCustomer(context),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          selectedCustomer!.name!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'รหัส: ${selectedCustomer!.code}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: AppTheme.primaryColor),
+                    onPressed: () => _selectCustomer(context),
+                  ),
+                ],
+              ),
+              if (selectedCustomer!.address!.isNotEmpty) ...[
+                const Divider(height: 24),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        selectedCustomer!.address!,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            if (selectedCustomer!.address!.isNotEmpty) ...[
-              const Divider(height: 24),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: AppTheme.textSecondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      selectedCustomer!.address!,
-                      style: const TextStyle(
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
-            if (selectedCustomer!.telephone!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.phone,
-                    size: 16,
-                    color: AppTheme.textSecondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    selectedCustomer!.telephone!,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildSelectCustomerButton(BuildContext context) {
-    return InkWell(
-      onTap: () => _selectCustomer(context),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: AppTheme.primaryColor,
-            width: 1.5,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Center(
-          child: Column(
-            children: [
-              const Icon(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ไอคอนใหญ่
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
                 Icons.person_add,
                 size: 48,
                 color: AppTheme.primaryColor,
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'เลือกลูกค้า',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
+            ),
+            const SizedBox(height: 24),
+
+            // ปุ่มเลือกลูกค้า
+            ElevatedButton.icon(
+              onPressed: () => _selectCustomer(context),
+              icon: const Icon(Icons.search),
+              label: const Text('เลือกลูกค้า'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(200, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'แตะเพื่อค้นหาและเลือกลูกค้า',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                ),
+            ),
+
+            const SizedBox(height: 12),
+            Text(
+              'กรุณาเลือกลูกค้าเพื่อเริ่มทำรายการ',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

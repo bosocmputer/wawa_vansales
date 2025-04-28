@@ -63,149 +63,142 @@ class SaleSummaryStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<CartBloc, CartState>(
-      listener: (context, state) {
-        if (state is CartSubmitSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('บันทึกการขายเรียบร้อยแล้ว'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.of(context).pop();
-        } else if (state is CartError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('เกิดข้อผิดพลาด: ${state.message}'),
-              backgroundColor: AppTheme.errorColor,
-            ),
-          );
-        }
-      },
-      child: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPrinterStatus(context),
-                  const SizedBox(height: 16),
-                  const Center(
-                    child: Text(
-                      'ตัวอย่างใบเสร็จ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // สถานะเครื่องพิมพ์
+                _buildPrinterStatus(context),
+                const SizedBox(height: 16),
+
+                // แสดงใบเสร็จตัวอย่าง
+                const Text(
+                  'ตัวอย่างใบเสร็จ',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: ReceiptPreviewWidget(
-                      customer: customer,
-                      items: items,
-                      payments: payments,
-                      totalAmount: totalAmount,
-                      docNumber: 'ตัวอย่างเลขที่เอกสาร',
-                    ),
+                ),
+                const SizedBox(height: 8),
+
+                // ใบเสร็จตัวอย่าง
+                Container(
+                  alignment: Alignment.center,
+                  child: ReceiptPreviewWidget(
+                    customer: customer,
+                    items: items,
+                    payments: payments,
+                    totalAmount: totalAmount,
+                    docNumber: 'ตัวอย่างเลขที่เอกสาร',
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          _buildBottomActions(context),
-        ],
-      ),
+        ),
+
+        // ปุ่มดำเนินการ
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Row(
+              children: [
+                // ปุ่มกลับ
+                OutlinedButton(
+                  onPressed: onBackStep,
+                  child: const Text('กลับ'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(80, 44),
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // ปุ่มบันทึก
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showSaveConfirmDialog(context),
+                    icon: const Icon(Icons.save),
+                    label: const Text('บันทึกการขาย'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 44),
+                      backgroundColor: Colors.green,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildPrinterStatus(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              isConnected ? Icons.print : Icons.print_disabled,
-              color: isConnected ? Colors.green : Colors.red,
-              size: 32,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isConnected ? 'เชื่อมต่อเครื่องพิมพ์แล้ว' : 'กำลังเชื่อมต่อเครื่องพิมพ์...',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isConnected ? Colors.green : Colors.orange,
-                    ),
-                  ),
-                  if (isConnecting)
-                    const Text(
-                      'กำลังพยายามเชื่อมต่อใหม่...',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                ],
-              ),
-            ),
-            if (!isConnected)
-              ElevatedButton(
-                onPressed: isConnecting ? null : () => onReconnectPrinter(),
-                child: isConnecting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text('เชื่อมต่อใหม่'),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomActions(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        color: isConnected ? Colors.green.shade50 : Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isConnected ? Colors.green.shade200 : Colors.orange.shade200,
+        ),
       ),
       child: Row(
         children: [
+          Icon(
+            isConnected ? Icons.print : Icons.print_disabled,
+            color: isConnected ? Colors.green : Colors.orange,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: CustomButton(
-              text: 'กลับ',
-              onPressed: onBackStep,
-              buttonType: ButtonType.outline,
-              icon: const Icon(Icons.arrow_back),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isConnected ? 'เครื่องพิมพ์พร้อมใช้งาน' : 'กำลังเชื่อมต่อเครื่องพิมพ์...',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isConnected ? Colors.green : Colors.orange,
+                  ),
+                ),
+                if (isConnecting)
+                  const Text(
+                    'กำลังพยายามเชื่อมต่อใหม่...',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: CustomButton(
-              text: 'บันทึกรายการขาย',
-              onPressed: () => _showSaveConfirmDialog(context),
-              icon: const Icon(Icons.check_circle, color: Colors.white),
-              buttonType: ButtonType.primary,
+          if (!isConnected)
+            TextButton(
+              onPressed: isConnecting ? null : onReconnectPrinter,
+              child: isConnecting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text('เชื่อมต่อใหม่'),
             ),
-          ),
         ],
       ),
     );

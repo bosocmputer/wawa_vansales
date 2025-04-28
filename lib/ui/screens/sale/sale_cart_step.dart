@@ -190,63 +190,52 @@ class _SaleCartStepState extends State<SaleCartStep> {
       },
       child: Column(
         children: [
-          // ช่องค้นหาบาร์โค้ด
           // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.all(12),
             color: Colors.white,
-            child: Column(
+            child: Row(
               children: [
-                // แถวบนสุด: ช่องค้นหาและปุ่มเลือกสินค้า
-                Row(
-                  children: [
-                    // ช่องค้นหาบาร์โค้ด
-                    Expanded(
-                      child: _isScanMode ? _buildScanTextField() : _buildSearchTextField(),
-                    ),
-                    const SizedBox(width: 8),
-                    // ปุ่มเลือกสินค้า (ส่วนที่เพิ่มใหม่)
-                    SizedBox(
-                      height: 40,
-                      child: ElevatedButton.icon(
-                        onPressed: _openProductSearch,
-                        icon: const Icon(Icons.search, size: 20),
-                        label: const Text('เลือกสินค้า', style: TextStyle(fontSize: 14)),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                // ช่องค้นหาบาร์โค้ด
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: TextField(
+                      controller: _barcodeScanController,
+                      focusNode: _barcodeScanFocusNode,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: InputDecoration(
+                        hintText: 'สแกนบาร์โค้ด',
+                        prefixIcon: const Icon(Icons.qr_code_scanner, size: 20),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 0,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                      onSubmitted: (_) => _scanBarcode(),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                // แถวล่าง: ปุ่มสลับโหมด
-                // Row(
-                //   children: [
-                //     TextButton.icon(
-                //       icon: Icon(
-                //         _isScanMode ? Icons.keyboard : Icons.qr_code_scanner,
-                //         size: 18,
-                //       ),
-                //       label: Text(
-                //         _isScanMode ? 'ค้นหาด้วยคีย์บอร์ด' : 'สแกนบาร์โค้ด',
-                //         style: const TextStyle(fontSize: 13),
-                //       ),
-                //       onPressed: _switchMode,
-                //     ),
-                //     const Spacer(),
-                //     Text(
-                //       _isScanMode ? 'โหมดสแกน' : 'โหมดค้นหา',
-                //       style: TextStyle(
-                //         fontSize: 12,
-                //         color: Colors.grey[600],
-                //       ),
-                //     ),
-                //   ],
-                // ),
+                const SizedBox(width: 8),
+
+                // ปุ่มเลือกสินค้า
+                SizedBox(
+                  height: 44,
+                  child: ElevatedButton.icon(
+                    onPressed: _openProductSearch,
+                    icon: const Icon(Icons.search, size: 20),
+                    label: const Text('เลือกสินค้า'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -415,13 +404,13 @@ class _SaleCartStepState extends State<SaleCartStep> {
 
   Widget _buildCartItemCard(CartItemModel item) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // แถวแรก: ชื่อสินค้าและปุ่มลบ
+            // ชื่อสินค้าและปุ่มลบ
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -433,16 +422,16 @@ class _SaleCartStepState extends State<SaleCartStep> {
                         item.itemName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 15,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
-                        'รหัส: ${item.itemCode} | บาร์โค้ด: ${item.barcode}',
+                        'รหัส: ${item.itemCode}',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 13,
                           color: Colors.grey[600],
                         ),
                       ),
@@ -450,7 +439,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
+                  icon: const Icon(Icons.delete_outline, size: 22),
                   color: AppTheme.errorColor,
                   onPressed: () {
                     context.read<CartBloc>().add(RemoveItemFromCart(item.itemCode));
@@ -461,17 +450,19 @@ class _SaleCartStepState extends State<SaleCartStep> {
               ],
             ),
             const SizedBox(height: 8),
-            // แถวที่สอง: ราคา, จำนวน และยอดรวม
+
+            // ราคา, จำนวน และยอดรวม
             Row(
               children: [
                 // ราคาต่อหน่วย
                 Expanded(
                   child: Text(
                     '฿${_currencyFormat.format(double.tryParse(item.price) ?? 0)}/${item.unitCode}',
-                    style: const TextStyle(fontSize: 13),
+                    style: const TextStyle(fontSize: 14),
                   ),
                 ),
-                // จำนวนสินค้า
+
+                // ปรับจำนวน
                 Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey.shade300),
@@ -490,21 +481,16 @@ class _SaleCartStepState extends State<SaleCartStep> {
                           }
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Icon(Icons.remove, size: 16, color: Colors.grey[700]),
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(Icons.remove, size: 18, color: Colors.grey[700]),
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          border: Border.symmetric(
-                            vertical: BorderSide(color: Colors.grey.shade300),
-                          ),
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
                           (double.tryParse(item.qty) ?? 0).toStringAsFixed(0),
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -517,19 +503,20 @@ class _SaleCartStepState extends State<SaleCartStep> {
                               );
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          child: Icon(Icons.add, size: 16, color: Colors.grey[700]),
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(Icons.add, size: 18, color: Colors.grey[700]),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
+
                 // ยอดรวม
                 Text(
                   '฿${_currencyFormat.format(item.totalAmount)}',
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryColor,
                   ),
@@ -544,7 +531,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
 
   Widget _buildBottomActions() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -556,63 +543,53 @@ class _SaleCartStepState extends State<SaleCartStep> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          // ยอดรวมทั้งหมด
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'ยอดรวม',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
+      child: SafeArea(
+        child: Row(
+          children: [
+            // ยอดรวม
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'ยอดรวม',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                ),
-                Text(
-                  '฿${_currencyFormat.format(widget.totalAmount)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
+                  Text(
+                    '฿${_currencyFormat.format(widget.totalAmount)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // ปุ่มกลับ
-          SizedBox(
-            height: 40,
-            child: OutlinedButton(
-              onPressed: widget.onBackStep,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                ],
               ),
-              child: const Text('กลับ'),
             ),
-          ),
-          const SizedBox(width: 8),
-          // ปุ่มชำระเงิน
-          SizedBox(
-            height: 40,
-            child: ElevatedButton.icon(
+
+            // ปุ่มกลับและถัดไป
+            OutlinedButton(
+              onPressed: widget.onBackStep,
+              child: const Text('กลับ'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(80, 44),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
               onPressed: widget.cartItems.isNotEmpty ? widget.onNextStep : null,
               icon: const Icon(Icons.payment, size: 20),
               label: const Text('ชำระเงิน'),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                minimumSize: const Size(120, 44),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
