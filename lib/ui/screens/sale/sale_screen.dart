@@ -29,6 +29,7 @@ class _SaleScreenState extends State<SaleScreen> {
   // ignore: unused_field
   BluetoothDevice? _connectedDevice;
   String _warehouseCode = 'NA';
+  String _empCode = 'NA';
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _SaleScreenState extends State<SaleScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
         _warehouseCode = Global.whCode;
+        _empCode = Global.empCode;
       });
     });
 
@@ -186,13 +188,13 @@ class _SaleScreenState extends State<SaleScreen> {
 
                   // ใช้ ReceiptPrinterService แทนการพิมพ์โดยตรง
                   bool printSuccess = await _printerService.printReceipt(
-                    customer: state.customer,
-                    items: state.items,
-                    payments: state.payments,
-                    totalAmount: state.totalAmount,
-                    docNumber: state.documentNumber,
-                    warehouseCode: _warehouseCode,
-                  );
+                      customer: state.customer,
+                      items: state.items,
+                      payments: state.payments,
+                      totalAmount: state.totalAmount,
+                      docNumber: state.documentNumber,
+                      warehouseCode: _warehouseCode,
+                      empCode: _empCode);
 
                   // ปิด loading dialog
                   Navigator.of(context).pop();
@@ -221,13 +223,13 @@ class _SaleScreenState extends State<SaleScreen> {
                     if (printResult == 'reprint') {
                       // พิมพ์ใหม่
                       await _printerService.printReceipt(
-                        customer: state.customer,
-                        items: state.items,
-                        payments: state.payments,
-                        totalAmount: state.totalAmount,
-                        docNumber: state.documentNumber,
-                        warehouseCode: _warehouseCode,
-                      );
+                          customer: state.customer,
+                          items: state.items,
+                          payments: state.payments,
+                          totalAmount: state.totalAmount,
+                          docNumber: state.documentNumber,
+                          warehouseCode: _warehouseCode,
+                          empCode: _empCode);
                     }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -296,16 +298,6 @@ class _SaleScreenState extends State<SaleScreen> {
                               isConnecting: _printerService.isConnecting,
                               onReconnectPrinter: () async {
                                 return await _printerService.connectPrinter();
-                              },
-                              createReceiptImage: () async {
-                                return await _printerService.createReceiptImage(
-                                  customer: state.selectedCustomer!,
-                                  items: state.items,
-                                  payments: state.payments,
-                                  totalAmount: state.totalAmount,
-                                  docNumber: "ตัวอย่างเลขที่เอกสาร",
-                                  warehouseCode: _warehouseCode,
-                                );
                               },
                             )
                           else

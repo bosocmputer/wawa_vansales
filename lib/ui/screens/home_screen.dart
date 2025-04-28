@@ -14,7 +14,6 @@ import 'package:wawa_vansales/data/models/warehouse_model.dart';
 import 'package:wawa_vansales/ui/screens/customer_form_screen.dart';
 import 'package:wawa_vansales/ui/screens/customer_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
-import 'package:wawa_vansales/ui/screens/printtest.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
 import 'package:wawa_vansales/ui/widgets/custom_button.dart';
@@ -237,17 +236,6 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            /// ทดสอบพิมพ์
-            _buildQuickActionItem(
-              Icons.print,
-              'ทดสอบพิมพ์',
-              Colors.orange,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PrinterPage()),
-                );
-              },
-            ),
             _buildQuickActionItem(
               Icons.add_shopping_cart,
               'ขายสินค้า',

@@ -198,26 +198,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
               children: [
                 // ช่องค้นหาบาร์โค้ด
                 Expanded(
-                  child: SizedBox(
-                    height: 44,
-                    child: TextField(
-                      controller: _barcodeScanController,
-                      focusNode: _barcodeScanFocusNode,
-                      style: const TextStyle(fontSize: 16),
-                      decoration: InputDecoration(
-                        hintText: 'สแกนบาร์โค้ด',
-                        prefixIcon: const Icon(Icons.qr_code_scanner, size: 20),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 0,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onSubmitted: (_) => _scanBarcode(),
-                    ),
-                  ),
+                  child: SizedBox(height: 44, child: _buildScanTextField()),
                 ),
                 const SizedBox(width: 8),
 

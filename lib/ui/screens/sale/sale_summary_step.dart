@@ -1,5 +1,4 @@
 // lib/ui/screens/sale/sale_summary_step.dart
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -19,7 +18,6 @@ class SaleSummaryStep extends StatelessWidget {
   final bool isConnected;
   final bool isConnecting;
   final Future<bool> Function() onReconnectPrinter;
-  final Future<Uint8List?> Function() createReceiptImage;
 
   const SaleSummaryStep({
     super.key,
@@ -31,7 +29,6 @@ class SaleSummaryStep extends StatelessWidget {
     required this.isConnected,
     required this.isConnecting,
     required this.onReconnectPrinter,
-    required this.createReceiptImage,
   });
 
   Future<void> _showSaveConfirmDialog(BuildContext context) async {
