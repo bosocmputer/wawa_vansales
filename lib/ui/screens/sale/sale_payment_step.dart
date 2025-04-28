@@ -1,6 +1,5 @@
 // lib/ui/screens/sale/sale_payment_step.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
@@ -56,97 +55,197 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
       text: existingPayment.transNumber,
     );
 
+    // ตัวแปรเก็บค่าเงินทอนสำหรับใช้ใน dialog
+    double dialogChangeAmount = 0.0;
+
+    // คำนวณเงินทอนเริ่มต้น
+    if (type == PaymentType.cash) {
+      double initialAmount = double.tryParse(amountController.text) ?? 0.0;
+      dialogChangeAmount = initialAmount - widget.remainingAmount;
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              _getPaymentTypeIcon(type),
-              color: _getPaymentTypeColor(type),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(width: 8),
-            Text(
-              'ชำระด้วย$paymentName',
-              style: const TextStyle(fontSize: 18),
+            title: Row(
+              children: [
+                Icon(
+                  _getPaymentTypeIcon(type),
+                  color: _getPaymentTypeColor(type),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'ชำระด้วย$paymentName',
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ],
             ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ช่องกรอกจำนวนเงิน
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'จำนวนเงิน',
-                  prefixText: '฿ ',
-                  suffixIcon: TextButton(
-                    onPressed: () {
-                      amountController.text = widget.remainingAmount.toString();
-                    },
-                    child: const Text('ชำระเต็ม'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // แสดงยอดที่ต้องชำระ
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'ยอดที่ต้องชำระ:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          '฿${_currencyFormat.format(widget.remainingAmount)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  border: OutlineInputBorder(
+                  const SizedBox(height: 16),
+
+                  // ช่องกรอกจำนวนเงิน
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'รับเงินมา',
+                      prefixText: '฿ ',
+                      suffixIcon: TextButton(
+                        onPressed: () {
+                          amountController.text = widget.remainingAmount.toString();
+                          // อัปเดตเงินทอนเมื่อกดปุ่ม "ชำระเต็ม"
+                          if (type == PaymentType.cash) {
+                            setDialogState(() {
+                              // เมื่อชำระเต็มจำนวน เงินทอนควรเป็น 0 (รับเงินมา = ยอดที่ต้องชำระพอดี)
+                              dialogChangeAmount = 0.0;
+                            });
+                          }
+                        },
+                        child: const Text('ชำระเต็ม'),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    autofocus: true,
+                    onChanged: (value) {
+                      // คำนวณเงินทอนเมื่อมีการเปลี่ยนแปลงค่า
+                      if (type == PaymentType.cash) {
+                        double amount = double.tryParse(value) ?? 0.0;
+                        setDialogState(() {
+                          dialogChangeAmount = amount - widget.remainingAmount;
+                        });
+                      }
+                    },
+                  ),
+
+                  // เฉพาะการชำระด้วยเงินสด ให้แสดงส่วนเงินทอน
+                  if (type == PaymentType.cash) ...[
+                    const SizedBox(height: 16),
+                    // แสดงเงินทอน
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: dialogChangeAmount >= 0 ? Colors.green.shade50 : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: dialogChangeAmount >= 0 ? Colors.green.shade300 : Colors.red.shade300,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'เงินทอน:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '฿${_currencyFormat.format(dialogChangeAmount)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: dialogChangeAmount >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // ช่องอ้างอิง (สำหรับการโอนหรือบัตรเครดิต)
+                  if (type != PaymentType.cash) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: refNumberController,
+                      decoration: InputDecoration(
+                        labelText: type == PaymentType.transfer ? 'หมายเลขอ้างอิง' : 'หมายเลขบัตร',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('ยกเลิก'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final amount = double.tryParse(amountController.text) ?? 0;
+                  if (amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('กรุณาระบุจำนวนเงิน')),
+                    );
+                    return;
+                  }
+
+                  // ในกรณีที่เป็นเงินสด ตรวจสอบว่าเงินที่รับมาพอหรือไม่
+                  if (type == PaymentType.cash) {
+                    final receivedAmount = double.tryParse(amountController.text) ?? 0;
+                    if (receivedAmount < widget.remainingAmount) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('เงินที่รับมาไม่พอสำหรับการชำระ')),
+                      );
+                      return;
+                    }
+                  }
+
+                  final payment = PaymentModel(
+                    payType: PaymentModel.paymentTypeToInt(type),
+                    transNumber: refNumberController.text,
+                    payAmount: amount,
+                  );
+
+                  context.read<CartBloc>().add(AddPayment(payment));
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                autofocus: true,
+                child: const Text('ตกลง'),
               ),
-
-              // ช่องอ้างอิง (ถ้ามี)
-              if (type != PaymentType.cash) ...[
-                const SizedBox(height: 16),
-                TextField(
-                  controller: refNumberController,
-                  decoration: InputDecoration(
-                    labelText: type == PaymentType.transfer ? 'หมายเลขอ้างอิง' : 'หมายเลขบัตร',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ],
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final amount = double.tryParse(amountController.text) ?? 0;
-              if (amount <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('กรุณาระบุจำนวนเงิน')),
-                );
-                return;
-              }
-
-              final payment = PaymentModel(
-                payType: PaymentModel.paymentTypeToInt(type),
-                transNumber: refNumberController.text,
-                payAmount: amount,
-              );
-
-              context.read<CartBloc>().add(AddPayment(payment));
-              Navigator.of(context).pop();
-            },
-            child: const Text('ตกลง'),
-            style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -182,6 +281,48 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
       case PaymentType.creditCard:
         return Colors.orange;
     }
+  }
+
+  List<Widget> _calculateTotalChange() {
+    // หาชำระเงินสด
+    final cashPayments = widget.payments.where((p) => PaymentModel.intToPaymentType(p.payType) == PaymentType.cash).toList();
+
+    // คำนวณเงินทอนรวม
+    double totalChange = 0;
+    for (var payment in cashPayments) {
+      if (payment.payAmount > widget.totalAmount) {
+        totalChange += payment.payAmount - widget.totalAmount;
+      }
+    }
+
+    // ถ้ามีเงินทอน ให้แสดง
+    if (totalChange > 0) {
+      return [
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'เงินทอน',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.green,
+              ),
+            ),
+            Text(
+              '฿${_currencyFormat.format(totalChange)}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
+      ];
+    }
+
+    return [];
   }
 
   @override
@@ -272,6 +413,12 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                             ],
                           ),
                         ],
+
+                        // เพิ่มส่วนแสดงเงินทอนในกรณีที่ชำระเต็มจำนวนและมีเงินทอน
+                        if (widget.remainingAmount <= 0) ...[
+                          // หาเงินทอน - คำนวณจากการชำระด้วยเงินสด
+                          ..._calculateTotalChange(),
+                        ],
                       ],
                     ),
                   ),
@@ -359,10 +506,10 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                 // ปุ่มกลับ
                 OutlinedButton(
                   onPressed: widget.onBackStep,
-                  child: const Text('กลับ'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(80, 44),
                   ),
+                  child: const Text('กลับ'),
                 ),
                 const SizedBox(width: 12),
 
@@ -424,32 +571,64 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(
-          _getPaymentTypeIcon(type),
-          color: _getPaymentTypeColor(type),
-        ),
-        title: Text(_getPaymentTypeName(type)),
-        subtitle: payment.transNumber.isNotEmpty ? Text('อ้างอิง: ${payment.transNumber}') : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '฿${_currencyFormat.format(payment.payAmount)}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(
+              _getPaymentTypeIcon(type),
+              color: _getPaymentTypeColor(type),
+            ),
+            title: Text(_getPaymentTypeName(type)),
+            subtitle: payment.transNumber.isNotEmpty ? Text('อ้างอิง: ${payment.transNumber}') : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '฿${_currencyFormat.format(payment.payAmount)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  color: AppTheme.errorColor,
+                  onPressed: () {
+                    context.read<CartBloc>().add(RemovePayment(type));
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // เพิ่มการแสดงเงินทอนสำหรับการชำระด้วยเงินสด
+          if (type == PaymentType.cash && payment.payAmount > widget.totalAmount) ...[
+            Divider(height: 1, color: Colors.grey.shade200),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'เงินทอน:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.green,
+                    ),
+                  ),
+                  Text(
+                    '฿${_currencyFormat.format(payment.payAmount - widget.totalAmount)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              color: AppTheme.errorColor,
-              onPressed: () {
-                context.read<CartBloc>().add(RemovePayment(type));
-              },
-            ),
           ],
-        ),
+        ],
       ),
     );
   }

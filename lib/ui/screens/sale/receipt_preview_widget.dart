@@ -129,7 +129,7 @@ class ReceiptPreviewWidget extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "${currencyFormat.format(item.totalAmount)}",
+                        currencyFormat.format(item.totalAmount),
                         style: const TextStyle(fontSize: 10),
                       ),
                     ],

@@ -555,10 +555,10 @@ class _SaleCartStepState extends State<SaleCartStep> {
             // ปุ่มกลับและถัดไป
             OutlinedButton(
               onPressed: widget.onBackStep,
-              child: const Text('กลับ'),
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size(80, 44),
               ),
+              child: const Text('กลับ'),
             ),
             const SizedBox(width: 8),
             ElevatedButton.icon(

@@ -27,13 +27,13 @@ class SaleCustomerStep extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              const Row(
                 children: [
                   Icon(Icons.person, color: AppTheme.primaryColor, size: 24),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     'เลือกลูกค้า',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),

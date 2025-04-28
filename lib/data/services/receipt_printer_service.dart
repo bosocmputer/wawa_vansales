@@ -152,10 +152,9 @@ class ReceiptPrinterService {
       // เพิ่ม delay เล็กน้อยเพื่อรอให้เครื่องพิมพ์พร้อม
       await Future.delayed(const Duration(milliseconds: 200));
 
-      // ตัวแปรเดิม...
-      final int smallSize = 0;
-      final int mediumSize = 0;
-      final int largeSize = 1;
+      const int smallSize = 0;
+      const int mediumSize = 0;
+      const int largeSize = 1;
       final NumberFormat currencyFormat = NumberFormat('#,##0.00', 'th_TH');
 
       // ส่วนหัว
@@ -193,7 +192,7 @@ class ReceiptPrinterService {
         final qtyValue = double.tryParse(item.qty) ?? 0;
         final priceValue = double.tryParse(item.price) ?? 0;
         String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}";
-        await _printer.printLeftRight(qtyPriceText, "${currencyFormat.format(item.totalAmount)}", smallSize);
+        await _printer.printLeftRight(qtyPriceText, currencyFormat.format(item.totalAmount), smallSize);
       }
 
       // เส้นคั่น
@@ -201,7 +200,7 @@ class ReceiptPrinterService {
       await _printer.printCustom("------------------------------", smallSize, 1);
 
       // ยอดรวม
-      await _printer.printLeftRight("ยอดรวม", "${currencyFormat.format(totalAmount)}", mediumSize);
+      await _printer.printLeftRight("ยอดรวม", currencyFormat.format(totalAmount), mediumSize);
 
       // แสดงการชำระเงิน
       await Future.delayed(const Duration(milliseconds: 50));
@@ -221,7 +220,7 @@ class ReceiptPrinterService {
             break;
         }
 
-        await _printer.printLeftRight(paymentText, "${currencyFormat.format(payment.payAmount)}", smallSize);
+        await _printer.printLeftRight(paymentText, currencyFormat.format(payment.payAmount), smallSize);
 
         if (payment.transNumber.isNotEmpty) {
           await _printer.printCustom("อ้างอิง: ${payment.transNumber}", smallSize, 0);

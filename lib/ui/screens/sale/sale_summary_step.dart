@@ -51,6 +51,7 @@ class SaleSummaryStep extends StatelessWidget {
     );
 
     if (confirm == true) {
+      // ignore: use_build_context_synchronously
       context.read<CartBloc>().add(const SubmitSale());
     }
   }
@@ -115,10 +116,10 @@ class SaleSummaryStep extends StatelessWidget {
                 // ปุ่มกลับ
                 OutlinedButton(
                   onPressed: onBackStep,
-                  child: const Text('กลับ'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(80, 44),
                   ),
+                  child: const Text('กลับ'),
                 ),
                 const SizedBox(width: 12),
 
