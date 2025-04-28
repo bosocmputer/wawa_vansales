@@ -131,7 +131,7 @@ class ReceiptPrinterService {
     }
   }
 
-  /// สร้างภาพใบเสร็จและส่งไปยังเครื่องพิมพ์
+  /// สร้างและพิมพ์ใบเสร็จ
   Future<bool> printReceipt({
     required CustomerModel customer,
     required List<CartItemModel> items,
@@ -140,66 +140,71 @@ class ReceiptPrinterService {
     required String docNumber,
     String? warehouseCode = 'NA',
     String? remark,
-    String? empCode = 'NA',
+    String? empCode,
   }) async {
+    // ตรวจสอบการเชื่อมต่อ
     if (!_isConnected) {
       bool connected = await connectPrinter();
       if (!connected) return false;
     }
 
     try {
-      // ขนาดตัวอักษร - ใช้ขนาดเล็กที่สุดเพื่อประหยัดพื้นที่
-      final int smallSize = 0; // ขนาดเล็กที่สุด
-      final int mediumSize = 0; // ขนาดปกติ
-      final int largeSize = 1; // ขนาดใหญ่
+      // เพิ่ม delay เล็กน้อยเพื่อรอให้เครื่องพิมพ์พร้อม
+      await Future.delayed(const Duration(milliseconds: 200));
 
+      // ตัวแปรเดิม...
+      final int smallSize = 0;
+      final int mediumSize = 0;
+      final int largeSize = 1;
       final NumberFormat currencyFormat = NumberFormat('#,##0.00', 'th_TH');
 
-      // ----- ส่วนหัว -----
-      // ทำให้กระชับมากขึ้นเพื่อประหยัดพื้นที่กระดาษ
+      // ส่วนหัว
       await _printer.printCustom("ใบกำกับภาษีอย่างย่อ", largeSize, 1);
       await _printer.printCustom("WAWA Van Sales", smallSize, 1);
 
-      // วันที่และเลขที่เอกสาร - รวมบรรทัดเพื่อประหยัดพื้นที่
+      // เพิ่ม delay ระหว่างการพิมพ์หลายบรรทัด
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // วันที่และเลขที่เอกสาร
       final now = DateTime.now();
       final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(now);
       await _printer.printLeftRight("เลขที่: $docNumber", dateStr, smallSize);
 
-      // ข้อมูลลูกค้า - รูปแบบกระชับ
+      // ข้อมูลลูกค้า
+      await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("ลูกค้า: ${customer.name}", smallSize, 0);
       await _printer.printCustom("รหัส: ${customer.code}", smallSize, 0);
       if (customer.taxId != null && customer.taxId!.isNotEmpty) {
         await _printer.printCustom("เลขภาษี: ${customer.taxId}", smallSize, 0);
       }
 
-      // เส้นคั่นแบบบาง - ประหยัดพื้นที่
+      // เส้นคั่น
+      await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("------------------------------", smallSize, 1);
 
-      // ----- รายการสินค้า -----
-      // ไม่ต้องพิมพ์หัวตารางเพื่อประหยัดพื้นที่
-      // รายการสินค้าทุกรายการ ออกแบบเน้นการอ่านง่าย
+      // พิมพ์แต่ละรายการสินค้า โดยเพิ่ม delay ระหว่างรายการเพื่อป้องกัน buffer overflow
       for (var item in items) {
-        // ชื่อสินค้า - แสดงเต็มบรรทัด
+        await Future.delayed(const Duration(milliseconds: 30));
+
+        // ชื่อสินค้า
         await _printer.printCustom(item.itemName, smallSize, 0);
 
-        // รวมจำนวน x ราคา และยอดรวมไว้ในบรรทัดเดียวกัน
+        // จำนวน x ราคา
         final qtyValue = double.tryParse(item.qty) ?? 0;
         final priceValue = double.tryParse(item.price) ?? 0;
-
         String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}";
         await _printer.printLeftRight(qtyPriceText, "${currencyFormat.format(item.totalAmount)}", smallSize);
-
-        // ไม่เพิ่มบรรทัดว่างเพื่อประหยัดพื้นที่
       }
 
-      // เส้นคั่นแบบบาง
+      // เส้นคั่น
+      await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("------------------------------", smallSize, 1);
 
-      // ----- ยอดรวม -----
-      // แสดงยอดรวมชัดเจน
+      // ยอดรวม
       await _printer.printLeftRight("ยอดรวม", "${currencyFormat.format(totalAmount)}", mediumSize);
 
-      // ----- การชำระเงิน -----
+      // แสดงการชำระเงิน
+      await Future.delayed(const Duration(milliseconds: 50));
       for (var payment in payments) {
         final paymentType = PaymentModel.intToPaymentType(payment.payType);
         String paymentText = '';
@@ -223,11 +228,14 @@ class ReceiptPrinterService {
         }
       }
 
-      // ----- ส่วนท้าย -----
+      // ส่วนท้าย
+      await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("------------------------------", smallSize, 1);
-      // ----- พนักงาน ------
       await _printer.printCustom("ขอบคุณที่ใช้บริการ", smallSize, 1);
-      await _printer.printCustom("พนักงานขาย: ${Global.empCode}", smallSize, 1);
+
+      // ใช้ค่า empCode ที่ส่งมา, Global.empCode หรือค่า TEST ถ้าไม่มีค่าใดๆ
+      final String staffCode = empCode ?? Global.empCode;
+      await _printer.printCustom("พนักงานขาย: $staffCode", smallSize, 1);
       await _printer.printNewLine();
 
       // ตัดกระดาษ
@@ -241,6 +249,14 @@ class ReceiptPrinterService {
 
       return true;
     } catch (e) {
+      // ถ้าเกิดข้อผิดพลาดระหว่างการพิมพ์ ลองตัดการเชื่อมต่อแล้วเชื่อมต่อใหม่
+      try {
+        await disconnectPrinter();
+        await Future.delayed(const Duration(milliseconds: 500));
+        await connectPrinter();
+      } catch (reconnectError) {
+        // ไม่สามารถเชื่อมต่อใหม่ได้
+      }
       return false;
     }
   }

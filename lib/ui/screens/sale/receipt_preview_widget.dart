@@ -1,8 +1,9 @@
-// lib/ui/screens/sale/widgets/receipt_preview_widget.dart
+// lib/ui/screens/sale/receipt_preview_widget.dart
 import 'package:flutter/material.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
+import 'package:wawa_vansales/utils/global.dart';
 import 'package:intl/intl.dart';
 
 class ReceiptPreviewWidget extends StatelessWidget {
@@ -48,7 +49,7 @@ class ReceiptPreviewWidget extends StatelessWidget {
           children: [
             // ส่วนหัว
             const Text(
-              'ใบเสร็จรับเงิน/ใบกำกับภาษีอย่างย่อ',
+              'ใบกำกับภาษีอย่างย่อ',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -59,13 +60,6 @@ class ReceiptPreviewWidget extends StatelessWidget {
               'WAWA Van Sales',
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Text(
-              'บริษัท วาวา จำกัด',
-              style: TextStyle(
-                fontSize: 10,
               ),
             ),
             const SizedBox(height: 8),
@@ -101,7 +95,7 @@ class ReceiptPreviewWidget extends StatelessWidget {
                     'รหัส: ${customer.code}',
                     style: const TextStyle(fontSize: 10),
                   ),
-                  if (customer.taxId!.isNotEmpty)
+                  if (customer.taxId != null && customer.taxId!.isNotEmpty)
                     Text(
                       'เลขประจำตัวผู้เสียภาษี: ${customer.taxId}',
                       style: const TextStyle(fontSize: 10),
@@ -112,90 +106,31 @@ class ReceiptPreviewWidget extends StatelessWidget {
             const SizedBox(height: 8),
             const Divider(),
 
-            // หัวตารางรายการสินค้า
-            const Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Text(
-                    'รายการ',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'จำนวน',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                Expanded(
-                  flex: 3,
-                  child: Text(
-                    'ราคา',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-            const Divider(),
-
-            // รายการสินค้า
+            // แสดงรายการสินค้าที่เป็นตาราง
             ...items.map((item) {
               final qtyValue = double.tryParse(item.qty) ?? 0;
               final priceValue = double.tryParse(item.price) ?? 0;
 
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: Text(
-                          item.itemName,
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          qtyValue.toStringAsFixed(0),
-                          style: const TextStyle(fontSize: 10),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          currencyFormat.format(priceValue),
-                          style: const TextStyle(fontSize: 10),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ],
+                  // ชื่อสินค้า
+                  Text(
+                    item.itemName,
+                    style: const TextStyle(fontSize: 10),
                   ),
+                  // จำนวน x ราคา = รวม
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      const Expanded(flex: 5, child: SizedBox()),
-                      Expanded(
-                        flex: 5,
-                        child: Text(
-                          '= ${currencyFormat.format(item.totalAmount)}',
-                          style: const TextStyle(fontSize: 10),
-                          textAlign: TextAlign.right,
-                        ),
+                      Text(
+                        "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}",
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "${currencyFormat.format(item.totalAmount)}",
+                        style: const TextStyle(fontSize: 10),
                       ),
                     ],
                   ),
@@ -283,9 +218,9 @@ class ReceiptPreviewWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'พนักงานขาย: TEST',
-              style: TextStyle(fontSize: 10),
+            Text(
+              'พนักงานขาย: ${Global.empCode.isEmpty ? "TEST" : Global.empCode}',
+              style: const TextStyle(fontSize: 10),
             ),
           ],
         ),

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/blocs/cart/cart_state.dart';
@@ -14,6 +16,7 @@ import 'package:wawa_vansales/ui/screens/sale/sale_payment_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_stepper_widget.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_summary_step.dart';
 import 'package:wawa_vansales/utils/global.dart';
+import 'package:wawa_vansales/utils/local_storage.dart';
 
 class SaleScreen extends StatefulWidget {
   const SaleScreen({super.key});
@@ -31,17 +34,44 @@ class _SaleScreenState extends State<SaleScreen> {
   String _warehouseCode = 'NA';
   String _empCode = 'NA';
 
+  bool _isPrinting = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // ใช้ Global.empCode และ Global.whCode แทนหากมีค่า
       setState(() {
         _warehouseCode = Global.whCode;
-        _empCode = Global.empCode;
+        _empCode = Global.empCode.isEmpty ? 'TEST' : Global.empCode;
       });
+
+      // หากไม่มีค่า empCode ให้ดึงจาก localStorage แล้วกำหนดค่า
+      if (Global.empCode.isEmpty) {
+        _loadUserData();
+      }
     });
 
     _checkPrinterConnection();
+  }
+
+  Future<void> _loadUserData() async {
+    // สร้าง Instance ของ LocalStorage
+    final prefs = await SharedPreferences.getInstance();
+    const secureStorage = FlutterSecureStorage();
+    final localStorage = LocalStorage(
+      prefs: prefs,
+      secureStorage: secureStorage,
+    );
+
+    final user = await localStorage.getUserData();
+    if (user != null && user.userCode.isNotEmpty) {
+      // set ค่าให้ Global
+      await Global.setEmpCode(localStorage, user.userCode);
+      setState(() {
+        _empCode = user.userCode;
+      });
+    }
   }
 
   @override
@@ -170,74 +200,144 @@ class _SaleScreenState extends State<SaleScreen> {
                 );
 
                 if (shouldPrint == true) {
-                  // แสดง loading dialog
+                  // แสดง loading dialog และเริ่มกระบวนการพิมพ์
+                  setState(() {
+                    _isPrinting = true;
+                  });
+
                   showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (context) => const AlertDialog(
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text('กำลังพิมพ์ใบเสร็จ...'),
-                        ],
-                      ),
-                    ),
+                    builder: (context) {
+                      return WillPopScope(
+                        onWillPop: () async => false, // ป้องกันการกดปุ่ม back
+                        child: AlertDialog(
+                          title: const Text('กำลังพิมพ์ใบเสร็จ'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const CircularProgressIndicator(),
+                              const SizedBox(height: 16),
+                              Text('กำลังพิมพ์ใบเสร็จเลขที่: ${state.documentNumber}'),
+                              const SizedBox(height: 8),
+                              const Text('โปรดรอสักครู่...', style: TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   );
 
-                  // ใช้ ReceiptPrinterService แทนการพิมพ์โดยตรง
-                  bool printSuccess = await _printerService.printReceipt(
+                  // เริ่มพิมพ์ใบเสร็จในแบ็คกราวนด์
+                  try {
+                    bool printSuccess = await _printerService.printReceipt(
                       customer: state.customer,
                       items: state.items,
                       payments: state.payments,
                       totalAmount: state.totalAmount,
                       docNumber: state.documentNumber,
                       warehouseCode: _warehouseCode,
-                      empCode: _empCode);
-
-                  // ปิด loading dialog
-                  Navigator.of(context).pop();
-
-                  if (printSuccess) {
-                    // แสดง dialog ยืนยันการพิมพ์
-                    final printResult = await showDialog<String>(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => AlertDialog(
-                        title: const Text('พิมพ์ใบเสร็จเสร็จสิ้น'),
-                        content: const Text('พิมพ์ใบเสร็จเรียบร้อยแล้ว'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop('reprint'),
-                            child: const Text('พิมพ์ใหม่'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop('done'),
-                            child: const Text('ยืนยัน'),
-                          ),
-                        ],
-                      ),
+                      empCode: _empCode,
                     );
 
-                    if (printResult == 'reprint') {
-                      // พิมพ์ใหม่
-                      await _printerService.printReceipt(
+                    // ปิด loading dialog
+                    if (mounted) {
+                      Navigator.of(context).pop();
+                    }
+
+                    setState(() {
+                      _isPrinting = false;
+                    });
+
+                    if (printSuccess) {
+                      // แสดง dialog ยืนยันการพิมพ์
+                      final printResult = await showDialog<String>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => AlertDialog(
+                          title: const Text('พิมพ์ใบเสร็จเสร็จสิ้น'),
+                          content: const Text('พิมพ์ใบเสร็จเรียบร้อยแล้ว'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop('reprint'),
+                              child: const Text('พิมพ์ใหม่'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.of(context).pop('done'),
+                              child: const Text('ยืนยัน'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (printResult == 'reprint') {
+                        // พิมพ์ใหม่
+                        setState(() {
+                          _isPrinting = true;
+                        });
+
+                        // แสดง loading dialog สำหรับการพิมพ์ซ้ำ
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) {
+                            return const AlertDialog(
+                              title: Text('กำลังพิมพ์ใบเสร็จซ้ำ'),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 16),
+                                  Text('กำลังพิมพ์ซ้ำ โปรดรอสักครู่...'),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+
+                        await _printerService.printReceipt(
                           customer: state.customer,
                           items: state.items,
                           payments: state.payments,
                           totalAmount: state.totalAmount,
                           docNumber: state.documentNumber,
                           warehouseCode: _warehouseCode,
-                          empCode: _empCode);
+                          empCode: _empCode,
+                        );
+
+                        // ปิด loading dialog หลังพิมพ์ซ้ำเสร็จ
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                        }
+
+                        setState(() {
+                          _isPrinting = false;
+                        });
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('ไม่สามารถพิมพ์ได้ กรุณาเชื่อมต่อเครื่องพิมพ์'),
+                          backgroundColor: AppTheme.errorColor,
+                        ),
+                      );
                     }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('ไม่สามารถพิมพ์ได้ กรุณาเชื่อมต่อเครื่องพิมพ์'),
-                        backgroundColor: AppTheme.errorColor,
-                      ),
-                    );
+                  } catch (e) {
+                    // จัดการข้อผิดพลาดที่อาจเกิดขึ้น
+                    if (mounted) {
+                      Navigator.of(context).pop(); // ปิด loading dialog
+
+                      setState(() {
+                        _isPrinting = false;
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('เกิดข้อผิดพลาดในการพิมพ์: ${e.toString()}'),
+                          backgroundColor: AppTheme.errorColor,
+                        ),
+                      );
+                    }
                   }
                 }
 
