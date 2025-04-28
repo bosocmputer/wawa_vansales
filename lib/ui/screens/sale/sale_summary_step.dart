@@ -5,13 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
-import 'package:wawa_vansales/blocs/cart/cart_state.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
-import 'package:wawa_vansales/ui/widgets/custom_button.dart';
 import 'package:wawa_vansales/ui/screens/sale/receipt_preview_widget.dart';
-import 'package:wawa_vansales/config/app_theme.dart';
 
 class SaleSummaryStep extends StatelessWidget {
   final CustomerModel customer;

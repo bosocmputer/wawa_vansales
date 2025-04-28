@@ -32,6 +32,7 @@ class _SaleScreenState extends State<SaleScreen> {
   final BlueThermalPrinter _printer = BlueThermalPrinter.instance;
   bool _isConnected = false;
   bool _isConnecting = false;
+  // ignore: unused_field
   BluetoothDevice? _connectedDevice;
   String _warehouseCode = 'NA';
 

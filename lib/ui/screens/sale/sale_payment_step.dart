@@ -6,7 +6,6 @@ import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
-import 'package:wawa_vansales/ui/widgets/custom_button.dart';
 import 'package:intl/intl.dart';
 
 class SalePaymentStep extends StatefulWidget {
