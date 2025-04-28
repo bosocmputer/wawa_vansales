@@ -18,6 +18,7 @@ import 'package:wawa_vansales/data/repositories/product_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
+import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/splash_screen.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 import 'dart:io' show Platform;
@@ -52,6 +53,11 @@ void main() async {
 
   // สร้าง secure storage
   const secureStorage = FlutterSecureStorage();
+
+  // เตรียม printer service
+  final printerService = ReceiptPrinterService();
+  // ลองเชื่อมต่อเครื่องพิมพ์ล่วงหน้า
+  printerService.checkConnection();
 
   runApp(MyApp(
     sharedPreferences: sharedPreferences,

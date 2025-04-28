@@ -18,7 +18,7 @@ class SaleSummaryStep extends StatelessWidget {
   final VoidCallback onBackStep;
   final bool isConnected;
   final bool isConnecting;
-  final Future<void> Function() onReconnectPrinter;
+  final Future<bool> Function() onReconnectPrinter;
   final Future<Uint8List?> Function() createReceiptImage;
 
   const SaleSummaryStep({
@@ -169,7 +169,7 @@ class SaleSummaryStep extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isConnected ? 'เครื่องพิมพ์พร้อมใช้งาน' : 'กำลังเชื่อมต่อเครื่องพิมพ์...',
+                  isConnected ? 'เครื่องพิมพ์พร้อมใช้งาน' : 'ไม่พบเครื่องพิมพ์',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: isConnected ? Colors.green : Colors.orange,
