@@ -163,17 +163,24 @@ class _SaleScreenState extends State<SaleScreen> {
             title: const Text('ขายสินค้า'),
           ),
           body: BlocConsumer<CartBloc, CartState>(
-            // แก้ไขในส่วน BlocConsumer ของ sale_screen.dart
+            listenWhen: (previous, current) {
+              // คืนค่า true เมื่อเราต้องการให้ listener ทำงาน
+              return current is CartError || current is CartSubmitSuccess || current is CartSubmitting;
+            },
             listener: (context, state) async {
+              // ปิด dialog กรณีที่มี dialog กำลังแสดงอยู่ เมื่อได้รับ state เป็น CartError
               if (state is CartError) {
+                // ตรวจสอบว่ามี dialog ที่กำลังแสดงอยู่หรือไม่
+                // แล้วปิด dialog ก่อนแสดง SnackBar
+                Navigator.of(context).popUntil((route) => route.isActive);
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(state.message),
                     backgroundColor: AppTheme.errorColor,
                   ),
                 );
-              } // ส่วนภายใน BlocListener ใน SaleScreen.dart
-              else if (state is CartSubmitSuccess) {
+              } else if (state is CartSubmitSuccess) {
                 // แจ้งเตือนว่าบันทึกสำเร็จ
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

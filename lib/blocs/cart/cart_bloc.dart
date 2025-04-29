@@ -273,10 +273,24 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           ));
         } else {
           emit(const CartError('ไม่สามารถบันทึกการขายได้'));
+          // กลับไปยังสถานะ CartLoaded เพื่อให้ข้อมูลคงเดิม
+          emit(currentState.copyWith(
+            selectedCustomer: currentState.selectedCustomer,
+            items: currentState.items,
+            payments: currentState.payments,
+            totalAmount: currentState.totalAmount,
+            currentStep: 0,
+          ));
         }
       } catch (e) {
         _logger.e('Submit sale error: $e');
-        emit(CartError(e.toString()));
+        emit(currentState.copyWith(
+          selectedCustomer: currentState.selectedCustomer,
+          items: currentState.items,
+          payments: currentState.payments,
+          totalAmount: currentState.totalAmount,
+          currentStep: 0,
+        ));
       }
     }
   }
