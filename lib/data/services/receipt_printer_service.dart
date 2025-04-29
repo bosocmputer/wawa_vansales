@@ -167,7 +167,8 @@ class ReceiptPrinterService {
       // วันที่และเลขที่เอกสาร
       final now = DateTime.now();
       final dateStr = DateFormat('dd/MM/yyyy HH:mm').format(now);
-      await _printer.printLeftRight("เลขที่: $docNumber", dateStr, smallSize);
+      await _printer.printCustom("เลขที่: $docNumber", smallSize, 0);
+      await _printer.printCustom("วันที่: $dateStr", smallSize, 0);
 
       // ข้อมูลลูกค้า
       await Future.delayed(const Duration(milliseconds: 50));
