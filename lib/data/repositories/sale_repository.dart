@@ -1,4 +1,7 @@
 // lib/data/repositories/sale_repository.dart
+import 'dart:math';
+
+import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:wawa_vansales/data/models/sale_transaction_model.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
@@ -23,6 +26,7 @@ class SaleRepository {
 
       _logger.i('Save transaction response: ${response.statusCode}: ${response.data}');
 
+      debugPrint(transaction.toJson().toString());
       if (response.statusCode == 200) {
         // ตรวจสอบรูปแบบ response
         if (response.data is Map && response.data.containsKey('success')) {
@@ -38,13 +42,16 @@ class SaleRepository {
     }
   }
 
-  // สร้างเลขที่เอกสาร
+// สร้างเลขที่เอกสาร
   String generateDocumentNumber(String warehouseCode) {
-    // สร้างเลขที่เอกสารตามรูปแบบที่ต้องการ
+    // สร้างเลขที่เอกสารตามรูปแบบ MINVwhcodeyymmdd-xxx
     final now = DateTime.now();
-    final dateStr =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    final random = (1000 + (9999 - 1000) * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000).floor().toString();
-    return 'INV$warehouseCode$dateStr-$random';
+    // ใช้รูปแบบปี 2 หลัก เดือน 2 หลัก วัน 2 หลัก
+    final dateStr = '${(now.year % 100).toString().padLeft(2, '0')}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+
+    // สร้างเลขสุ่ม 3 หลัก
+    final random = (100 + Random().nextInt(900)).toString();
+
+    return 'MINV$warehouseCode$dateStr-$random';
   }
 }
