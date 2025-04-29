@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
 import 'package:wawa_vansales/blocs/auth/auth_event.dart';
 import 'package:wawa_vansales/blocs/auth/auth_state.dart';
+import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
+import 'package:wawa_vansales/blocs/sales_summary/sales_summary_event.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_event.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_state.dart';
@@ -15,8 +17,10 @@ import 'package:wawa_vansales/ui/screens/customer_form_screen.dart';
 import 'package:wawa_vansales/ui/screens/customer_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_screen.dart';
+import 'package:wawa_vansales/ui/screens/sale_history/sale_history_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
 import 'package:wawa_vansales/ui/widgets/custom_button.dart';
+import 'package:wawa_vansales/ui/widgets/sales_summary_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -50,6 +54,16 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // รีเฟรชข้อมูลยอดขายเมื่อกลับมาที่หน้าหลัก
+    if (ModalRoute.of(context)?.isCurrent ?? false) {
+      context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
+    }
   }
 
   @override
@@ -112,7 +126,10 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildGreeting(context),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            // Sales summary widget
+            const SalesSummaryWidget(),
+            const SizedBox(height: 8),
             _buildQuickActions(),
           ],
         ),
@@ -246,7 +263,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               },
             ),
-            // _buildQuickActionItem(Icons.assignment, 'ประวัติออร์เดอร์', Colors.blue),
+            _buildQuickActionItem(
+              Icons.receipt_long,
+              'ประวัติการขาย',
+              Colors.blue,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SaleHistoryListScreen()),
+                );
+              },
+            ),
             _buildQuickActionItem(
               Icons.person_add,
               'เพิ่มลูกค้า',

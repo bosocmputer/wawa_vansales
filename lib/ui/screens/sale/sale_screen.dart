@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/blocs/cart/cart_state.dart';
+import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
+import 'package:wawa_vansales/blocs/sales_summary/sales_summary_event.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
@@ -188,7 +190,8 @@ class _SaleScreenState extends State<SaleScreen> {
                     backgroundColor: Colors.green,
                   ),
                 );
-
+                // รีเฟรชข้อมูลยอดขายวันนี้
+                context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
                 // ถามว่าต้องการพิมพ์ใบเสร็จหรือไม่
                 final shouldPrint = await showDialog<bool>(
                   context: context,

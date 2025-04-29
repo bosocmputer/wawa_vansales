@@ -10,11 +10,14 @@ import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
+import 'package:wawa_vansales/blocs/sale_history/sale_history_bloc.dart';
+import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
 import 'package:wawa_vansales/data/repositories/product_repository.dart';
+import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
@@ -107,6 +110,11 @@ class MyApp extends StatelessWidget {
       apiService: apiService,
     );
 
+    final saleHistoryRepository = SaleHistoryRepository(
+      apiService: apiService,
+      localStorage: localStorage,
+    );
+
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
@@ -138,6 +146,16 @@ class MyApp extends StatelessWidget {
           create: (context) => CartBloc(
             saleRepository: saleRepository,
             localStorage: localStorage,
+          ),
+        ),
+        BlocProvider<SaleHistoryBloc>(
+          create: (context) => SaleHistoryBloc(
+            saleHistoryRepository: saleHistoryRepository,
+          ),
+        ),
+        BlocProvider<SalesSummaryBloc>(
+          create: (context) => SalesSummaryBloc(
+            saleHistoryRepository: saleHistoryRepository,
           ),
         ),
       ],
