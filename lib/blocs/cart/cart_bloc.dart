@@ -57,6 +57,8 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       final currentState = state as CartLoaded;
       final List<CartItemModel> updatedItems = List.from(currentState.items);
 
+      _logger.i('Adding item: ${event.item.itemCode}, qty: ${event.item.qty}');
+
       // ตรวจสอบว่ามีสินค้านี้ในตะกร้าแล้วหรือไม่
       final existingIndex = updatedItems.indexWhere(
         (item) => item.itemCode == event.item.itemCode,
@@ -67,6 +69,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         final existingItem = updatedItems[existingIndex];
         final existingQty = double.tryParse(existingItem.qty) ?? 0;
         final newQty = double.tryParse(event.item.qty) ?? 0;
+
+        _logger.i('Existing qty: $existingQty, New qty: $newQty, Total: ${existingQty + newQty}');
+
         updatedItems[existingIndex] = existingItem.copyWith(
           qty: (existingQty + newQty).toString(),
         );

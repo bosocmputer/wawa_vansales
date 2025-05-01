@@ -13,10 +13,10 @@ class CartItemModel {
 
   final String barcode;
 
-  final String price; // เปลี่ยนจาก double เป็น String
+  final String price;
 
   @JsonKey(name: 'sum_amount')
-  final String sumAmount; // เปลี่ยนจาก double เป็น String
+  final String sumAmount;
 
   @JsonKey(name: 'unit_code')
   final String unitCode;
@@ -35,7 +35,7 @@ class CartItemModel {
   @JsonKey(name: 'divide_value')
   final String divideValue;
 
-  String qty; // เปลี่ยนจาก double เป็น String
+  String qty;
 
   CartItemModel({
     required this.itemCode,
@@ -49,7 +49,7 @@ class CartItemModel {
     required this.ratio,
     required this.standValue,
     required this.divideValue,
-    this.qty = '1', // เปลี่ยนค่าเริ่มต้นเป็น String
+    this.qty = '1',
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) => _$CartItemModelFromJson(json);

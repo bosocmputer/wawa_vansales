@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
@@ -51,6 +53,21 @@ class ReceiptPrinterService {
       _isConnected = false;
       _connectedDevice = null;
       return false;
+    }
+  }
+
+  Future<bool> requestBluetoothPermissions() async {
+    if (Platform.isAndroid) {
+      Map<Permission, PermissionStatus> statuses = await [
+        Permission.bluetooth,
+        Permission.bluetoothConnect,
+        Permission.bluetoothScan,
+      ].request();
+
+      return statuses.values.every((status) => status.isGranted);
+    } else {
+      // iOS ขอสิทธิ์อัตโนมัติเมื่อใช้งาน
+      return true;
     }
   }
 

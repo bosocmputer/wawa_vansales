@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
@@ -21,6 +22,7 @@ import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
+import 'package:wawa_vansales/data/services/printer_status_provider.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/splash_screen.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
@@ -59,23 +61,31 @@ void main() async {
 
   // เตรียม printer service
   final printerService = ReceiptPrinterService();
-  // ลองเชื่อมต่อเครื่องพิมพ์ล่วงหน้า
-  printerService.checkConnection();
+
+  // ขอสิทธิ์การใช้งานบลูทูธและเชื่อมต่อเครื่องพิมพ์
+  await printerService.requestBluetoothPermissions();
+
+  // ตรวจสอบการเชื่อมต่อเครื่องพิมพ์และพยายามเชื่อมต่อล่วงหน้า
+  await printerService.checkConnection();
+  printerService.autoConnect();
 
   runApp(MyApp(
     sharedPreferences: sharedPreferences,
     secureStorage: secureStorage,
+    printerService: printerService, // ส่ง printerService ไปยัง MyApp
   ));
 }
 
 class MyApp extends StatelessWidget {
   final SharedPreferences sharedPreferences;
   final FlutterSecureStorage secureStorage;
+  final ReceiptPrinterService printerService;
 
   const MyApp({
     super.key,
     required this.sharedPreferences,
     required this.secureStorage,
+    required this.printerService,
   });
 
   @override
@@ -117,6 +127,9 @@ class MyApp extends StatelessWidget {
 
     return MultiBlocProvider(
       providers: [
+        ChangeNotifierProvider(
+          create: (context) => PrinterStatusProvider(printerService),
+        ),
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(
             authRepository: authRepository,

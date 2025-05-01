@@ -20,6 +20,7 @@ import 'package:wawa_vansales/ui/screens/sale/sale_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale_history/sale_history_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
 import 'package:wawa_vansales/ui/widgets/custom_button.dart';
+import 'package:wawa_vansales/ui/widgets/printer_status_widget.dart';
 import 'package:wawa_vansales/ui/widgets/sales_summary_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -121,14 +122,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildHomeContent(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // เพิ่มแสดงสถานะเครื่องพิมพ์
+            const PrinterStatusWidget(),
             _buildGreeting(context),
             const SizedBox(height: 16),
             // Sales summary widget
             const SalesSummaryWidget(),
+            const SizedBox(height: 16),
+
             const SizedBox(height: 8),
             _buildQuickActions(),
           ],

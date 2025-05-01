@@ -3,7 +3,6 @@ import 'package:logger/logger.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_event.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_state.dart';
 import 'package:wawa_vansales/data/models/sale_history_model.dart';
-import 'package:wawa_vansales/data/models/sale_history_detail_model.dart';
 import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
 
 class SaleHistoryBloc extends Bloc<SaleHistoryEvent, SaleHistoryState> {
