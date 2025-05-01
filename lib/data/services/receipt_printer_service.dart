@@ -161,7 +161,8 @@ class ReceiptPrinterService {
     String? warehouseCode = 'NA',
     String? remark,
     String? empCode,
-    String receiptType = 'taxReceipt', // เพิ่มพารามิเตอร์สำหรับประเภทใบเสร็จ (taxReceipt หรือ cashReceipt)
+    String receiptType = 'taxReceipt',
+    bool isCopy = false, // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นใบสำเนาหรือไม่
   }) async {
     // ตรวจสอบการเชื่อมต่อ
     if (!_isConnected) {
@@ -202,6 +203,12 @@ class ReceiptPrinterService {
       } else {
         await _printer.printCustom("บิลเงินสด", largeSize, 1);
       }
+
+      // เพิ่มข้อความ "สำเนา" เมื่อ isCopy เป็น true
+      if (isCopy) {
+        await _printer.printCustom("** สำเนา **", mediumSize, 1);
+      }
+
       await _printer.printCustom("บจก. วาวา 2559", smallSize, 1);
 
       // เพิ่ม delay ระหว่างการพิมพ์หลายบรรทัด
@@ -226,11 +233,6 @@ class ReceiptPrinterService {
       await _printer.printCustom("ลูกค้า: ${customer.name}", smallSize, 0);
       await _printer.printCustom("รหัส: ${customer.code}", smallSize, 0);
 
-      // แสดงเลขภาษีเฉพาะในใบกำกับภาษี
-      if (isTaxReceipt && customer.taxId != null && customer.taxId!.isNotEmpty) {
-        await _printer.printCustom("เลขภาษี: ${customer.taxId}", smallSize, 0);
-      }
-
       // เส้นคั่น
       await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("------------------------------", smallSize, 1);
@@ -243,12 +245,12 @@ class ReceiptPrinterService {
         await Future.delayed(const Duration(milliseconds: 30));
 
         // ชื่อสินค้า
-        await _printer.printCustom(item.itemName, smallSize, 0);
+        await _printer.printCustom("${item.itemName}/${item.unitCode}", smallSize, 0);
 
         // จำนวน x ราคา
         final qtyValue = double.tryParse(item.qty) ?? 0;
         final priceValue = double.tryParse(item.price) ?? 0;
-        String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)} ${item.unitCode}";
+        String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}";
         await _printer.printLeftRight(qtyPriceText, currencyFormat.format(item.totalAmount), smallSize);
       }
 
@@ -296,20 +298,30 @@ class ReceiptPrinterService {
       await _printer.printCustom("------------------------------", smallSize, 1);
       await _printer.printCustom("ขอบคุณที่ใช้บริการ", smallSize, 1);
 
-      // ใช้ค่า empCode ที่ส่งมา, Global.empCode หรือค่า TEST ถ้าไม่มีค่าใดๆ
       final String staffCode = empCode ?? Global.empCode;
-      await _printer.printCustom("พนักงานขาย: $staffCode", smallSize, 1);
 
-      await _printer.printNewLine();
+      // เพิ่มส่วนพนักงานขายและผู้รับสินค้า
+      await Future.delayed(const Duration(milliseconds: 100));
 
-      // ตัดกระดาษ
-      await _printer.printNewLine();
-      await _printer.printNewLine();
-      try {
-        await _printer.paperCut();
-      } catch (e) {
-        // อาจไม่รองรับคำสั่งตัดกระดาษ
+      // พนักงานขาย
+      await _printer.printCustom("พนักงานขาย.....................", smallSize, 0);
+      String staffInfo = staffCode;
+      if (warehouse != null && location != null) {
+        staffInfo += " (${warehouse.code}/${location.code})";
       }
+      await _printer.printCustom(staffInfo, smallSize, 0);
+
+      // เว้นบรรทัด
+      await _printer.printNewLine();
+
+      // ผู้รับสินค้า
+      await _printer.printCustom("ผู้รับสินค้า.....................", smallSize, 0);
+
+      // เว้นบรรทัดเพิ่มเติมก่อนตัดกระดาษ
+      await _printer.printNewLine();
+      await _printer.printNewLine();
+      await _printer.printNewLine();
+      await _printer.paperCut();
 
       return true;
     } catch (e) {

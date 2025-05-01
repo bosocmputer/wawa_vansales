@@ -129,11 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // เพิ่มแสดงสถานะเครื่องพิมพ์
             const PrinterStatusWidget(),
             _buildGreeting(context),
-            const SizedBox(height: 16),
             // Sales summary widget
             const SalesSummaryWidget(),
-            const SizedBox(height: 16),
-
             const SizedBox(height: 8),
             _buildQuickActions(),
           ],

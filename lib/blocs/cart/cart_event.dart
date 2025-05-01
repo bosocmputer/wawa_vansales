@@ -31,25 +31,48 @@ class AddItemToCart extends CartEvent {
   List<Object?> get props => [item];
 }
 
+// เพิ่มสินค้าหลายรายการพร้อมกัน
+class AddItemsToCart extends CartEvent {
+  final List<CartItemModel> items;
+
+  const AddItemsToCart(this.items);
+
+  @override
+  List<Object?> get props => [items];
+}
+
 // ลบสินค้าออกจากตะกร้า
 class RemoveItemFromCart extends CartEvent {
   final String itemCode;
+  final String barcode;
+  final String unitCode;
 
-  const RemoveItemFromCart(this.itemCode);
+  const RemoveItemFromCart({
+    required this.itemCode,
+    required this.barcode,
+    required this.unitCode,
+  });
 
   @override
-  List<Object?> get props => [itemCode];
+  List<Object?> get props => [itemCode, barcode, unitCode];
 }
 
 // อัพเดทจำนวนสินค้า
 class UpdateItemQuantity extends CartEvent {
   final String itemCode;
+  final String barcode;
+  final String unitCode;
   final double quantity;
 
-  const UpdateItemQuantity(this.itemCode, this.quantity);
+  const UpdateItemQuantity({
+    required this.itemCode,
+    required this.barcode,
+    required this.unitCode,
+    required this.quantity,
+  });
 
   @override
-  List<Object?> get props => [itemCode, quantity];
+  List<Object?> get props => [itemCode, barcode, unitCode, quantity];
 }
 
 // ล้างตะกร้า
@@ -93,4 +116,24 @@ class UpdateStep extends CartEvent {
 
   @override
   List<Object?> get props => [step];
+}
+
+// Event สำหรับตั้งค่าเอกสารพรีออเดอร์
+class SetPreOrderDocument extends CartEvent {
+  final String docNo;
+
+  const SetPreOrderDocument(this.docNo);
+
+  @override
+  List<Object?> get props => [docNo];
+}
+
+// Event สำหรับตั้งค่าเลขที่เอกสาร
+class SetDocumentNumber extends CartEvent {
+  final String documentNumber;
+
+  const SetDocumentNumber(this.documentNumber);
+
+  @override
+  List<Object?> get props => [documentNumber];
 }

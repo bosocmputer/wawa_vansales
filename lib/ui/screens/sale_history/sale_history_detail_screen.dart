@@ -1,17 +1,40 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_bloc.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_event.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
+import 'package:wawa_vansales/data/models/cart_item_model.dart';
+import 'package:wawa_vansales/data/models/customer_model.dart';
+import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/data/models/sale_history_detail_model.dart';
+import 'package:wawa_vansales/data/services/printer_status_provider.dart';
+import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
+import 'package:wawa_vansales/ui/screens/sale/print_receipt_dialog.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/emty_state_widget.dart';
+import 'package:wawa_vansales/utils/global.dart';
 
 class SaleHistoryDetailScreen extends StatefulWidget {
   final String docNo;
+  final String custCode;
+  final String custName;
+  final String? cashAmount;
+  final String? tranferAmount;
+  final String? cardAmount;
 
-  const SaleHistoryDetailScreen({super.key, required this.docNo});
+  const SaleHistoryDetailScreen({
+    super.key,
+    required this.docNo,
+    required this.custCode,
+    required this.custName,
+    this.cashAmount,
+    this.tranferAmount,
+    this.cardAmount,
+  });
 
   @override
   State<SaleHistoryDetailScreen> createState() => _SaleHistoryDetailScreenState();
@@ -19,6 +42,8 @@ class SaleHistoryDetailScreen extends StatefulWidget {
 
 class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
   final _currencyFormat = NumberFormat('#,##0.00', 'th_TH');
+  final ReceiptPrinterService _printerService = ReceiptPrinterService();
+  bool _isPrinting = false;
 
   @override
   void initState() {
@@ -28,6 +53,244 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SaleHistoryBloc>().add(FetchSaleHistoryDetail(widget.docNo));
     });
+  }
+
+  // ฟังก์ชันสำหรับพิมพ์ใบเสร็จ
+  Future<void> _printReceipt(
+    String docNo,
+    CustomerModel customer,
+    List<SaleHistoryDetailModel> items,
+    double totalAmount,
+  ) async {
+    if (_isPrinting) return; // ป้องกันการกดพิมพ์ซ้ำ
+
+    setState(() {
+      _isPrinting = true;
+    });
+
+    final printerStatus = Provider.of<PrinterStatusProvider>(context, listen: false);
+
+    // ถ้าเครื่องพิมพ์ไม่ได้เชื่อมต่อ ให้พยายามเชื่อมต่อก่อน
+    if (!printerStatus.isConnected) {
+      // แสดง dialog กำลังเชื่อมต่อ
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          title: Text('กำลังเชื่อมต่อเครื่องพิมพ์'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('กำลังค้นหาและเชื่อมต่อเครื่องพิมพ์...'),
+            ],
+          ),
+        ),
+      );
+
+      // พยายามเชื่อมต่อ
+      final connected = await printerStatus.connectPrinter();
+
+      // ปิด dialog
+      if (mounted) Navigator.of(context).pop();
+
+      // ถ้าเชื่อมต่อไม่สำเร็จ แสดงข้อความและถามว่าต้องการดำเนินการต่อหรือไม่
+      if (!connected && mounted) {
+        final continueWithoutPrinter = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('ไม่สามารถเชื่อมต่อเครื่องพิมพ์'),
+                content: const Text('ไม่พบเครื่องพิมพ์หรือไม่สามารถเชื่อมต่อได้ คุณต้องการดำเนินการต่อโดยไม่พิมพ์ใบเสร็จหรือไม่?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('ยกเลิก'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('ดำเนินการต่อ'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+
+        if (!continueWithoutPrinter) {
+          setState(() {
+            _isPrinting = false;
+          });
+          return;
+        }
+      }
+    }
+
+    // แสดง dialog เลือกประเภทใบเสร็จ
+    final receiptChoice = await PrintReceiptDialog.show(
+      context,
+      documentNumber: docNo,
+      customer: customer,
+    );
+
+    final bool shouldPrint = receiptChoice != null && receiptChoice['print'] == true;
+    final String receiptType = receiptChoice != null ? receiptChoice['receiptType'] ?? 'taxReceipt' : 'taxReceipt';
+
+    if (!shouldPrint) {
+      setState(() {
+        _isPrinting = false;
+      });
+      return;
+    }
+
+    // แสดง loading dialog และเริ่มกระบวนการพิมพ์
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return WillPopScope(
+          onWillPop: () async => false, // ป้องกันการกดปุ่ม back
+          child: AlertDialog(
+            title: const Text('กำลังพิมพ์ใบเสร็จ'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text('กำลังพิมพ์ใบเสร็จเลขที่: $docNo'),
+                const SizedBox(height: 8),
+                const Text('โปรดรอสักครู่...', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // แปลง SaleHistoryDetailModel เป็น CartItemModel เพื่อใช้กับ ReceiptPrinterService
+    List<CartItemModel> cartItems = items
+        .map((item) => CartItemModel(
+              itemCode: item.itemCode,
+              itemName: item.itemName,
+              barcode: '',
+              price: item.price,
+              sumAmount: (double.tryParse(item.price) ?? 0).toString(),
+              unitCode: item.unitCode,
+              whCode: item.whCode,
+              shelfCode: item.shelfCode,
+              ratio: '',
+              standValue: '',
+              divideValue: '',
+              qty: item.qty,
+            ))
+        .toList();
+
+    // รายการชำระเงิน - สร้างจากข้อมูล API
+    List<PaymentModel> payments = [];
+
+    // ดึงข้อมูลจำนวนเงินจากแต่ละประเภทการชำระเงิน
+    final double cashAmount = double.tryParse(widget.cashAmount ?? '0') ?? 0;
+    final double transferAmount = double.tryParse(widget.tranferAmount ?? '0') ?? 0;
+    final double cardAmount = double.tryParse(widget.cardAmount ?? '0') ?? 0;
+
+    // เพิ่มข้อมูลการชำระเงินตามประเภท
+    if (cashAmount > 0) {
+      payments.add(PaymentModel(
+        payType: 1, // เงินสด
+        payAmount: cashAmount,
+        transNumber: '',
+      ));
+    }
+
+    if (transferAmount > 0) {
+      payments.add(PaymentModel(
+        payType: 2, // เงินโอน
+        payAmount: transferAmount,
+        transNumber: '',
+      ));
+    }
+
+    if (cardAmount > 0) {
+      payments.add(PaymentModel(
+        payType: 3, // บัตรเครดิต
+        payAmount: cardAmount,
+        transNumber: '',
+      ));
+    }
+
+    // เริ่มพิมพ์ใบเสร็จในแบ็คกราวนด์
+    try {
+      bool printSuccess = await _printerService.printReceipt(
+        customer: customer,
+        items: cartItems,
+        payments: payments,
+        totalAmount: totalAmount,
+        docNumber: docNo,
+        warehouseCode: '',
+        empCode: Global.empCode,
+        receiptType: receiptType,
+        isCopy: true, // ระบุว่าเป็นการพิมพ์สำเนา
+      );
+
+      // ปิด loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (printSuccess) {
+        // แสดง dialog ยืนยันการพิมพ์
+        final printResult = await showDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('พิมพ์ใบเสร็จเสร็จสิ้น'),
+            content: const Text('พิมพ์ใบเสร็จเรียบร้อยแล้ว'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('reprint'),
+                child: const Text('พิมพ์ใหม่'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop('done'),
+                child: const Text('ยืนยัน'),
+              ),
+            ],
+          ),
+        );
+
+        // ทำการพิมพ์ซ้ำถ้าผู้ใช้เลือก
+        if (printResult == 'reprint') {
+          if (mounted) {
+            _printReceipt(docNo, customer, items, totalAmount);
+            return;
+          }
+        }
+      } else {
+        // แจ้งเตือนว่าพิมพ์ไม่สำเร็จ
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('ไม่สามารถพิมพ์ได้ กรุณาเชื่อมต่อเครื่องพิมพ์'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // จัดการข้อผิดพลาด
+      if (mounted) {
+        Navigator.of(context).pop(); // ปิด loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('เกิดข้อผิดพลาดในการพิมพ์: ${e.toString()}'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isPrinting = false;
+      });
+    }
   }
 
   @override
@@ -43,6 +306,53 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
             Navigator.of(context).pop();
           },
         ),
+        actions: [
+          // เพิ่มปุ่มพิมพ์ใบเสร็จ
+          BlocBuilder<SaleHistoryBloc, SaleHistoryState>(
+            builder: (context, state) {
+              if (state is SaleHistoryDetailLoaded) {
+                return IconButton(
+                  icon: const Icon(Icons.print),
+                  tooltip: 'พิมพ์ใบเสร็จ',
+                  onPressed: _isPrinting
+                      ? null
+                      : () async {
+                          // หาข้อมูลลูกค้า
+                          try {
+                            // สร้าง CustomerModel จากข้อมูลที่มี
+                            final customer = CustomerModel(
+                              code: widget.custCode,
+                              name: widget.custName,
+                            );
+
+                            // คำนวณยอดรวมทั้งหมด
+                            final totalAmount = state.items.fold<double>(
+                              0,
+                              (sum, item) => sum + item.totalAmount,
+                            );
+
+                            // เรียกฟังก์ชันพิมพ์ใบเสร็จ
+                            _printReceipt(
+                              state.docNo,
+                              customer,
+                              state.items,
+                              totalAmount,
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
+                                backgroundColor: AppTheme.errorColor,
+                              ),
+                            );
+                          }
+                        },
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
       ),
       body: BlocBuilder<SaleHistoryBloc, SaleHistoryState>(
         builder: (context, state) {

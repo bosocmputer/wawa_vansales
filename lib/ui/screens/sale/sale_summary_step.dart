@@ -8,8 +8,12 @@ import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/ui/screens/sale/receipt_preview_widget.dart';
+import 'package:wawa_vansales/utils/global.dart';
+import 'package:wawa_vansales/utils/local_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SaleSummaryStep extends StatelessWidget {
+class SaleSummaryStep extends StatefulWidget {
   final CustomerModel customer;
   final List<CartItemModel> items;
   final List<PaymentModel> payments;
@@ -18,6 +22,8 @@ class SaleSummaryStep extends StatelessWidget {
   final bool isConnected;
   final bool isConnecting;
   final Future<bool> Function() onReconnectPrinter;
+  final String empCode;
+  final String? preOrderDocNumber; // เพิ่มพารามิเตอร์สำหรับเลขที่เอกสาร pre-order
 
   const SaleSummaryStep({
     super.key,
@@ -29,7 +35,46 @@ class SaleSummaryStep extends StatelessWidget {
     required this.isConnected,
     required this.isConnecting,
     required this.onReconnectPrinter,
+    required this.empCode,
+    this.preOrderDocNumber, // พารามิเตอร์เลขที่เอกสาร pre-order (ไม่บังคับ)
   });
+
+  @override
+  State<SaleSummaryStep> createState() => _SaleSummaryStepState();
+}
+
+class _SaleSummaryStepState extends State<SaleSummaryStep> {
+  String generatedDocNumber = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _generateDocNumber();
+  }
+
+  Future<void> _generateDocNumber() async {
+    // ถ้ามีเลขที่เอกสาร preOrder ให้ใช้เลขที่เอกสารนั้นเลย
+    if (widget.preOrderDocNumber != null && widget.preOrderDocNumber!.isNotEmpty) {
+      setState(() {
+        generatedDocNumber = widget.preOrderDocNumber!;
+      });
+      return;
+    }
+
+    // ถ้าไม่มีเลขที่เอกสาร preOrder ให้สร้างเลขที่เอกสารใหม่
+    final localStorage = LocalStorage(
+      prefs: await SharedPreferences.getInstance(),
+      secureStorage: const FlutterSecureStorage(),
+    );
+    final warehouse = await localStorage.getWarehouse();
+    final warehouseCode = warehouse?.code ?? 'NA';
+
+    final docNo = Global.generateDocumentNumber(warehouseCode);
+
+    setState(() {
+      generatedDocNumber = docNo;
+    });
+  }
 
   Future<void> _showSaveConfirmDialog(BuildContext context) async {
     final bool? confirm = await showDialog<bool>(
@@ -52,7 +97,9 @@ class SaleSummaryStep extends StatelessWidget {
 
     if (confirm == true) {
       // ignore: use_build_context_synchronously
-      context.read<CartBloc>().add(const SubmitSale());
+      context.read<CartBloc>()
+        ..add(SetDocumentNumber(generatedDocNumber))
+        ..add(const SubmitSale());
     }
   }
 
@@ -84,11 +131,12 @@ class SaleSummaryStep extends StatelessWidget {
                 Container(
                   alignment: Alignment.center,
                   child: ReceiptPreviewWidget(
-                    customer: customer,
-                    items: items,
-                    payments: payments,
-                    totalAmount: totalAmount,
-                    docNumber: 'ตัวอย่างเลขที่เอกสาร',
+                    customer: widget.customer,
+                    items: widget.items,
+                    payments: widget.payments,
+                    totalAmount: widget.totalAmount,
+                    docNumber: generatedDocNumber,
+                    empCode: widget.empCode,
                   ),
                 ),
               ],
@@ -115,7 +163,7 @@ class SaleSummaryStep extends StatelessWidget {
               children: [
                 // ปุ่มกลับ
                 OutlinedButton(
-                  onPressed: onBackStep,
+                  onPressed: widget.onBackStep,
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(80, 44),
                   ),
@@ -147,17 +195,17 @@ class SaleSummaryStep extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isConnected ? Colors.green.shade50 : Colors.orange.shade50,
+        color: widget.isConnected ? Colors.green.shade50 : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isConnected ? Colors.green.shade200 : Colors.orange.shade200,
+          color: widget.isConnected ? Colors.green.shade200 : Colors.orange.shade200,
         ),
       ),
       child: Row(
         children: [
           Icon(
-            isConnected ? Icons.print : Icons.print_disabled,
-            color: isConnected ? Colors.green : Colors.orange,
+            widget.isConnected ? Icons.print : Icons.print_disabled,
+            color: widget.isConnected ? Colors.green : Colors.orange,
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -167,13 +215,13 @@ class SaleSummaryStep extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isConnected ? 'เครื่องพิมพ์พร้อมใช้งาน' : 'ไม่พบเครื่องพิมพ์',
+                  widget.isConnected ? 'เครื่องพิมพ์พร้อมใช้งาน' : 'ไม่พบเครื่องพิมพ์',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isConnected ? Colors.green : Colors.orange,
+                    color: widget.isConnected ? Colors.green : Colors.orange,
                   ),
                 ),
-                if (isConnecting)
+                if (widget.isConnecting)
                   const Text(
                     'กำลังพยายามเชื่อมต่อใหม่...',
                     style: TextStyle(fontSize: 12, color: Colors.grey),
@@ -181,10 +229,10 @@ class SaleSummaryStep extends StatelessWidget {
               ],
             ),
           ),
-          if (!isConnected)
+          if (!widget.isConnected)
             TextButton(
-              onPressed: isConnecting ? null : onReconnectPrinter,
-              child: isConnecting
+              onPressed: widget.isConnecting ? null : widget.onReconnectPrinter,
+              child: widget.isConnecting
                   ? const SizedBox(
                       width: 16,
                       height: 16,

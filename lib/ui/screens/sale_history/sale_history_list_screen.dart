@@ -297,7 +297,14 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => SaleHistoryDetailScreen(docNo: sale.docNo),
+              builder: (_) => SaleHistoryDetailScreen(
+                docNo: sale.docNo,
+                custCode: sale.custCode,
+                custName: sale.custName,
+                cashAmount: sale.cashAmount,
+                tranferAmount: sale.tranferAmount,
+                cardAmount: sale.cardAmount,
+              ),
             ),
           );
         },
@@ -391,24 +398,31 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
               Divider(color: Colors.grey.shade300),
               const SizedBox(height: 4),
 
-              // Total Amount
+              // Payment Information
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'ยอดรวม:',
-                    style: TextStyle(
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '฿${_currencyFormat.format(sale.totalAmountValue)}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
-                    ),
+                  _buildPaymentInfo(sale),
+                  // Total Amount
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'มูลค่า:',
+                        style: TextStyle(
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '฿${_currencyFormat.format(sale.totalAmountValue)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -416,6 +430,101 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPaymentInfo(SaleHistoryModel sale) {
+    // แปลงค่าเป็น double
+    final double cashAmount = double.tryParse(sale.cashAmount ?? '0') ?? 0;
+    final double transferAmount = double.tryParse(sale.tranferAmount ?? '0') ?? 0;
+    final double cardAmount = double.tryParse(sale.cardAmount ?? '0') ?? 0;
+
+    // ถ้าไม่มีการชำระเงินที่ระบุประเภท ให้แสดงข้อความ
+    if (cashAmount == 0 && transferAmount == 0 && cardAmount == 0) {
+      return const Row(
+        children: [
+          Icon(
+            Icons.payment,
+            size: 18,
+            color: AppTheme.primaryColor,
+          ),
+          SizedBox(width: 8),
+          Text(
+            'ไม่ระบุประเภทการชำระเงิน',
+            style: TextStyle(
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (cashAmount > 0)
+          Row(
+            children: [
+              const Icon(
+                Icons.money,
+                size: 18,
+                color: AppTheme.primaryColor,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'เงินสด: ฿${_currencyFormat.format(cashAmount)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        if (transferAmount > 0)
+          Padding(
+            padding: EdgeInsets.only(top: cashAmount > 0 ? 4 : 0),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.account_balance,
+                  size: 18,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'โอนเงิน: ฿${_currencyFormat.format(transferAmount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (cardAmount > 0)
+          Padding(
+            padding: EdgeInsets.only(top: (cashAmount > 0 || transferAmount > 0) ? 4 : 0),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.credit_card,
+                  size: 18,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'บัตรเครดิต: ฿${_currencyFormat.format(cardAmount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

@@ -16,6 +16,7 @@ import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/services/printer_status_provider.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
+import 'package:wawa_vansales/ui/screens/sale/print_receipt_dialog.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_cart_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_customer_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_payment_step.dart';
@@ -25,7 +26,16 @@ import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 
 class SaleScreen extends StatefulWidget {
-  const SaleScreen({super.key});
+  final bool isFromPreOrder;
+  final bool startAtCart;
+  final String? preOrderDocNo; // เพิ่มพารามิเตอร์สำหรับเลขที่เอกสาร pre-order
+
+  const SaleScreen({
+    super.key,
+    this.isFromPreOrder = false,
+    this.startAtCart = false,
+    this.preOrderDocNo,
+  });
 
   @override
   State<SaleScreen> createState() => _SaleScreenState();
@@ -43,19 +53,36 @@ class _SaleScreenState extends State<SaleScreen> {
   // ignore: unused_field
   final bool _isPrinting = false;
 
+  String preOrderDocNo = '';
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // ใช้ Global.empCode และ Global.whCode แทนหากมีค่า
       setState(() {
         _warehouseCode = Global.whCode;
-        _empCode = Global.empCode.isEmpty ? 'TEST' : Global.empCode;
+        _empCode = Global.empCode;
       });
 
-      // หากไม่มีค่า empCode ให้ดึงจาก localStorage แล้วกำหนดค่า
       if (Global.empCode.isEmpty) {
         _loadUserData();
+      }
+
+      // ถ้ามาจาก PreOrderDetailScreen ให้ใช้เลขที่เอกสารนั้น
+      if (widget.isFromPreOrder && widget.preOrderDocNo != null) {
+        preOrderDocNo = widget.preOrderDocNo!;
+        // ตั้งค่า preOrderDocNo ใน CartBloc ด้วย
+        context.read<CartBloc>().add(SetPreOrderDocument(widget.preOrderDocNo!));
+      }
+
+      // กำหนด step ตามพารามิเตอร์
+      if (widget.startAtCart) {
+        // กำหนด step เป็น 1 ให้แน่ใจว่าจะแสดงหน้าตะกร้าสินค้า
+        _pageController.jumpToPage(1); // ใช้ jumpToPage แทน animate เพื่อหลีกเลี่ยงการทำงานไม่ถูกต้อง
+        context.read<CartBloc>().add(const UpdateStep(1)); // แน่ใจว่ามีการตั้งค่า step ใน bloc ด้วย
+      } else if (widget.isFromPreOrder) {
+        _pageController.jumpToPage(2); // ไปที่หน้าชำระเงิน
+        context.read<CartBloc>().add(const UpdateStep(2)); // แน่ใจว่ามีการตั้งค่า step ใน bloc ด้วย
       }
     });
 
@@ -288,7 +315,12 @@ class _SaleScreenState extends State<SaleScreen> {
                     ElevatedButton(
                       onPressed: () {
                         context.read<CartBloc>().add(ClearCart());
-                        Navigator.of(context).pop(true);
+
+                        /// home screen
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          (route) => false,
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.errorColor,
@@ -342,44 +374,11 @@ class _SaleScreenState extends State<SaleScreen> {
                 context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
 
                 // ถามว่าต้องการพิมพ์ใบเสร็จหรือไม่
-                final receiptChoice = await showDialog<Map<String, dynamic>>(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) => AlertDialog(
-                    title: const Text('การขายสำเร็จ'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('เลขที่เอกสาร: ${state.documentNumber}'),
-                        const SizedBox(height: 16),
-                        const Text('เลือกประเภทใบเสร็จ:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        RadioListTile<String>(
-                          title: const Text('บิลเงินสด'),
-                          value: 'cashReceipt',
-                          groupValue: 'taxReceipt', // เริ่มต้นเลือกใบกำกับภาษี
-                          onChanged: (String? value) {
-                            Navigator.of(context).pop({'print': true, 'receiptType': value});
-                          },
-                        ),
-                        RadioListTile<String>(
-                          title: const Text('ใบกำกับภาษี'),
-                          value: 'taxReceipt',
-                          groupValue: 'taxReceipt', // เริ่มต้นเลือกใบกำกับภาษี
-                          onChanged: (String? value) {
-                            Navigator.of(context).pop({'print': true, 'receiptType': value});
-                          },
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop({'print': false}),
-                        child: const Text('ไม่พิมพ์'),
-                      ),
-                    ],
-                  ),
+                final receiptChoice = await PrintReceiptDialog.show(
+                  context,
+                  documentNumber: state.documentNumber,
+                  customer: state.customer,
                 );
-
                 final bool shouldPrint = receiptChoice != null && receiptChoice['print'] == true;
                 final String receiptType = receiptChoice != null ? receiptChoice['receiptType'] ?? 'taxReceipt' : 'taxReceipt';
 
@@ -423,6 +422,7 @@ class _SaleScreenState extends State<SaleScreen> {
                             totalAmount: state.totalAmount,
                             onNextStep: () => _goToStep(2),
                             onBackStep: () => _goToStep(0),
+                            isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปยัง SaleCartStep
                           ),
                           // Step 3: ชำระเงิน
                           SalePaymentStep(
@@ -445,6 +445,8 @@ class _SaleScreenState extends State<SaleScreen> {
                               onReconnectPrinter: () async {
                                 return await _printerService.connectPrinter();
                               },
+                              empCode: _empCode,
+                              preOrderDocNumber: preOrderDocNo, // ส่งเลขที่เอกสาร preOrder ถ้ามาจาก PreOrderDetailScreen
                             )
                           else
                             Center(

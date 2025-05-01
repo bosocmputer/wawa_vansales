@@ -14,6 +14,7 @@ import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_bloc.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
+import 'package:wawa_vansales/blocs/pre_order/pre_order_bloc.dart'; // เพิ่ม import นี้
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
@@ -21,10 +22,12 @@ import 'package:wawa_vansales/data/repositories/product_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
+import 'package:wawa_vansales/data/repositories/pre_order_repository.dart'; // เพิ่ม import นี้
 import 'package:wawa_vansales/data/services/api_service.dart';
 import 'package:wawa_vansales/data/services/printer_status_provider.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/splash_screen.dart';
+import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -68,6 +71,13 @@ void main() async {
   // ตรวจสอบการเชื่อมต่อเครื่องพิมพ์และพยายามเชื่อมต่อล่วงหน้า
   await printerService.checkConnection();
   printerService.autoConnect();
+
+  final localStorage = LocalStorage(
+    prefs: sharedPreferences,
+    secureStorage: secureStorage,
+  );
+
+  await Global.initialize(localStorage);
 
   runApp(MyApp(
     sharedPreferences: sharedPreferences,
@@ -125,6 +135,10 @@ class MyApp extends StatelessWidget {
       localStorage: localStorage,
     );
 
+    final preOrderRepository = PreOrderRepository(
+      apiService: apiService,
+    );
+
     return MultiBlocProvider(
       providers: [
         ChangeNotifierProvider(
@@ -169,6 +183,13 @@ class MyApp extends StatelessWidget {
         BlocProvider<SalesSummaryBloc>(
           create: (context) => SalesSummaryBloc(
             saleHistoryRepository: saleHistoryRepository,
+          ),
+        ),
+        BlocProvider<PreOrderBloc>(
+          create: (context) => PreOrderBloc(
+            preOrderRepository: preOrderRepository,
+            saleRepository: saleRepository,
+            localStorage: localStorage,
           ),
         ),
       ],

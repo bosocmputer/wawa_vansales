@@ -1,4 +1,5 @@
 // lib/ui/screens/sale/sale_cart_step.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,6 +19,7 @@ class SaleCartStep extends StatefulWidget {
   final double totalAmount;
   final VoidCallback onNextStep;
   final VoidCallback onBackStep;
+  final bool isFromPreOrder; // เพิ่มตัวแปรเพื่อระบุว่าสินค้ามาจากพรีออเดอร์หรือไม่
 
   const SaleCartStep({
     super.key,
@@ -25,6 +27,7 @@ class SaleCartStep extends StatefulWidget {
     required this.totalAmount,
     required this.onNextStep,
     required this.onBackStep,
+    this.isFromPreOrder = false, // ค่าเริ่มต้นเป็น false
   });
 
   @override
@@ -146,13 +149,15 @@ class _SaleCartStepState extends State<SaleCartStep> {
           _isProcessingItem = true;
         });
 
-        print('Returned from search with item: ${result.itemCode}, qty=${result.qty}');
+        if (kDebugMode) {
+          print('Returned from search with item: ${result.itemCode}, qty=${result.qty}');
+        }
 
         // ส่ง event และรอให้เสร็จก่อนกำหนด isProcessingItem เป็น false
         context.read<CartBloc>().add(AddItemToCart(result));
 
         // Reset flag หลังจาก delay
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
             setState(() {
               _isProcessingItem = false;
@@ -198,7 +203,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
             }
 
             // Reset state หลังจากดำเนินการเสร็จ
-            Future.delayed(Duration(milliseconds: 500), () {
+            Future.delayed(const Duration(milliseconds: 500), () {
               if (mounted) {
                 setState(() {
                   _isProcessingItem = false;
@@ -239,45 +244,47 @@ class _SaleCartStepState extends State<SaleCartStep> {
       },
       child: Column(
         children: [
-          // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.white,
-            child: Row(
-              children: [
-                // ช่องค้นหาบาร์โค้ด
-                Expanded(
-                  child: SizedBox(height: 44, child: _buildScanTextField()),
-                ),
-                const SizedBox(width: 8),
+          // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า - ซ่อนเมื่อเป็น PreOrder
+          if (!widget.isFromPreOrder)
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: Colors.white,
+              child: Row(
+                children: [
+                  // ช่องค้นหาบาร์โค้ด
+                  Expanded(
+                    child: SizedBox(height: 44, child: _buildScanTextField()),
+                  ),
+                  const SizedBox(width: 8),
 
-                // ปุ่มเลือกสินค้า
-                SizedBox(
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    onPressed: _openProductSearch,
-                    icon: const Icon(Icons.search, size: 20),
-                    label: const Text('เลือกสินค้า'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  // ปุ่มเลือกสินค้า
+                  SizedBox(
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: _openProductSearch,
+                      icon: const Icon(Icons.search, size: 20),
+                      label: const Text('เลือกสินค้า'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // แสดงสถานะการค้นหา
-          BlocBuilder<ProductDetailBloc, ProductDetailState>(
-            builder: (context, state) {
-              if (state is ProductDetailLoading) {
-                return const LinearProgressIndicator(minHeight: 2);
-              }
-              return const SizedBox.shrink();
-            },
-          ),
+          // แสดงสถานะการค้นหา เฉพาะเมื่อไม่ใช่ PreOrder
+          if (!widget.isFromPreOrder)
+            BlocBuilder<ProductDetailBloc, ProductDetailState>(
+              builder: (context, state) {
+                if (state is ProductDetailLoading) {
+                  return const LinearProgressIndicator(minHeight: 2);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
 
           // รายการสินค้าในตะกร้า
           Expanded(
@@ -432,6 +439,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
     );
   }
 
+// ใน _buildCartItemCard อาจเพิ่มการแสดงข้อมูลบาร์โค้ดและหน่วยนับ
   Widget _buildCartItemCard(CartItemModel item) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -465,18 +473,31 @@ class _SaleCartStepState extends State<SaleCartStep> {
                           color: Colors.grey[600],
                         ),
                       ),
+                      // เพิ่มการแสดงบาร์โค้ด
+                      Text(
+                        'บาร์โค้ด: ${item.barcode}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 22),
-                  color: AppTheme.errorColor,
-                  onPressed: () {
-                    context.read<CartBloc>().add(RemoveItemFromCart(item.itemCode));
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
+                if (!widget.isFromPreOrder) // ไม่แสดงปุ่มลบหากมาจากพรีออเดอร์
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 22),
+                    color: AppTheme.errorColor,
+                    onPressed: () {
+                      context.read<CartBloc>().add(RemoveItemFromCart(
+                            itemCode: item.itemCode,
+                            barcode: item.barcode,
+                            unitCode: item.unitCode,
+                          ));
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
               ],
             ),
             const SizedBox(height: 8),
@@ -493,53 +514,64 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 ),
 
                 // ปรับจำนวน
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          final currentQty = double.tryParse(item.qty) ?? 0;
-                          if (currentQty > 1) {
-                            context.read<CartBloc>().add(
-                                  UpdateItemQuantity(item.itemCode, currentQty - 1),
-                                );
-                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(Icons.remove, size: 18, color: Colors.grey[700]),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          (double.tryParse(item.qty) ?? 0).toStringAsFixed(0),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                if (!widget.isFromPreOrder) // ไม่แสดงการปรับจำนวนหากมาจากพรีออเดอร์
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            final currentQty = double.tryParse(item.qty) ?? 0;
+                            if (currentQty > 1) {
+                              context.read<CartBloc>().add(
+                                    UpdateItemQuantity(
+                                      itemCode: item.itemCode,
+                                      barcode: item.barcode,
+                                      unitCode: item.unitCode,
+                                      quantity: currentQty - 1,
+                                    ),
+                                  );
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(Icons.remove, size: 18, color: Colors.grey[700]),
                           ),
                         ),
-                      ),
-                      InkWell(
-                        onTap: () {
-                          final currentQty = double.tryParse(item.qty) ?? 0;
-                          context.read<CartBloc>().add(
-                                UpdateItemQuantity(item.itemCode, currentQty + 1),
-                              );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(6),
-                          child: Icon(Icons.add, size: 18, color: Colors.grey[700]),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            (double.tryParse(item.qty) ?? 0).toStringAsFixed(0),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                        InkWell(
+                          onTap: () {
+                            final currentQty = double.tryParse(item.qty) ?? 0;
+                            context.read<CartBloc>().add(
+                                  UpdateItemQuantity(
+                                    itemCode: item.itemCode,
+                                    barcode: item.barcode,
+                                    unitCode: item.unitCode,
+                                    quantity: currentQty + 1,
+                                  ),
+                                );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(Icons.add, size: 18, color: Colors.grey[700]),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
                 const SizedBox(width: 12),
 
                 // ยอดรวม

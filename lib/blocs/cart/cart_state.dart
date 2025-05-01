@@ -21,6 +21,8 @@ class CartLoaded extends CartState {
   final List<PaymentModel> payments;
   final double totalAmount;
   final int currentStep; // 0: เลือกลูกค้า, 1: เลือกสินค้า, 2: ชำระเงิน, 3: สรุปรายการ
+  final String preOrderDocNo; // เพิ่มฟิลด์สำหรับเก็บเลขที่เอกสารพรีออเดอร์
+  final String documentNumber; // เพิ่มฟิลด์สำหรับเก็บเลขที่เอกสาร
 
   const CartLoaded({
     this.selectedCustomer,
@@ -28,10 +30,12 @@ class CartLoaded extends CartState {
     this.payments = const [],
     this.totalAmount = 0,
     this.currentStep = 0,
+    this.preOrderDocNo = '', // กำหนดค่าเริ่มต้นเป็นสตริงว่าง
+    this.documentNumber = '', // กำหนดค่าเริ่มต้นเป็นสตริงว่าง
   });
 
   @override
-  List<Object?> get props => [selectedCustomer, items, payments, totalAmount, currentStep];
+  List<Object?> get props => [selectedCustomer, items, payments, totalAmount, currentStep, preOrderDocNo, documentNumber];
 
   // สร้าง copyWith method
   CartLoaded copyWith({
@@ -40,6 +44,8 @@ class CartLoaded extends CartState {
     List<PaymentModel>? payments,
     double? totalAmount,
     int? currentStep,
+    String? preOrderDocNo,
+    String? documentNumber,
   }) {
     return CartLoaded(
       selectedCustomer: selectedCustomer ?? this.selectedCustomer,
@@ -47,6 +53,8 @@ class CartLoaded extends CartState {
       payments: payments ?? this.payments,
       totalAmount: totalAmount ?? this.totalAmount,
       currentStep: currentStep ?? this.currentStep,
+      preOrderDocNo: preOrderDocNo ?? this.preOrderDocNo,
+      documentNumber: documentNumber ?? this.documentNumber,
     );
   }
 

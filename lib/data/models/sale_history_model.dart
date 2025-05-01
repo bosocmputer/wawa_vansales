@@ -22,6 +22,15 @@ class SaleHistoryModel {
   @JsonKey(name: 'doc_time')
   final String docTime;
 
+  @JsonKey(name: 'cash_amount')
+  final String? cashAmount;
+
+  @JsonKey(name: 'tranfer_amount')
+  final String? tranferAmount;
+
+  @JsonKey(name: 'card_amount')
+  final String? cardAmount;
+
   SaleHistoryModel({
     required this.custCode,
     required this.totalAmount,
@@ -29,6 +38,9 @@ class SaleHistoryModel {
     required this.docDate,
     required this.custName,
     required this.docTime,
+    this.cashAmount,
+    this.tranferAmount,
+    this.cardAmount,
   });
 
   factory SaleHistoryModel.fromJson(Map<String, dynamic> json) => _$SaleHistoryModelFromJson(json);

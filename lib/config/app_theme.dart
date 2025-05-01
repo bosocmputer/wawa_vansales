@@ -84,6 +84,7 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         ),
       ),
+
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,

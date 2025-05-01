@@ -14,6 +14,9 @@ SaleHistoryModel _$SaleHistoryModelFromJson(Map<String, dynamic> json) =>
       docDate: json['doc_date'] as String,
       custName: json['cust_name'] as String,
       docTime: json['doc_time'] as String,
+      cashAmount: json['cash_amount'] as String?,
+      tranferAmount: json['tranfer_amount'] as String?,
+      cardAmount: json['card_amount'] as String?,
     );
 
 Map<String, dynamic> _$SaleHistoryModelToJson(SaleHistoryModel instance) =>
@@ -24,6 +27,9 @@ Map<String, dynamic> _$SaleHistoryModelToJson(SaleHistoryModel instance) =>
       'doc_date': instance.docDate,
       'cust_name': instance.custName,
       'doc_time': instance.docTime,
+      'cash_amount': instance.cashAmount,
+      'tranfer_amount': instance.tranferAmount,
+      'card_amount': instance.cardAmount,
     };
 
 SaleHistoryResponse _$SaleHistoryResponseFromJson(Map<String, dynamic> json) =>

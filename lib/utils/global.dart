@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:wawa_vansales/utils/local_storage.dart';
 
 /// คลาส Global สำหรับเก็บค่าที่ใช้บ่อยทั่วทั้งแอพพลิเคชัน
@@ -16,7 +18,7 @@ class Global {
   static const String keyShiftCode = 'shift_code';
 
   // Getters สำหรับค่าต่างๆ
-  static String get empCode => _empCode ?? '';
+  static String get empCode => _empCode ?? 'NA';
   static String get whCode => _whCode ?? 'NA';
   static String get shiftCode => _shiftCode ?? '';
 
@@ -73,5 +75,19 @@ class Global {
     _empCode = null;
     _whCode = null;
     _shiftCode = null;
+  }
+
+  // Generate a document number for sales transactions
+  static String generateDocumentNumber(String warehouseCode) {
+    // Use warehouse code, current date, and random number to create a unique document number
+    final now = DateTime.now();
+
+    // ใช้รูปแบบปี 2 หลัก เดือน 2 หลัก วัน 2 หลัก
+    final dateStr = '${(now.year % 100).toString().padLeft(2, '0')}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+
+    // สร้างเลขสุ่ม 3 หลัก
+    final random = (100 + Random().nextInt(900)).toString();
+
+    return 'MINV$warehouseCode$dateStr-$random';
   }
 }

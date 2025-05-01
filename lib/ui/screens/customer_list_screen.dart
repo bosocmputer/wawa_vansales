@@ -63,6 +63,19 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('รายการลูกค้า'),
+        actions: [
+          /// add customer
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const CustomerFormScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -298,17 +311,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const CustomerFormScreen(),
-            ),
-          );
-        },
-        tooltip: 'เพิ่มลูกค้าใหม่',
-        child: const Icon(Icons.add),
       ),
     );
   }

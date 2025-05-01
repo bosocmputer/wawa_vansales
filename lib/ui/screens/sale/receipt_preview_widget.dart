@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
-import 'package:wawa_vansales/utils/global.dart';
 import 'package:intl/intl.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 
@@ -15,7 +14,7 @@ class ReceiptPreviewWidget extends StatefulWidget {
   final List<PaymentModel> payments;
   final double totalAmount;
   final String docNumber;
-  final String? empCode;
+  final String empCode;
 
   const ReceiptPreviewWidget({
     super.key,
@@ -24,7 +23,7 @@ class ReceiptPreviewWidget extends StatefulWidget {
     required this.payments,
     required this.totalAmount,
     required this.docNumber,
-    this.empCode,
+    required this.empCode,
   });
 
   @override
@@ -71,8 +70,7 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
     final double vatAmount = widget.totalAmount * 0.07;
     final double priceBeforeVat = widget.totalAmount - vatAmount;
 
-    // ใช้ค่า empCode ที่ส่งมา, Global.empCode หรือค่า TEST ถ้าไม่มีค่าใดๆ
-    final String staffCode = widget.empCode ?? Global.empCode;
+    final String staffCode = widget.empCode;
 
     return Container(
       width: 280, // ประมาณ 58mm
@@ -143,8 +141,13 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                   style: const TextStyle(fontSize: 10),
                 ),
               ),
-            const SizedBox(height: 8),
-
+            const SizedBox(height: 2),
+            // เส้นคั่น
+            const Divider(
+              height: 1,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 2),
             // ข้อมูลลูกค้า
             Align(
               alignment: Alignment.centerLeft,
@@ -159,27 +162,22 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                     'รหัส: ${widget.customer.code}',
                     style: const TextStyle(fontSize: 10),
                   ),
-                  if (widget.customer.taxId != null && widget.customer.taxId!.isNotEmpty)
-                    Text(
-                      'เลขภาษี: ${widget.customer.taxId}',
-                      style: const TextStyle(fontSize: 10),
-                    ),
                 ],
               ),
             ),
 
             // เส้นคั่น
-            const SizedBox(height: 8),
+            const SizedBox(height: 2),
             const Divider(
               height: 1,
               color: Colors.grey,
             ),
+            const SizedBox(height: 2),
 
             // หัวข้อรายการสินค้า
-            const SizedBox(height: 4),
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 Text(
                   'รายการ',
                   style: TextStyle(fontSize: 10),
@@ -345,18 +343,45 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
               color: Colors.grey,
             ),
 
+            // พนักงานขายและผู้รับสินค้า
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'พนักงานขาย.....................',
+                        style: TextStyle(fontSize: 10),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$staffCode ${warehouseInfo != null && locationInfo != null ? '($warehouseInfo/$locationInfo)' : ''}',
+                        style: const TextStyle(fontSize: 9),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            const Align(
+              alignment: Alignment.center,
+              child: Text(
+                'ผู้รับสินค้า.....................',
+                style: TextStyle(fontSize: 10),
+              ),
+            ),
             // ส่วนท้าย
             const SizedBox(height: 8),
             const Text(
               'ขอบคุณที่ใช้บริการ',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'พนักงานขาย: ${staffCode.isEmpty ? "TEST" : staffCode}',
-              style: const TextStyle(fontSize: 10),
             ),
           ],
         ),

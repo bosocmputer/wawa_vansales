@@ -6,6 +6,7 @@ import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/ui/screens/search_screen/customer_search_screen.dart';
+import 'package:wawa_vansales/ui/screens/search_screen/pre_order_search_screen.dart';
 
 class SaleCustomerStep extends StatelessWidget {
   final CustomerModel? selectedCustomer;
@@ -54,7 +55,7 @@ class SaleCustomerStep extends StatelessWidget {
 
         // แสดงลูกค้าที่เลือกหรือปุ่มเลือกลูกค้า
         Expanded(
-          child: selectedCustomer != null ? _buildSelectedCustomerCard(context) : _buildSelectCustomerButton(context),
+          child: selectedCustomer != null ? _buildSelectedCustomerCard(context, selectedCustomer!) : _buildSelectCustomerButton(context),
         ),
 
         // ปุ่มถัดไป
@@ -90,92 +91,112 @@ class SaleCustomerStep extends StatelessWidget {
     );
   }
 
-  Widget _buildSelectedCustomerCard(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
-                    child: Text(
-                      selectedCustomer!.name![0].toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
+  Widget _buildSelectedCustomerCard(BuildContext context, CustomerModel customer) {
+    return Card(
+      margin: const EdgeInsets.all(12),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppTheme.primaryColorLight.withOpacity(0.3),
+                  radius: 28,
+                  child: const Icon(
+                    Icons.person,
+                    color: AppTheme.primaryColor,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        customer.name!,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          selectedCustomer!.name!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      if (customer.code != null)
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.badge,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'รหัส: ${customer.code}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'รหัส: ${selectedCustomer!.code}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
+                      if (customer.address != null)
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                customer.address!,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: AppTheme.primaryColor),
-                    onPressed: () => _selectCustomer(context),
-                  ),
-                ],
-              ),
-              if (selectedCustomer!.address!.isNotEmpty) ...[
-                const Divider(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        selectedCustomer!.address!,
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
                 ),
               ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    context.read<CartBloc>().add(ClearCart());
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('เลือกใหม่'),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    // เปิดหน้าจอค้นหาพรีออเดอร์ของลูกค้า
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PreOrderSearchScreen(
+                          customerCode: customer.code ?? '',
+                          customerName: customer.name!,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.receipt_long),
+                  label: const Text('พรีออเดอร์'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
