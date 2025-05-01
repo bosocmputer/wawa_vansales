@@ -124,7 +124,7 @@ class _SaleScreenState extends State<SaleScreen> {
     }
   }
 
-  Future<void> _printReceipt(CartSubmitSuccess state) async {
+  Future<void> _printReceipt(CartSubmitSuccess state, String receiptType) async {
     final printerStatus = Provider.of<PrinterStatusProvider>(context, listen: false);
 
     // ถ้าเครื่องพิมพ์ไม่ได้เชื่อมต่อ ให้พยายามเชื่อมต่อก่อน
@@ -214,6 +214,7 @@ class _SaleScreenState extends State<SaleScreen> {
         docNumber: state.documentNumber,
         warehouseCode: _warehouseCode,
         empCode: _empCode,
+        receiptType: receiptType,
       );
 
       // ปิด loading dialog
@@ -341,27 +342,49 @@ class _SaleScreenState extends State<SaleScreen> {
                 context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
 
                 // ถามว่าต้องการพิมพ์ใบเสร็จหรือไม่
-                final shouldPrint = await showDialog<bool>(
+                final receiptChoice = await showDialog<Map<String, dynamic>>(
                   context: context,
                   barrierDismissible: false,
                   builder: (context) => AlertDialog(
                     title: const Text('การขายสำเร็จ'),
-                    content: Text('เลขที่เอกสาร: ${state.documentNumber}\nคุณต้องการพิมพ์ใบเสร็จหรือไม่?'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('เลขที่เอกสาร: ${state.documentNumber}'),
+                        const SizedBox(height: 16),
+                        const Text('เลือกประเภทใบเสร็จ:', style: TextStyle(fontWeight: FontWeight.bold)),
+                        RadioListTile<String>(
+                          title: const Text('บิลเงินสด'),
+                          value: 'cashReceipt',
+                          groupValue: 'taxReceipt', // เริ่มต้นเลือกใบกำกับภาษี
+                          onChanged: (String? value) {
+                            Navigator.of(context).pop({'print': true, 'receiptType': value});
+                          },
+                        ),
+                        RadioListTile<String>(
+                          title: const Text('ใบกำกับภาษี'),
+                          value: 'taxReceipt',
+                          groupValue: 'taxReceipt', // เริ่มต้นเลือกใบกำกับภาษี
+                          onChanged: (String? value) {
+                            Navigator.of(context).pop({'print': true, 'receiptType': value});
+                          },
+                        ),
+                      ],
+                    ),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
+                        onPressed: () => Navigator.of(context).pop({'print': false}),
                         child: const Text('ไม่พิมพ์'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('พิมพ์ใบเสร็จ'),
                       ),
                     ],
                   ),
                 );
 
-                if (shouldPrint == true) {
-                  await _printReceipt(state);
+                final bool shouldPrint = receiptChoice != null && receiptChoice['print'] == true;
+                final String receiptType = receiptChoice != null ? receiptChoice['receiptType'] ?? 'taxReceipt' : 'taxReceipt';
+
+                if (shouldPrint) {
+                  await _printReceipt(state, receiptType);
                 }
 
                 // รีเซ็ตตะกร้าและกลับหน้าหลัก

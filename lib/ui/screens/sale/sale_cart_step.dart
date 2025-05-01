@@ -42,6 +42,8 @@ class _SaleCartStepState extends State<SaleCartStep> {
   final FocusNode _barcodeScanFocusNode = FocusNode();
   final FocusNode _barcodeSearchFocusNode = FocusNode();
 
+  bool _isProcessingItem = false;
+
   // โหมดปัจจุบัน
   bool _isScanMode = true; // true = scan mode, false = search mode
 
@@ -64,17 +66,30 @@ class _SaleCartStepState extends State<SaleCartStep> {
   }
 
   void _processBarcode(String barcode) {
-    if (barcode.isNotEmpty) {
-      final cartState = context.read<CartBloc>().state;
-      if (cartState is CartLoaded && cartState.selectedCustomer != null) {
-        context.read<ProductDetailBloc>().add(
-              FetchProductByBarcode(
-                barcode: barcode,
-                customerCode: cartState.selectedCustomer!.code!,
-              ),
-            );
-      }
+    if (barcode.isEmpty || _isProcessingItem) return;
+
+    setState(() {
+      _isProcessingItem = true;
+    });
+
+    final cartState = context.read<CartBloc>().state;
+    if (cartState is CartLoaded && cartState.selectedCustomer != null) {
+      context.read<ProductDetailBloc>().add(
+            FetchProductByBarcode(
+              barcode: barcode,
+              customerCode: cartState.selectedCustomer!.code!,
+            ),
+          );
     }
+
+    // รีเซ็ต flag หลังจากระยะเวลาหนึ่ง
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) {
+        setState(() {
+          _isProcessingItem = false;
+        });
+      }
+    });
   }
 
   void _searchBarcode() {
@@ -113,6 +128,9 @@ class _SaleCartStepState extends State<SaleCartStep> {
   }
 
   Future<void> _openProductSearch() async {
+    // ถ้ากำลังประมวลผลอยู่ ให้ออกไป
+    if (_isProcessingItem) return;
+
     final cartState = context.read<CartBloc>().state;
     if (cartState is CartLoaded && cartState.selectedCustomer != null) {
       final result = await Navigator.of(context).push<CartItemModel?>(
@@ -124,7 +142,23 @@ class _SaleCartStepState extends State<SaleCartStep> {
       );
 
       if (result != null && mounted) {
+        setState(() {
+          _isProcessingItem = true;
+        });
+
+        print('Returned from search with item: ${result.itemCode}, qty=${result.qty}');
+
+        // ส่ง event และรอให้เสร็จก่อนกำหนด isProcessingItem เป็น false
         context.read<CartBloc>().add(AddItemToCart(result));
+
+        // Reset flag หลังจาก delay
+        Future.delayed(Duration(milliseconds: 500), () {
+          if (mounted) {
+            setState(() {
+              _isProcessingItem = false;
+            });
+          }
+        });
       }
     }
   }
@@ -133,47 +167,50 @@ class _SaleCartStepState extends State<SaleCartStep> {
   Widget build(BuildContext context) {
     return BlocListener<ProductDetailBloc, ProductDetailState>(
       listenWhen: (previous, current) {
-        // เพิ่มเงื่อนไขให้ listener ทำงานเฉพาะเมื่อ state เปลี่ยนจริงๆ
-        // ไม่ใช่การส่ง state เดิมซ้ำๆ
-        return previous.runtimeType != current.runtimeType && current is ProductDetailLoaded;
+        return current is ProductDetailLoaded && previous is! ProductDetailLoaded;
       },
       listener: (context, state) {
         if (state is ProductDetailLoaded) {
-          // เพิ่มสินค้าเข้าตะกร้า
-          final cartItem = CartItemModel(
-            itemCode: state.product.itemCode,
-            itemName: state.product.itemName,
-            barcode: state.product.barcode,
-            price: state.product.price,
-            sumAmount: state.product.price,
-            unitCode: state.product.unitCode,
-            whCode: '',
-            shelfCode: '',
-            ratio: state.product.ratio,
-            standValue: state.product.standValue,
-            divideValue: state.product.divideValue,
-            qty: '1',
-          );
+          // เพิ่ม flag ป้องกันเรียกซ้ำ
+          if (!_isProcessingItem) {
+            _isProcessingItem = true;
 
-          print('Adding item to cart: ${cartItem.itemCode}, qty=${cartItem.qty}');
-          context.read<CartBloc>().add(AddItemToCart(cartItem));
+            // เรียกใช้ AddItemToCart เฉพาะเมื่อไม่ได้เรียกจากการเลือกสินค้า (ProductSearchScreen)
+            // โดยตรวจสอบจากสถานะว่าได้มาจากการสแกนบาร์โค้ด
+            if (_barcodeScanController.text.isNotEmpty || _barcodeSearchController.text.isNotEmpty) {
+              // เพิ่มสินค้าเข้าตะกร้า
+              final cartItem = CartItemModel(
+                itemCode: state.product.itemCode,
+                itemName: state.product.itemName,
+                barcode: state.product.barcode,
+                price: state.product.price,
+                sumAmount: state.product.price,
+                unitCode: state.product.unitCode,
+                whCode: '',
+                shelfCode: '',
+                ratio: state.product.ratio,
+                standValue: state.product.standValue,
+                divideValue: state.product.divideValue,
+                qty: '1',
+              );
 
-          // ล้างช่องค้นหาและ reset state
-          if (_isScanMode) {
-            _barcodeScanController.clear();
-            _barcodeScanFocusNode.requestFocus();
-          } else {
-            _barcodeSearchController.clear();
-            _barcodeSearchFocusNode.requestFocus();
-          }
-
-          // Reset state หลังจากใช้งานเสร็จ
-          // แต่ต้องแน่ใจว่า state จะได้รับการประมวลผลก่อน reset
-          Future.microtask(() {
-            if (context.mounted) {
-              context.read<ProductDetailBloc>().add(ResetProductDetail());
+              context.read<CartBloc>().add(AddItemToCart(cartItem));
             }
-          });
+
+            // Reset state หลังจากดำเนินการเสร็จ
+            Future.delayed(Duration(milliseconds: 500), () {
+              if (mounted) {
+                setState(() {
+                  _isProcessingItem = false;
+                });
+
+                // Reset product detail หลังจาก delay
+                if (context.mounted) {
+                  context.read<ProductDetailBloc>().add(ResetProductDetail());
+                }
+              }
+            });
+          }
         } else if (state is ProductDetailNotFound) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

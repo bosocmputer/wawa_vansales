@@ -1,17 +1,21 @@
 // lib/ui/screens/sale/receipt_preview_widget.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/utils/global.dart';
 import 'package:intl/intl.dart';
+import 'package:wawa_vansales/utils/local_storage.dart';
 
-class ReceiptPreviewWidget extends StatelessWidget {
+class ReceiptPreviewWidget extends StatefulWidget {
   final CustomerModel customer;
   final List<CartItemModel> items;
   final List<PaymentModel> payments;
   final double totalAmount;
   final String docNumber;
+  final String? empCode;
 
   const ReceiptPreviewWidget({
     super.key,
@@ -20,13 +24,55 @@ class ReceiptPreviewWidget extends StatelessWidget {
     required this.payments,
     required this.totalAmount,
     required this.docNumber,
+    this.empCode,
   });
+
+  @override
+  State<ReceiptPreviewWidget> createState() => _ReceiptPreviewWidgetState();
+}
+
+class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
+  String? warehouseInfo;
+  String? locationInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWarehouseAndLocation();
+  }
+
+  Future<void> _loadWarehouseAndLocation() async {
+    final localStorage = LocalStorage(
+      prefs: await SharedPreferences.getInstance(),
+      secureStorage: const FlutterSecureStorage(),
+    );
+    final warehouse = await localStorage.getWarehouse();
+    final location = await localStorage.getLocation();
+
+    if (mounted) {
+      setState(() {
+        if (warehouse != null) {
+          warehouseInfo = "${warehouse.code} - ${warehouse.name}";
+        }
+        if (location != null) {
+          locationInfo = "${location.code} - ${location.name}";
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final NumberFormat currencyFormat = NumberFormat('#,##0.00', 'th_TH');
     final DateTime now = DateTime.now();
     final String dateStr = DateFormat('dd/MM/yyyy HH:mm').format(now);
+
+    // คำนวณ VAT 7%
+    final double vatAmount = widget.totalAmount * 0.07;
+    final double priceBeforeVat = widget.totalAmount - vatAmount;
+
+    // ใช้ค่า empCode ที่ส่งมา, Global.empCode หรือค่า TEST ถ้าไม่มีค่าใดๆ
+    final String staffCode = widget.empCode ?? Global.empCode;
 
     return Container(
       width: 280, // ประมาณ 58mm
@@ -51,34 +97,52 @@ class ReceiptPreviewWidget extends StatelessWidget {
             const Text(
               'ใบกำกับภาษีอย่างย่อ',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
             const Text(
-              'WAWA Van Sales',
+              'บจก. วาวา 2559',
               style: TextStyle(
                 fontSize: 12,
               ),
             ),
             const SizedBox(height: 8),
-            const Divider(),
 
             // เลขที่เอกสารและวันที่
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'เลขที่: $docNumber',
-                  style: const TextStyle(fontSize: 10),
-                ),
-                Text(
-                  dateStr,
-                  style: const TextStyle(fontSize: 10),
-                ),
-              ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'เลขที่: ${widget.docNumber}',
+                style: const TextStyle(fontSize: 10),
+              ),
             ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'วันที่: $dateStr',
+                style: const TextStyle(fontSize: 10),
+              ),
+            ),
+
+            // แสดงข้อมูลคลังและพื้นที่เก็บ
+            if (warehouseInfo != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'คลัง: $warehouseInfo',
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
+            if (locationInfo != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'พื้นที่เก็บ: $locationInfo',
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ),
             const SizedBox(height: 8),
 
             // ข้อมูลลูกค้า
@@ -88,26 +152,53 @@ class ReceiptPreviewWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ลูกค้า: ${customer.name}',
+                    'ลูกค้า: ${widget.customer.name}',
                     style: const TextStyle(fontSize: 10),
                   ),
                   Text(
-                    'รหัส: ${customer.code}',
+                    'รหัส: ${widget.customer.code}',
                     style: const TextStyle(fontSize: 10),
                   ),
-                  if (customer.taxId != null && customer.taxId!.isNotEmpty)
+                  if (widget.customer.taxId != null && widget.customer.taxId!.isNotEmpty)
                     Text(
-                      'เลขประจำตัวผู้เสียภาษี: ${customer.taxId}',
+                      'เลขภาษี: ${widget.customer.taxId}',
                       style: const TextStyle(fontSize: 10),
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            const Divider(),
 
-            // แสดงรายการสินค้าที่เป็นตาราง
-            ...items.map((item) {
+            // เส้นคั่น
+            const SizedBox(height: 8),
+            const Divider(
+              height: 1,
+              color: Colors.grey,
+            ),
+
+            // หัวข้อรายการสินค้า
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Text(
+                  'รายการ',
+                  style: TextStyle(fontSize: 10),
+                ),
+                Text(
+                  'จำนวนเงิน',
+                  style: TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+            const Divider(
+              height: 1,
+              color: Colors.grey,
+            ),
+
+            const SizedBox(height: 4),
+
+            // แสดงรายการสินค้า
+            ...widget.items.map((item) {
               final qtyValue = double.tryParse(item.qty) ?? 0;
               final priceValue = double.tryParse(item.price) ?? 0;
 
@@ -121,13 +212,12 @@ class ReceiptPreviewWidget extends StatelessWidget {
                   ),
                   // จำนวน x ราคา = รวม
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}",
+                        "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)} ${item.unitCode}",
                         style: const TextStyle(fontSize: 10),
                       ),
-                      const SizedBox(width: 8),
                       Text(
                         currencyFormat.format(item.totalAmount),
                         style: const TextStyle(fontSize: 10),
@@ -138,21 +228,55 @@ class ReceiptPreviewWidget extends StatelessWidget {
                 ],
               );
             }),
-            const Divider(),
 
-            // ยอดรวม
+            // เส้นคั่น
+            const Divider(
+              height: 1,
+              color: Colors.grey,
+            ),
+
+            const SizedBox(height: 4),
+
+            // แสดงยอดรวม, VAT, และยอดสุทธิ
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'ยอดรวม',
+                  'ราคาก่อน VAT',
+                  style: TextStyle(fontSize: 10),
+                ),
+                Text(
+                  currencyFormat.format(priceBeforeVat),
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'VAT 7%',
+                  style: TextStyle(fontSize: 10),
+                ),
+                Text(
+                  currencyFormat.format(vatAmount),
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'ยอดรวมสุทธิ',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  currencyFormat.format(totalAmount),
+                  currencyFormat.format(widget.totalAmount),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -163,7 +287,15 @@ class ReceiptPreviewWidget extends StatelessWidget {
             const SizedBox(height: 8),
 
             // รายละเอียดการชำระเงิน
-            ...payments.map((payment) {
+            const Align(
+              alignment: Alignment.center,
+              child: Text(
+                'การชำระเงิน',
+                style: TextStyle(fontSize: 10),
+              ),
+            ),
+            const SizedBox(height: 4),
+            ...widget.payments.map((payment) {
               final paymentType = PaymentModel.intToPaymentType(payment.payType);
               String paymentText = '';
 
@@ -195,18 +327,23 @@ class ReceiptPreviewWidget extends StatelessWidget {
                     ],
                   ),
                   if (payment.transNumber.isNotEmpty)
-                    Row(
-                      children: [
-                        Text(
-                          'อ้างอิง: ${payment.transNumber}',
-                          style: const TextStyle(fontSize: 8),
-                        ),
-                      ],
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'อ้างอิง: ${payment.transNumber}',
+                        style: const TextStyle(fontSize: 8),
+                      ),
                     ),
                 ],
               );
             }),
-            const Divider(),
+
+            // เส้นคั่น
+            const SizedBox(height: 8),
+            const Divider(
+              height: 1,
+              color: Colors.grey,
+            ),
 
             // ส่วนท้าย
             const SizedBox(height: 8),
@@ -214,12 +351,11 @@ class ReceiptPreviewWidget extends StatelessWidget {
               'ขอบคุณที่ใช้บริการ',
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'พนักงานขาย: ${Global.empCode.isEmpty ? "TEST" : Global.empCode}',
+              'พนักงานขาย: ${staffCode.isEmpty ? "TEST" : staffCode}',
               style: const TextStyle(fontSize: 10),
             ),
           ],

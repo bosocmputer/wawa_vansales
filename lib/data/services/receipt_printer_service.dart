@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/utils/global.dart';
+import 'package:wawa_vansales/utils/local_storage.dart';
 
 /// บริการสำหรับการสร้างและพิมพ์ใบเสร็จ
 class ReceiptPrinterService {
@@ -158,6 +161,7 @@ class ReceiptPrinterService {
     String? warehouseCode = 'NA',
     String? remark,
     String? empCode,
+    String receiptType = 'taxReceipt', // เพิ่มพารามิเตอร์สำหรับประเภทใบเสร็จ (taxReceipt หรือ cashReceipt)
   }) async {
     // ตรวจสอบการเชื่อมต่อ
     if (!_isConnected) {
@@ -166,6 +170,14 @@ class ReceiptPrinterService {
     }
 
     try {
+      // ดึงข้อมูลคลังและพื้นที่เก็บจาก LocalStorage
+      final localStorage = LocalStorage(
+        prefs: await SharedPreferences.getInstance(),
+        secureStorage: const FlutterSecureStorage(),
+      );
+      final warehouse = await localStorage.getWarehouse();
+      final location = await localStorage.getLocation();
+
       // เพิ่ม delay เล็กน้อยเพื่อรอให้เครื่องพิมพ์พร้อม
       await Future.delayed(const Duration(milliseconds: 200));
 
@@ -174,9 +186,23 @@ class ReceiptPrinterService {
       const int largeSize = 1;
       final NumberFormat currencyFormat = NumberFormat('#,##0.00', 'th_TH');
 
-      // ส่วนหัว
-      await _printer.printCustom("ใบกำกับภาษีอย่างย่อ", largeSize, 1);
-      await _printer.printCustom("WAWA Van Sales", smallSize, 1);
+      // คำนวณ VAT 7% (เฉพาะกรณีใบกำกับภาษี)
+      final bool isTaxReceipt = receiptType == 'taxReceipt';
+      double vatAmount = 0;
+      double priceBeforeVat = totalAmount;
+
+      if (isTaxReceipt) {
+        vatAmount = totalAmount * 0.07;
+        priceBeforeVat = totalAmount - vatAmount;
+      }
+
+      // ส่วนหัว - แสดงตามประเภทใบเสร็จ
+      if (isTaxReceipt) {
+        await _printer.printCustom("ใบกำกับภาษีอย่างย่อ", largeSize, 1);
+      } else {
+        await _printer.printCustom("บิลเงินสด", largeSize, 1);
+      }
+      await _printer.printCustom("บจก. วาวา 2559", smallSize, 1);
 
       // เพิ่ม delay ระหว่างการพิมพ์หลายบรรทัด
       await Future.delayed(const Duration(milliseconds: 50));
@@ -187,11 +213,21 @@ class ReceiptPrinterService {
       await _printer.printCustom("เลขที่: $docNumber", smallSize, 0);
       await _printer.printCustom("วันที่: $dateStr", smallSize, 0);
 
+      // แสดงข้อมูลคลังและพื้นที่เก็บ
+      if (warehouse != null) {
+        await _printer.printCustom("คลัง: ${warehouse.code} - ${warehouse.name}", smallSize, 0);
+      }
+      if (location != null) {
+        await _printer.printCustom("พื้นที่เก็บ: ${location.code} - ${location.name}", smallSize, 0);
+      }
+
       // ข้อมูลลูกค้า
       await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("ลูกค้า: ${customer.name}", smallSize, 0);
       await _printer.printCustom("รหัส: ${customer.code}", smallSize, 0);
-      if (customer.taxId != null && customer.taxId!.isNotEmpty) {
+
+      // แสดงเลขภาษีเฉพาะในใบกำกับภาษี
+      if (isTaxReceipt && customer.taxId != null && customer.taxId!.isNotEmpty) {
         await _printer.printCustom("เลขภาษี: ${customer.taxId}", smallSize, 0);
       }
 
@@ -200,6 +236,9 @@ class ReceiptPrinterService {
       await _printer.printCustom("------------------------------", smallSize, 1);
 
       // พิมพ์แต่ละรายการสินค้า โดยเพิ่ม delay ระหว่างรายการเพื่อป้องกัน buffer overflow
+      await _printer.printLeftRight("รายการ", "จำนวนเงิน", smallSize);
+      await _printer.printCustom("------------------------------", smallSize, 1);
+
       for (var item in items) {
         await Future.delayed(const Duration(milliseconds: 30));
 
@@ -209,7 +248,7 @@ class ReceiptPrinterService {
         // จำนวน x ราคา
         final qtyValue = double.tryParse(item.qty) ?? 0;
         final priceValue = double.tryParse(item.price) ?? 0;
-        String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}";
+        String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)} ${item.unitCode}";
         await _printer.printLeftRight(qtyPriceText, currencyFormat.format(item.totalAmount), smallSize);
       }
 
@@ -217,11 +256,18 @@ class ReceiptPrinterService {
       await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("------------------------------", smallSize, 1);
 
-      // ยอดรวม
-      await _printer.printLeftRight("ยอดรวม", currencyFormat.format(totalAmount), mediumSize);
+      // แสดงยอดก่อน VAT และ VAT เฉพาะในใบกำกับภาษี
+      if (isTaxReceipt) {
+        await _printer.printLeftRight("ราคาก่อน VAT", currencyFormat.format(priceBeforeVat), smallSize);
+        await _printer.printLeftRight("VAT 7%", currencyFormat.format(vatAmount), smallSize);
+      }
+
+      // ยอดรวม (ให้เห็นชัดเจน)
+      await _printer.printLeftRight("ยอดรวมสุทธิ", currencyFormat.format(totalAmount), mediumSize);
 
       // แสดงการชำระเงิน
       await Future.delayed(const Duration(milliseconds: 50));
+      await _printer.printCustom("การชำระเงิน", smallSize, 1);
       for (var payment in payments) {
         final paymentType = PaymentModel.intToPaymentType(payment.payType);
         String paymentText = '';
@@ -253,6 +299,7 @@ class ReceiptPrinterService {
       // ใช้ค่า empCode ที่ส่งมา, Global.empCode หรือค่า TEST ถ้าไม่มีค่าใดๆ
       final String staffCode = empCode ?? Global.empCode;
       await _printer.printCustom("พนักงานขาย: $staffCode", smallSize, 1);
+
       await _printer.printNewLine();
 
       // ตัดกระดาษ

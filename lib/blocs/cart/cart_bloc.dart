@@ -52,7 +52,6 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   }
 
   // เพิ่มสินค้าเข้าตะกร้า
-  // ปรับปรุงฟังก์ชัน _onAddItem ใน CartBloc
   Future<void> _onAddItem(AddItemToCart event, Emitter<CartState> emit) async {
     if (state is CartLoaded) {
       final currentState = state as CartLoaded;
@@ -67,12 +66,11 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       );
 
       if (existingIndex != -1) {
-        // ถ้ามีแล้ว เพิ่มจำนวน
+        // ถ้ามีแล้ว เพิ่มจำนวนตาม qty ที่ส่งมา
         final existingItem = updatedItems[existingIndex];
         final existingQty = double.tryParse(existingItem.qty) ?? 0;
-
-        // กำหนดให้เพิ่มจำนวนคงที่เป็น 1 เสมอ ไม่ว่าจะส่งค่า qty มาเท่าไร
-        const qtyToAdd = 1.0;
+        // ใช้ค่า qty จริงที่ส่งมาแทนการใช้ค่าคงที่ 1.0
+        final qtyToAdd = double.tryParse(event.item.qty) ?? 1.0;
 
         _logger.i('Existing qty: $existingQty, Adding: $qtyToAdd');
 
@@ -80,8 +78,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           qty: (existingQty + qtyToAdd).toString(),
         );
       } else {
-        // ถ้ายังไม่มี เพิ่มเข้าไปใหม่ (ใช้ค่าดั้งเดิม)
-        // โค้ดส่วนนี้คงเดิม...
+        // ยังคงใช้โค้ดเดิมในการเพิ่มรายการใหม่...
         final warehouse = await _localStorage.getWarehouse();
         final location = await _localStorage.getLocation();
 

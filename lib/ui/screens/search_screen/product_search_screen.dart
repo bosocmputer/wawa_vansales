@@ -33,6 +33,8 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   ProductModel? _selectedProduct;
   bool _isLoadingDetail = false;
 
+  bool _hasReturnedResult = false;
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +70,10 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   }
 
   // เมื่อเลือกสินค้า ให้ดึงราคา
-  Future<void> _onProductSelected(ProductModel product) async {
+  void _onProductSelected(ProductModel product) async {
+    // ตั้งค่า flag เพื่อป้องกันการเรียกใช้ซ้ำ
+    if (_isLoadingDetail) return;
+
     setState(() {
       _selectedProduct = product;
       _isLoadingDetail = true;
@@ -83,8 +88,10 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
             ),
           );
     } else {
-      // ถ้าราคาไม่เป็น 0 ให้ใช้ราคาเดิม
-      _returnProductWithPrice(product.price);
+      // ถ้าราคาไม่เป็น 0 ให้ใช้ราคาเดิม (ป้องกันการ pop กลับไปที่หน้าที่แล้วส่ง event ซ้ำ)
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _returnProductWithPrice(product.price);
+      });
     }
   }
 
@@ -105,7 +112,13 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
         qty: '1',
       );
 
-      Navigator.of(context).pop(cartItem);
+      // ป้องกันการส่งข้อมูลกลับซ้ำหลายครั้ง
+      if (mounted && !_hasReturnedResult) {
+        _hasReturnedResult = true; // เพิ่ม flag เพื่อป้องกันการ pop ซ้ำ
+
+        // ใช้ Navigator.pop เพียงครั้งเดียว
+        Navigator.of(context).pop(cartItem);
+      }
     }
   }
 
@@ -144,6 +157,10 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
           // Product list
           Expanded(
             child: BlocListener<ProductDetailBloc, ProductDetailState>(
+              listenWhen: (previous, current) {
+                // ทำงานเฉพาะเมื่อมีการเปลี่ยนจาก state อื่นเป็น ProductDetailLoaded
+                return current is ProductDetailLoaded && previous is! ProductDetailLoaded;
+              },
               listener: (context, state) {
                 if (state is ProductDetailLoaded) {
                   setState(() {
