@@ -52,11 +52,13 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   }
 
   // เพิ่มสินค้าเข้าตะกร้า
+  // ปรับปรุงฟังก์ชัน _onAddItem ใน CartBloc
   Future<void> _onAddItem(AddItemToCart event, Emitter<CartState> emit) async {
     if (state is CartLoaded) {
       final currentState = state as CartLoaded;
       final List<CartItemModel> updatedItems = List.from(currentState.items);
 
+      // เพิ่ม log เพื่อดูค่าที่ส่งเข้ามา
       _logger.i('Adding item: ${event.item.itemCode}, qty: ${event.item.qty}');
 
       // ตรวจสอบว่ามีสินค้านี้ในตะกร้าแล้วหรือไม่
@@ -68,23 +70,27 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         // ถ้ามีแล้ว เพิ่มจำนวน
         final existingItem = updatedItems[existingIndex];
         final existingQty = double.tryParse(existingItem.qty) ?? 0;
-        final newQty = double.tryParse(event.item.qty) ?? 0;
 
-        _logger.i('Existing qty: $existingQty, New qty: $newQty, Total: ${existingQty + newQty}');
+        // กำหนดให้เพิ่มจำนวนคงที่เป็น 1 เสมอ ไม่ว่าจะส่งค่า qty มาเท่าไร
+        const qtyToAdd = 1.0;
+
+        _logger.i('Existing qty: $existingQty, Adding: $qtyToAdd');
 
         updatedItems[existingIndex] = existingItem.copyWith(
-          qty: (existingQty + newQty).toString(),
+          qty: (existingQty + qtyToAdd).toString(),
         );
       } else {
-        // ถ้ายังไม่มี เพิ่มเข้าไปใหม่
-        // เพิ่มข้อมูล warehouse และ location จาก LocalStorage
+        // ถ้ายังไม่มี เพิ่มเข้าไปใหม่ (ใช้ค่าดั้งเดิม)
+        // โค้ดส่วนนี้คงเดิม...
         final warehouse = await _localStorage.getWarehouse();
         final location = await _localStorage.getLocation();
 
         if (warehouse != null && location != null) {
+          // ตรวจสอบให้แน่ใจว่า qty เป็น "1" เสมอเมื่อเพิ่มสินค้าใหม่
           final newItem = event.item.copyWith(
             whCode: warehouse.code,
             shelfCode: location.code,
+            qty: "1",
           );
           updatedItems.add(newItem);
         } else {

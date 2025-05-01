@@ -16,10 +16,18 @@ class ProductDetailBloc extends Bloc<ProductDetailEvent, ProductDetailState> {
     on<ResetProductDetail>(_onResetProductDetail);
   }
 
+// ใน ProductDetailBloc
   Future<void> _onFetchProductByBarcode(
     FetchProductByBarcode event,
     Emitter<ProductDetailState> emit,
   ) async {
+    // ตรวจสอบว่า state ปัจจุบันไม่ใช่ ProductDetailLoaded
+    // เพื่อป้องกันการส่ง event ซ้ำซ้อน
+    if (state is ProductDetailLoaded) {
+      // ถ้าเป็น state ProductDetailLoaded อยู่แล้ว ให้ reset ก่อน
+      emit(ProductDetailInitial());
+    }
+
     _logger.i('Fetching product detail for barcode: ${event.barcode}');
     emit(ProductDetailLoading());
 

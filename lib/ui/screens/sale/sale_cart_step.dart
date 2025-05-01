@@ -132,6 +132,11 @@ class _SaleCartStepState extends State<SaleCartStep> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<ProductDetailBloc, ProductDetailState>(
+      listenWhen: (previous, current) {
+        // เพิ่มเงื่อนไขให้ listener ทำงานเฉพาะเมื่อ state เปลี่ยนจริงๆ
+        // ไม่ใช่การส่ง state เดิมซ้ำๆ
+        return previous.runtimeType != current.runtimeType && current is ProductDetailLoaded;
+      },
       listener: (context, state) {
         if (state is ProductDetailLoaded) {
           // เพิ่มสินค้าเข้าตะกร้า
@@ -150,6 +155,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
             qty: '1',
           );
 
+          print('Adding item to cart: ${cartItem.itemCode}, qty=${cartItem.qty}');
           context.read<CartBloc>().add(AddItemToCart(cartItem));
 
           // ล้างช่องค้นหาและ reset state
@@ -161,7 +167,13 @@ class _SaleCartStepState extends State<SaleCartStep> {
             _barcodeSearchFocusNode.requestFocus();
           }
 
-          context.read<ProductDetailBloc>().add(ResetProductDetail());
+          // Reset state หลังจากใช้งานเสร็จ
+          // แต่ต้องแน่ใจว่า state จะได้รับการประมวลผลก่อน reset
+          Future.microtask(() {
+            if (context.mounted) {
+              context.read<ProductDetailBloc>().add(ResetProductDetail());
+            }
+          });
         } else if (state is ProductDetailNotFound) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
