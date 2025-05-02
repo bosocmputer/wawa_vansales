@@ -331,6 +331,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           totalAmount: currentState.totalAmount.toString(),
           totalValue: currentState.totalAmount.toString(),
           remark: event.remark,
+          carCode: warehouseCode, // ใช้ warehouseCode จาก localStorage แทน Global.whCode ที่อาจจะเป็น NA
         );
 
         bool success = false;
@@ -339,6 +340,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         if (currentState.preOrderDocNo.isNotEmpty) {
           // ถ้ามี preOrderDocNo ให้อัพเดทสถานะเอกสารพรีออเดอร์
           _logger.i('Updating pre-order payment: ${currentState.preOrderDocNo}');
+
           success = await _saleRepository.updatePreOrderPayment(transaction, currentState.preOrderDocNo);
         } else {
           // บันทึกการขายทั่วไป
@@ -347,6 +349,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         }
 
         if (success) {
+          // ส่ง CartSubmitSuccess เพียงครั้งเดียวและจบการทำงาน
           emit(CartSubmitSuccess(
             documentNumber: docNo,
             customer: currentState.selectedCustomer!,
@@ -354,29 +357,16 @@ class CartBloc extends Bloc<CartEvent, CartState> {
             payments: currentState.payments,
             totalAmount: currentState.totalAmount,
           ));
+          return; // เพิ่ม return เพื่อจบการทำงานทันที
         } else {
+          // กรณีไม่สำเร็จ emit CartError เพียงอย่างเดียว
           emit(const CartError('ไม่สามารถบันทึกการขายได้'));
-          // กลับไปยังสถานะ CartLoaded เพื่อให้ข้อมูลคงเดิม
-          emit(currentState.copyWith(
-            selectedCustomer: currentState.selectedCustomer,
-            items: currentState.items,
-            payments: currentState.payments,
-            totalAmount: currentState.totalAmount,
-            currentStep: 0,
-          ));
+          // ไม่ต้อง emit กลับเป็น CartLoaded อีก
         }
       } catch (e) {
         _logger.e('Submit sale error: $e');
         emit(const CartError('เกิดข้อผิดพลาด: ไม่สามารถบันทึกข้อมูลได้'));
-        // กลับสู่สถานะปกติ
-        final currentState = state as CartLoaded;
-        emit(currentState.copyWith(
-          selectedCustomer: currentState.selectedCustomer,
-          items: currentState.items,
-          payments: currentState.payments,
-          totalAmount: currentState.totalAmount,
-          currentStep: 0,
-        ));
+        // ไม่ต้อง emit กลับเป็น CartLoaded อีก
       }
     }
   }

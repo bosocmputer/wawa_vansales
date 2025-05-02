@@ -10,8 +10,6 @@ import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/ui/screens/sale/receipt_preview_widget.dart';
 import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SaleSummaryStep extends StatefulWidget {
   final CustomerModel customer;
@@ -62,10 +60,7 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
     }
 
     // ถ้าไม่มีเลขที่เอกสาร preOrder ให้สร้างเลขที่เอกสารใหม่
-    final localStorage = LocalStorage(
-      prefs: await SharedPreferences.getInstance(),
-      secureStorage: const FlutterSecureStorage(),
-    );
+    final localStorage = context.read<LocalStorage>();
     final warehouse = await localStorage.getWarehouse();
     final warehouseCode = warehouse?.code ?? 'NA';
 

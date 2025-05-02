@@ -13,9 +13,9 @@ import 'package:wawa_vansales/blocs/warehouse/warehouse_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/location_model.dart';
 import 'package:wawa_vansales/data/models/warehouse_model.dart';
-import 'package:wawa_vansales/ui/screens/customer_form_screen.dart';
 import 'package:wawa_vansales/ui/screens/customer_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
+import 'package:wawa_vansales/ui/screens/pre_order_history/pre_order_history_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale_history/sale_history_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
@@ -143,96 +143,108 @@ class _HomeScreenState extends State<HomeScreen> {
     final authBloc = context.read<AuthBloc>();
     final user = (authBloc.state is AuthAuthenticated) ? (authBloc.state as AuthAuthenticated).user : null;
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Avatar ผู้ใช้
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppTheme.primaryColor,
-              child: Text((user?.userName ?? 'U').substring(0, 1).toUpperCase(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => WarehouseSelectionScreen(
+              initialWarehouse: _selectedWarehouse,
+              initialLocation: _selectedLocation,
             ),
-            const SizedBox(width: 12),
-
-            // ข้อมูลผู้ใช้และคลัง
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ชื่อผู้ใช้
-                  Text('สวัสดี, ${user?.userName ?? 'User'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-
-                  // ข้อมูลคลัง
-                  if (_selectedWarehouse != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warehouse, color: AppTheme.primaryColor, size: 14),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _selectedWarehouse!.name,
-                              style: const TextStyle(
-                                color: AppTheme.primaryColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  // ข้อมูลโลเคชัน
-                  if (_selectedLocation != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.location_on, color: AppTheme.primaryColor, size: 14),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _selectedLocation!.name,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.primaryColorDark,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
+          ),
+        );
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Avatar ผู้ใช้
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppTheme.primaryColor,
+                child: Text((user?.userName ?? 'U').substring(0, 1).toUpperCase(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
-            ),
+              const SizedBox(width: 12),
 
-            // ปุ่มเปลี่ยนคลัง
-            IconButton(
-              icon: const Icon(Icons.swap_horiz, size: 20),
-              tooltip: 'เปลี่ยนคลังและพื้นที่เก็บ',
-              visualDensity: VisualDensity.compact,
-              color: AppTheme.primaryColor,
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => WarehouseSelectionScreen(
-                            initialWarehouse: _selectedWarehouse,
-                            initialLocation: _selectedLocation,
-                          )),
-                );
-              },
-            ),
-          ],
+              // ข้อมูลผู้ใช้และคลัง
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ชื่อผู้ใช้
+                    Text('สวัสดี, ${user?.userName ?? 'User'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+
+                    // ข้อมูลคลัง
+                    if (_selectedWarehouse != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.warehouse, color: AppTheme.primaryColor, size: 14),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                "${_selectedWarehouse!.code} ~ ${_selectedWarehouse!.name}",
+                                style: const TextStyle(
+                                  color: AppTheme.primaryColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // ข้อมูลโลเคชัน
+                    if (_selectedLocation != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on, color: AppTheme.primaryColor, size: 14),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                "${_selectedLocation!.code} ~ ${_selectedLocation!.name}",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.primaryColorDark,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // ปุ่มเปลี่ยนคลัง
+              IconButton(
+                icon: const Icon(Icons.swap_horiz, size: 20),
+                tooltip: 'เปลี่ยนคลังและพื้นที่เก็บ',
+                visualDensity: VisualDensity.compact,
+                color: AppTheme.primaryColor,
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => WarehouseSelectionScreen(
+                              initialWarehouse: _selectedWarehouse,
+                              initialLocation: _selectedLocation,
+                            )),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -245,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const Padding(
           padding: EdgeInsets.only(left: 4, bottom: 12),
           child: Text(
-            'เมนูด่วน',
+            'เมนู',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -276,12 +288,22 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             _buildQuickActionItem(
+              Icons.history,
+              'ประวัติพรีออเดอร์',
+              Colors.green,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PreOrderHistoryListScreen()),
+                );
+              },
+            ),
+            _buildQuickActionItem(
               Icons.person_add,
-              'เพิ่มลูกค้า',
+              'ลูกค้า',
               Colors.purple,
               onTap: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CustomerFormScreen()),
+                  MaterialPageRoute(builder: (_) => const CustomerListScreen()),
                 );
               },
             ),

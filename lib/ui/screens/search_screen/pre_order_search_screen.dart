@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -42,6 +43,24 @@ class _PreOrderSearchScreenState extends State<PreOrderSearchScreen> {
 
     // ตั้งค่าการค้นหา
     _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // โหลดข้อมูลใหม่ทุกครั้งที่เข้าหน้านี้ ไม่ว่าจะเป็น state ใดก็ตาม
+    _loadPreOrders();
+
+    // เพิ่ม debug
+    if (kDebugMode) {
+      print('didChangeDependencies called, loading orders for customer: ${widget.customerCode}');
+    }
+  }
+
+  // แยกฟังก์ชันสำหรับโหลดข้อมูลพรีออเดอร์
+  void _loadPreOrders() {
+    context.read<PreOrderBloc>().add(FetchPreOrders(widget.customerCode));
   }
 
   @override

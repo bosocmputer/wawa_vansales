@@ -84,27 +84,40 @@ class AuthRepository {
   // Helper method to save user data
   Future<void> _saveUserData(UserModel user) async {
     _logger.i('Saving user data for: ${user.userCode}');
-    await _localStorage.saveString('user_code', user.userCode);
 
-    await _localStorage.saveString('user_name', user.userName);
+    // บันทึกข้อมูลผู้ใช้ทั้งหมดเข้า secure storage
+    await _localStorage.saveUserData(user);
 
-    await _localStorage.saveBool('is_logged_in', true);
+    // ตั้งค่าสถานะว่าได้ล็อกอินแล้ว
+    await _localStorage.setLoggedIn(true);
+
+    _logger.i('User data saved successfully');
   }
 
   // ตรวจสอบว่ามีการ login อยู่หรือไม่
   Future<bool> isLoggedIn() async {
-    return await _localStorage.isLoggedIn();
+    final loggedIn = await _localStorage.isLoggedIn();
+    _logger.i('Checking login status: $loggedIn');
+    return loggedIn;
   }
 
   // ดึงข้อมูลผู้ใช้ที่ login อยู่
   Future<UserModel?> getCurrentUser() async {
-    return await _localStorage.getUserData();
+    final user = await _localStorage.getUserData();
+    if (user != null) {
+      _logger.i('Got current user: ${user.userName}');
+    } else {
+      _logger.w('No current user found');
+    }
+    return user;
   }
 
   // ทำการ logout
   Future<void> logout() async {
+    _logger.i('Logging out user');
     await _localStorage.clearUserData();
     await _localStorage.clearWarehouseAndLocation();
     await _localStorage.setLoggedIn(false);
+    _logger.i('User logged out successfully');
   }
 }

@@ -3,10 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:blue_thermal_printer/blue_thermal_printer.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/blocs/cart/cart_state.dart';
@@ -45,15 +42,10 @@ class _SaleScreenState extends State<SaleScreen> {
   final PageController _pageController = PageController();
   final ReceiptPrinterService _printerService = ReceiptPrinterService();
 
-  // ignore: unused_field
-  BluetoothDevice? _connectedDevice;
   String _warehouseCode = 'NA';
   String _empCode = 'NA';
-
-  // ignore: unused_field
-  final bool _isPrinting = false;
-
   String preOrderDocNo = '';
+  bool _isTransactionCompleted = false; // เพิ่มตัวแปรสำหรับติดตามสถานะการทำงาน
 
   @override
   void initState() {
@@ -71,14 +63,12 @@ class _SaleScreenState extends State<SaleScreen> {
       // ถ้ามาจาก PreOrderDetailScreen ให้ใช้เลขที่เอกสารนั้น
       if (widget.isFromPreOrder && widget.preOrderDocNo != null) {
         preOrderDocNo = widget.preOrderDocNo!;
-        // ตั้งค่า preOrderDocNo ใน CartBloc ด้วย
-        context.read<CartBloc>().add(SetPreOrderDocument(widget.preOrderDocNo!));
+        context.read<CartBloc>().add(SetPreOrderDocument(preOrderDocNo));
       }
 
-      // กำหนด step ตามพารามิเตอร์
+      // ถ้าเริ่มจากหน้าตะกร้าให้ไปที่หน้าตะกร้าเลย
       if (widget.startAtCart) {
-        // กำหนด step เป็น 1 ให้แน่ใจว่าจะแสดงหน้าตะกร้าสินค้า
-        _pageController.jumpToPage(1); // ใช้ jumpToPage แทน animate เพื่อหลีกเลี่ยงการทำงานไม่ถูกต้อง
+        _pageController.jumpToPage(1); // ไปที่หน้าตะกร้า
         context.read<CartBloc>().add(const UpdateStep(1)); // แน่ใจว่ามีการตั้งค่า step ใน bloc ด้วย
       } else if (widget.isFromPreOrder) {
         _pageController.jumpToPage(2); // ไปที่หน้าชำระเงิน
@@ -90,13 +80,8 @@ class _SaleScreenState extends State<SaleScreen> {
   }
 
   Future<void> _loadUserData() async {
-    // สร้าง Instance ของ LocalStorage
-    final prefs = await SharedPreferences.getInstance();
-    const secureStorage = FlutterSecureStorage();
-    final localStorage = LocalStorage(
-      prefs: prefs,
-      secureStorage: secureStorage,
-    );
+    // ใช้ localStorage จากที่สร้างไว้แล้วใน main.dart แทนการสร้างใหม่
+    final localStorage = context.read<LocalStorage>();
 
     final user = await localStorage.getUserData();
     if (user != null && user.userCode.isNotEmpty) {
@@ -211,8 +196,8 @@ class _SaleScreenState extends State<SaleScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return WillPopScope(
-          onWillPop: () async => false, // ป้องกันการกดปุ่ม back
+        return PopScope(
+          canPop: false,
           child: AlertDialog(
             title: const Text('กำลังพิมพ์ใบเสร็จ'),
             content: Column(
@@ -232,8 +217,7 @@ class _SaleScreenState extends State<SaleScreen> {
 
     // เริ่มพิมพ์ใบเสร็จในแบ็คกราวนด์
     try {
-      final printerService = ReceiptPrinterService();
-      bool printSuccess = await printerService.printReceipt(
+      bool printSuccess = await _printerService.printReceipt(
         customer: state.customer,
         items: state.items,
         payments: state.payments,
@@ -272,7 +256,18 @@ class _SaleScreenState extends State<SaleScreen> {
 
         // ทำการพิมพ์ซ้ำถ้าผู้ใช้เลือก
         if (printResult == 'reprint') {
-          // (โค้ดการพิมพ์ซ้ำเหมือนเดิม)
+          // พิมพ์ซ้ำโดยกำหนด isCopy เป็น true
+          await _printerService.printReceipt(
+            customer: state.customer,
+            items: state.items,
+            payments: state.payments,
+            totalAmount: state.totalAmount,
+            docNumber: state.documentNumber,
+            warehouseCode: _warehouseCode,
+            empCode: _empCode,
+            receiptType: receiptType,
+            isCopy: true,
+          );
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -298,8 +293,11 @@ class _SaleScreenState extends State<SaleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+
         final cartState = context.read<CartBloc>().state;
         if (cartState is CartLoaded && cartState.items.isNotEmpty) {
           final bool shouldPop = await showDialog<bool>(
@@ -331,12 +329,17 @@ class _SaleScreenState extends State<SaleScreen> {
                 ),
               ) ??
               false;
-          return shouldPop;
+
+          if (shouldPop && mounted) {
+            Navigator.of(context).pop();
+          }
         } else {
           _goToStep(0);
           context.read<CartBloc>().add(ClearCart());
+          if (mounted) {
+            Navigator.of(context).pop();
+          }
         }
-        return true;
       },
       child: SafeArea(
         child: Scaffold(
@@ -346,6 +349,10 @@ class _SaleScreenState extends State<SaleScreen> {
           body: BlocConsumer<CartBloc, CartState>(
             listenWhen: (previous, current) {
               // คืนค่า true เมื่อเราต้องการให้ listener ทำงาน
+              // ถ้าเป็น CartSubmitSuccess และเคยทำงานแล้ว จะไม่ทำซ้ำอีก
+              if (current is CartSubmitSuccess && _isTransactionCompleted) {
+                return false;
+              }
               return current is CartError || current is CartSubmitSuccess || current is CartSubmitting;
             },
             listener: (context, state) async {
@@ -361,7 +368,12 @@ class _SaleScreenState extends State<SaleScreen> {
                     backgroundColor: AppTheme.errorColor,
                   ),
                 );
-              } else if (state is CartSubmitSuccess) {
+              } else if (state is CartSubmitSuccess && !_isTransactionCompleted) {
+                // ตั้งค่า flag เพื่อป้องกันการทำงานซ้ำซ้อน
+                setState(() {
+                  _isTransactionCompleted = true;
+                });
+
                 // แจ้งเตือนว่าบันทึกสำเร็จ
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

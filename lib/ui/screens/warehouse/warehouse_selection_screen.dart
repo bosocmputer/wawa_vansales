@@ -176,6 +176,14 @@ class _WarehouseSelectionScreenState extends State<WarehouseSelectionScreen> {
                 onPressed: _resetCurrentSelection,
                 tooltip: 'เลือกใหม่',
               ),
+
+            /// save button - only show on confirmation step
+            if (_currentStep == 2)
+              IconButton(
+                icon: const Icon(Icons.save),
+                onPressed: _saveSelection,
+                tooltip: 'บันทึก',
+              ),
           ],
         ),
         body: BlocListener<WarehouseBloc, WarehouseState>(
@@ -324,7 +332,7 @@ class _WarehouseSelectionScreenState extends State<WarehouseSelectionScreen> {
             flex: 2,
             child: CustomButton(
               text: _currentStep == 2
-                  ? 'บันทึกและเข้าสู่ระบบ'
+                  ? 'บันทึก'
                   : _currentStep == 0 && _selectedWarehouse != null
                       ? 'ถัดไป'
                       : _currentStep == 1 && _selectedLocation != null

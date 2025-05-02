@@ -1,12 +1,11 @@
-// lib/data/models/sale_transaction_model.dart
 import 'package:json_annotation/json_annotation.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
 
-part 'sale_transaction_model.g.dart';
+part 'return_product_model.g.dart';
 
 @JsonSerializable()
-class SaleTransactionModel {
+class ReturnProductModel {
   @JsonKey(name: 'cust_code')
   final String custCode;
 
@@ -22,9 +21,19 @@ class SaleTransactionModel {
   @JsonKey(name: 'doc_no')
   final String docNo;
 
+  @JsonKey(name: 'ref_doc_date')
+  final String refDocDate;
+
+  @JsonKey(name: 'ref_doc_no')
+  final String refDocNo;
+
+  @JsonKey(name: 'ref_amount')
+  final String refAmount;
+
+  @JsonKey(name: 'items')
   final List<CartItemModel> items;
 
-  @JsonKey(name: 'payment_detail') // เปลี่ยนชื่อจาก payments เป็น payment_detail
+  @JsonKey(name: 'payment_detail')
   final List<PaymentModel> paymentDetail;
 
   @JsonKey(name: 'tranfer_amount')
@@ -33,7 +42,7 @@ class SaleTransactionModel {
   @JsonKey(name: 'credit_amount')
   final String creditAmount;
 
-  @JsonKey(name: 'cash_amount') // เพิ่ม cash_amount
+  @JsonKey(name: 'cash_amount')
   final String cashAmount;
 
   @JsonKey(name: 'card_amount')
@@ -45,17 +54,18 @@ class SaleTransactionModel {
   @JsonKey(name: 'total_value')
   final String totalValue;
 
+  @JsonKey(name: 'remark')
   final String remark;
 
-  @JsonKey(name: 'car_code')
-  final String? carCode;
-
-  SaleTransactionModel({
+  ReturnProductModel({
     required this.custCode,
     required this.empCode,
     required this.docDate,
     required this.docTime,
     required this.docNo,
+    required this.refDocDate,
+    required this.refDocNo,
+    required this.refAmount,
     required this.items,
     required this.paymentDetail,
     required this.transferAmount,
@@ -64,26 +74,10 @@ class SaleTransactionModel {
     required this.cardAmount,
     required this.totalAmount,
     required this.totalValue,
-    this.remark = '',
-    this.carCode,
+    required this.remark,
   });
 
-  factory SaleTransactionModel.fromJson(Map<String, dynamic> json) => _$SaleTransactionModelFromJson(json);
+  factory ReturnProductModel.fromJson(Map<String, dynamic> json) => _$ReturnProductModelFromJson(json);
 
-  Map<String, dynamic> toJson() => _$SaleTransactionModelToJson(this);
-}
-
-@JsonSerializable()
-class SaleTransactionResponse {
-  final bool success;
-  final String message;
-
-  SaleTransactionResponse({
-    required this.success,
-    required this.message,
-  });
-
-  factory SaleTransactionResponse.fromJson(Map<String, dynamic> json) => _$SaleTransactionResponseFromJson(json);
-
-  Map<String, dynamic> toJson() => _$SaleTransactionResponseToJson(this);
+  Map<String, dynamic> toJson() => _$ReturnProductModelToJson(this);
 }

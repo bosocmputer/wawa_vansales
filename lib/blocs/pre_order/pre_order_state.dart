@@ -52,16 +52,3 @@ class PreOrderError extends PreOrderState {
   @override
   List<Object?> get props => [message];
 }
-
-// สถานะกำลังบันทึกการชำระเงิน
-class PreOrderPaymentSubmitting extends PreOrderState {}
-
-// สถานะบันทึกการชำระเงินสำเร็จ
-class PreOrderPaymentSuccess extends PreOrderState {
-  final String docNo;
-
-  const PreOrderPaymentSuccess(this.docNo);
-
-  @override
-  List<Object?> get props => [docNo];
-}

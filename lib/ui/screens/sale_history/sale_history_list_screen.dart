@@ -145,7 +145,7 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
 
           // ช่องค้นหา
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(

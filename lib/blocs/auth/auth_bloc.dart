@@ -3,13 +3,19 @@ import 'package:logger/logger.dart';
 import 'package:wawa_vansales/blocs/auth/auth_event.dart';
 import 'package:wawa_vansales/blocs/auth/auth_state.dart';
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
+import 'package:wawa_vansales/utils/global.dart';
+import 'package:wawa_vansales/utils/local_storage.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
   final Logger _logger = Logger();
+  final LocalStorage _localStorage;
 
-  AuthBloc({required AuthRepository authRepository})
-      : _authRepository = authRepository,
+  AuthBloc({
+    required AuthRepository authRepository,
+    required LocalStorage localStorage,
+  })  : _authRepository = authRepository,
+        _localStorage = localStorage,
         super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LoginRequested>(_onLoginRequested);
@@ -32,6 +38,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final user = await _authRepository.getCurrentUser();
         if (user != null) {
           _logger.i('User found: ${user.userName}');
+
+          // ตั้งค่า Global.empCode เมื่อตรวจสอบพบว่าล็อกอินอยู่
+          if (user.userCode.isNotEmpty) {
+            await Global.setEmpCode(_localStorage, user.userCode);
+            _logger.i('Global.empCode set to: ${user.userCode}');
+          }
+
           emit(AuthAuthenticated(user));
         } else {
           _logger.w('No user found despite logged in status');
@@ -61,6 +74,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.password,
       );
 
+      // ตั้งค่า Global.empCode เมื่อล็อกอินสำเร็จ
+      if (user.userCode.isNotEmpty) {
+        await Global.setEmpCode(_localStorage, user.userCode);
+        _logger.i('Global.empCode set to: ${user.userCode}');
+      }
+
       _logger.i('Login successful: ${user.userName}');
       emit(AuthAuthenticated(user));
     } catch (e) {
@@ -79,7 +98,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     try {
       await _authRepository.logout();
-      _logger.i('Logout successful');
+      // ล้างค่าทั้งหมดรวมถึง empCode
+      await Global.clearAll(_localStorage);
+      _logger.i('Logout successful and Global values cleared');
       emit(AuthUnauthenticated());
     } catch (e) {
       _logger.e('Logout error: $e');

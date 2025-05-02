@@ -15,6 +15,8 @@ import 'package:wawa_vansales/utils/local_storage.dart';
 /// บริการสำหรับการสร้างและพิมพ์ใบเสร็จ
 class ReceiptPrinterService {
   final BlueThermalPrinter _printer = BlueThermalPrinter.instance;
+  // เพิ่มค่า default สำหรับรหัสพนักงานที่ไม่มีค่า
+  final String _defaultEmpCode = "ไม่ระบุ";
 
   /// สถานะการเชื่อมต่อปัจจุบัน
   bool _isConnected = false;
@@ -74,9 +76,13 @@ class ReceiptPrinterService {
     }
   }
 
-  /// เชื่อมต่อกับเครื่องพิมพ์อัตโนมัติ
+  /// พยายามเชื่อมต่อกับเครื่องพิมพ์อัตโนมัติ
   Future<bool> autoConnect() async {
-    if (_isConnected) return true;
+    // เช็คการเชื่อมต่อก่อน ถ้าเชื่อมต่ออยู่แล้วไม่ต้องเชื่อมต่อใหม่
+    bool isCurrentlyConnected = await checkConnection();
+    if (isCurrentlyConnected) return true;
+
+    // พยายามเชื่อมต่อ
     return await connectPrinter();
   }
 
@@ -296,31 +302,43 @@ class ReceiptPrinterService {
       // ส่วนท้าย
       await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("------------------------------", smallSize, 1);
-      await _printer.printCustom("ขอบคุณที่ใช้บริการ", smallSize, 1);
 
       final String staffCode = empCode ?? Global.empCode;
 
       // เพิ่มส่วนพนักงานขายและผู้รับสินค้า
       await Future.delayed(const Duration(milliseconds: 100));
 
+      await _printer.printNewLine();
+      await _printer.printNewLine();
+      await _printer.printNewLine();
+      await _printer.printNewLine();
+
       // พนักงานขาย
       await _printer.printCustom("พนักงานขาย.....................", smallSize, 0);
-      String staffInfo = staffCode;
+      String staffInfo = staffCode != 'NA' ? staffCode : _defaultEmpCode;
       if (warehouse != null && location != null) {
         staffInfo += " (${warehouse.code}/${location.code})";
       }
-      await _printer.printCustom(staffInfo, smallSize, 0);
+      await _printer.printCustom(staffInfo, smallSize, 1);
 
       // เว้นบรรทัด
+      await _printer.printNewLine();
+      await _printer.printNewLine();
+      await _printer.printNewLine();
       await _printer.printNewLine();
 
       // ผู้รับสินค้า
       await _printer.printCustom("ผู้รับสินค้า.....................", smallSize, 0);
 
-      // เว้นบรรทัดเพิ่มเติมก่อนตัดกระดาษ
       await _printer.printNewLine();
       await _printer.printNewLine();
       await _printer.printNewLine();
+
+      await _printer.printCustom("ขอบคุณที่ใช้บริการ", smallSize, 1);
+
+      await _printer.printNewLine();
+      await _printer.printNewLine();
+
       await _printer.paperCut();
 
       return true;

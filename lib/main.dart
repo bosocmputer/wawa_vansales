@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
+import 'package:wawa_vansales/blocs/pre_order_history/pre_order_history_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_bloc.dart';
@@ -18,6 +19,7 @@ import 'package:wawa_vansales/blocs/pre_order/pre_order_bloc.dart'; // เพิ
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
+import 'package:wawa_vansales/data/repositories/pre_order_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/product_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
@@ -62,50 +64,40 @@ void main() async {
   // สร้าง secure storage
   const secureStorage = FlutterSecureStorage();
 
-  // เตรียม printer service
-  final printerService = ReceiptPrinterService();
-
-  // ขอสิทธิ์การใช้งานบลูทูธและเชื่อมต่อเครื่องพิมพ์
-  await printerService.requestBluetoothPermissions();
-
-  // ตรวจสอบการเชื่อมต่อเครื่องพิมพ์และพยายามเชื่อมต่อล่วงหน้า
-  await printerService.checkConnection();
-  printerService.autoConnect();
-
+  // สร้าง localStorage สำหรับการใช้งานข้อมูลท้องถิ่น
   final localStorage = LocalStorage(
     prefs: sharedPreferences,
     secureStorage: secureStorage,
   );
 
+  // เตรียม printer service
+  final printerService = ReceiptPrinterService();
+
+  // ขอสิทธิ์การใช้งานบลูทูธและพยายามเชื่อมต่อเครื่องพิมพ์อัตโนมัติ
+  await printerService.requestBluetoothPermissions();
+  await printerService.autoConnect(); // ภายในนี้มีการเรียก checkConnection อยู่แล้ว
+
   await Global.initialize(localStorage);
 
   runApp(MyApp(
-    sharedPreferences: sharedPreferences,
-    secureStorage: secureStorage,
-    printerService: printerService, // ส่ง printerService ไปยัง MyApp
+    localStorage: localStorage,
+    printerService: printerService,
   ));
 }
 
 class MyApp extends StatelessWidget {
-  final SharedPreferences sharedPreferences;
-  final FlutterSecureStorage secureStorage;
+  final LocalStorage localStorage;
   final ReceiptPrinterService printerService;
 
   const MyApp({
     super.key,
-    required this.sharedPreferences,
-    required this.secureStorage,
+    required this.localStorage,
     required this.printerService,
   });
 
   @override
   Widget build(BuildContext context) {
     // สร้าง dependencies
-    final localStorage = LocalStorage(
-      prefs: sharedPreferences,
-      secureStorage: secureStorage,
-    );
-
     final apiService = ApiService();
 
     final authRepository = AuthRepository(
@@ -139,14 +131,22 @@ class MyApp extends StatelessWidget {
       apiService: apiService,
     );
 
+    final preOrderHistoryRepository = PreOrderHistoryRepository(
+      apiService: apiService,
+    );
+
     return MultiBlocProvider(
       providers: [
+        // เพิ่ม Provider สำหรับ LocalStorage
+        Provider<LocalStorage>.value(value: localStorage),
+
         ChangeNotifierProvider(
           create: (context) => PrinterStatusProvider(printerService),
         ),
         BlocProvider<AuthBloc>(
           create: (context) => AuthBloc(
             authRepository: authRepository,
+            localStorage: localStorage, // เพิ่ม localStorage
           ),
         ),
         BlocProvider<WarehouseBloc>(
@@ -190,6 +190,11 @@ class MyApp extends StatelessWidget {
             preOrderRepository: preOrderRepository,
             saleRepository: saleRepository,
             localStorage: localStorage,
+          ),
+        ),
+        BlocProvider<PreOrderHistoryBloc>(
+          create: (context) => PreOrderHistoryBloc(
+            preOrderHistoryRepository: preOrderHistoryRepository,
           ),
         ),
       ],

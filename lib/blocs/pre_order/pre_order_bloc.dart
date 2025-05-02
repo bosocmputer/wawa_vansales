@@ -8,8 +8,6 @@ import 'package:wawa_vansales/utils/local_storage.dart';
 
 class PreOrderBloc extends Bloc<PreOrderEvent, PreOrderState> {
   final PreOrderRepository _preOrderRepository;
-  final SaleRepository _saleRepository;
-  final LocalStorage _localStorage;
   final Logger _logger = Logger();
 
   PreOrderBloc({
@@ -17,13 +15,10 @@ class PreOrderBloc extends Bloc<PreOrderEvent, PreOrderState> {
     required SaleRepository saleRepository,
     required LocalStorage localStorage,
   })  : _preOrderRepository = preOrderRepository,
-        _saleRepository = saleRepository,
-        _localStorage = localStorage,
         super(PreOrderInitial()) {
     on<FetchPreOrders>(_onFetchPreOrders);
     on<FetchPreOrderDetail>(_onFetchPreOrderDetail);
     on<ResetPreOrderState>(_onResetState);
-    on<SubmitPreOrderPayment>(_onSubmitPayment);
   }
 
   // ดึงรายการพรีออเดอร์ตามลูกค้า
@@ -64,33 +59,5 @@ class PreOrderBloc extends Bloc<PreOrderEvent, PreOrderState> {
   // รีเซ็ตสถานะ
   void _onResetState(ResetPreOrderState event, Emitter<PreOrderState> emit) {
     emit(PreOrderInitial());
-  }
-
-  // บันทึกการชำระเงิน
-  Future<void> _onSubmitPayment(SubmitPreOrderPayment event, Emitter<PreOrderState> emit) async {
-    try {
-      // ตรวจสอบว่าอยู่ใน state ที่มีข้อมูลรายละเอียดพรีออเดอร์
-      if (state is PreOrderDetailLoaded) {
-        final currentState = state as PreOrderDetailLoaded;
-        emit(PreOrderPaymentSubmitting());
-
-        // ทำการอัปเดตสถานะการชำระเงินไปยัง API
-        // ส่งข้อมูลไปยัง endpoint updateTrans
-        // สำเร็จ = true ถ้าอัปเดต API สำเร็จ
-        bool success = true; // จำลองว่า API call สำเร็จ
-
-        // ถ้าสำเร็จ
-        if (success) {
-          emit(PreOrderPaymentSuccess(event.docNo));
-        } else {
-          emit(const PreOrderError('ไม่สามารถบันทึกการชำระเงินได้'));
-        }
-      } else {
-        emit(const PreOrderError('ไม่พบข้อมูลรายละเอียดพรีออเดอร์'));
-      }
-    } catch (e) {
-      _logger.e('Error submitting payment: $e');
-      emit(PreOrderError('เกิดข้อผิดพลาดในการบันทึกการชำระเงิน: ${e.toString()}'));
-    }
   }
 }

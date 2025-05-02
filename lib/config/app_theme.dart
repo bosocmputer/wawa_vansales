@@ -13,6 +13,7 @@ class AppTheme {
   static const Color backgroundColor = Color(0xFFF5F5F5);
   static const Color cardColor = Colors.white;
   static const Color errorColor = Color(0xFFD32F2F);
+  static const Color successColor = Color(0xFF4CAF50);
 
   // สีข้อความ
   static const Color textPrimary = Color(0xFF333333);

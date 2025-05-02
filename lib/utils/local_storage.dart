@@ -70,6 +70,12 @@ class LocalStorage {
     return null;
   }
 
+  // ดึงเฉพาะรหัสคลังที่เลือก
+  Future<String> getWarehouseCode() async {
+    final warehouse = await getWarehouse();
+    return warehouse?.code ?? 'NA';
+  }
+
   // บันทึกข้อมูลโลเคชั่นที่เลือก
   Future<void> saveLocation(LocationModel location) async {
     await _secureStorage.write(
