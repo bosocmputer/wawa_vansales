@@ -16,6 +16,7 @@ import 'package:wawa_vansales/data/models/warehouse_model.dart';
 import 'package:wawa_vansales/ui/screens/customer_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
 import 'package:wawa_vansales/ui/screens/pre_order_history/pre_order_history_list_screen.dart';
+import 'package:wawa_vansales/ui/screens/return_product/return_product_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale_history/sale_history_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
@@ -274,6 +275,16 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SaleScreen()),
+                );
+              },
+            ),
+            _buildQuickActionItem(
+              Icons.shopping_cart_checkout,
+              'รับคืนสินค้า',
+              Colors.red,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ReturnProductScreen()),
                 );
               },
             ),

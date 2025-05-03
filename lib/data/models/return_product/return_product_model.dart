@@ -1,3 +1,4 @@
+// lib/data/models/return_product/return_product_model.dart
 import 'package:json_annotation/json_annotation.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';

@@ -104,4 +104,14 @@ class Global {
     // สร้างเลขที่เอกสาร
     return 'MCN$warehouseCode$dateStr-$random';
   }
+
+  // สร้างเลขที่เอกสารรับคืน
+  static Future<String> generateReturnDocumentNumber(String warehouse) async {
+    final now = DateTime.now();
+    final dateStr =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final random = (1000 + Random().nextInt(9000)).toString();
+
+    return 'MCN$warehouse$dateStr-$random';
+  }
 }

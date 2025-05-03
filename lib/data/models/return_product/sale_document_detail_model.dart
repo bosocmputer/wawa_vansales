@@ -1,3 +1,4 @@
+// lib/data/models/return_product/sale_document_detail_model.dart
 import 'package:json_annotation/json_annotation.dart';
 
 part 'sale_document_detail_model.g.dart';

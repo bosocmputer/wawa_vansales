@@ -12,6 +12,7 @@ import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
 import 'package:wawa_vansales/blocs/pre_order_history/pre_order_history_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
+import 'package:wawa_vansales/blocs/return_product/return_product_bloc.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_bloc.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
@@ -21,6 +22,7 @@ import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
 import 'package:wawa_vansales/data/repositories/pre_order_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/product_repository.dart';
+import 'package:wawa_vansales/data/repositories/return_product_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
@@ -135,6 +137,10 @@ class MyApp extends StatelessWidget {
       apiService: apiService,
     );
 
+    final returnProductRepository = ReturnProductRepository(
+      apiService: apiService,
+    );
+
     return MultiBlocProvider(
       providers: [
         // เพิ่ม Provider สำหรับ LocalStorage
@@ -195,6 +201,12 @@ class MyApp extends StatelessWidget {
         BlocProvider<PreOrderHistoryBloc>(
           create: (context) => PreOrderHistoryBloc(
             preOrderHistoryRepository: preOrderHistoryRepository,
+          ),
+        ),
+        BlocProvider<ReturnProductBloc>(
+          create: (context) => ReturnProductBloc(
+            returnProductRepository: returnProductRepository,
+            localStorage: localStorage,
           ),
         ),
       ],
