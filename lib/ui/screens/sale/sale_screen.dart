@@ -19,6 +19,7 @@ import 'package:wawa_vansales/ui/screens/sale/sale_customer_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_payment_step.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_stepper_widget.dart';
 import 'package:wawa_vansales/ui/screens/sale/sale_summary_step.dart';
+import 'package:wawa_vansales/ui/widgets/dialogs/confirm_exit_dialog.dart';
 import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 
@@ -345,6 +346,39 @@ class _SaleScreenState extends State<SaleScreen> {
         child: Scaffold(
           appBar: AppBar(
             title: const Text('ขายสินค้า'),
+            leading: BlocBuilder<CartBloc, CartState>(
+              buildWhen: (previous, current) {
+                // สร้าง widget ใหม่เมื่อ step เปลี่ยน
+                return previous is CartLoaded && current is CartLoaded && (previous).currentStep != (current).currentStep;
+              },
+              builder: (context, state) {
+                if (state is CartLoaded) {
+                  return IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () async {
+                      // ถ้าอยู่ที่ step 0 แสดง ConfirmExitDialog
+                      if (state.currentStep == 0) {
+                        final shouldExit = await ConfirmExitDialog.show(context);
+                        if (shouldExit == true) {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                            (route) => false,
+                          );
+                        }
+                      }
+                      // ถ้าอยู่ที่ step 1, 2, 3 ให้ย้อนกลับทีละ step
+                      else {
+                        _goToStep(state.currentStep - 1);
+                      }
+                    },
+                  );
+                }
+                return IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => Navigator.of(context).pop(),
+                );
+              },
+            ),
           ),
           body: BlocConsumer<CartBloc, CartState>(
             listenWhen: (previous, current) {

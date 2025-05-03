@@ -67,6 +67,14 @@ class ReturnProductRepository {
 
   // บันทึกข้อมูลการรับคืนสินค้า
   Future<bool> saveReturnProduct(ReturnProductModel returnProductData) async {
+    /// debug print
+    _logger.d('ReturnProductModel: ${returnProductData.toJson()}');
+
+    /// debug print items
+    for (var item in returnProductData.items) {
+      _logger.d('Item: ${item.toJson()}');
+    }
+
     try {
       final response = await _apiService.post(
         '/saveReturn',

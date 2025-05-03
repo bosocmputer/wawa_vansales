@@ -90,28 +90,4 @@ class Global {
 
     return 'MINV$warehouseCode$dateStr-$random';
   }
-
-  /// ฟังก์ชันสำหรับการสร้างเลขที่เอกสาร pre-order MCNyyyymmddhhii-random4
-  static String generatePreOrderDocumentNumber(String warehouseCode) {
-    // ใช้ warehouse code, วันที่ปัจจุบัน, และเลขสุ่มเพื่อสร้างเลขที่เอกสารที่ไม่ซ้ำกัน
-    final now = DateTime.now();
-
-    // ใช้รูปแบบปี 4 หลัก เดือน 2 หลัก วัน 2 หลัก ชั่วโมง 2 หลัก นาที 2 หลัก
-    final dateStr =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    // สร้างเลขสุ่ม 4 หลัก
-    final random = (1000 + Random().nextInt(9000)).toString();
-    // สร้างเลขที่เอกสาร
-    return 'MCN$warehouseCode$dateStr-$random';
-  }
-
-  // สร้างเลขที่เอกสารรับคืน
-  static Future<String> generateReturnDocumentNumber(String warehouse) async {
-    final now = DateTime.now();
-    final dateStr =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    final random = (1000 + Random().nextInt(9000)).toString();
-
-    return 'MCN$warehouse$dateStr-$random';
-  }
 }

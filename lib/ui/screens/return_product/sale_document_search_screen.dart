@@ -9,6 +9,7 @@ import 'package:wawa_vansales/blocs/return_product/return_product_event.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/return_product/sale_document_model.dart';
+import 'package:wawa_vansales/ui/screens/warehouse/emty_state_widget.dart';
 
 class SaleDocumentSearchScreen extends StatefulWidget {
   final String customerCode;
@@ -27,6 +28,9 @@ class SaleDocumentSearchScreen extends StatefulWidget {
 class _SaleDocumentSearchScreenState extends State<SaleDocumentSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  final _dateFormat = DateFormat('dd/MM/yyyy');
+  final _currencyFormat = NumberFormat('#,##0.00', 'th_TH');
 
   // กำหนดวันที่เริ่มต้นเป็น 1 เดือนย้อนหลัง
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 30));
@@ -81,49 +85,40 @@ class _SaleDocumentSearchScreenState extends State<SaleDocumentSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormat = NumberFormat('#,##0.00', 'th_TH');
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('เลือกเอกสารขาย - ${widget.customerName}'),
+        title: Text(
+          'เลือกเอกสารขาย - ${widget.customerName}',
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          // ปุ่มเลือกวันที่
+          IconButton(
+            icon: const Icon(Icons.date_range),
+            tooltip: 'เลือกช่วงวันที่',
+            onPressed: () => _selectDateRange(context),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // ส่วนเลือกช่วงวันที่
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _selectDateRange(context),
-                    icon: const Icon(Icons.date_range),
-                    label: Text(
-                      '${DateFormat('dd/MM/yyyy').format(_fromDate)} - ${DateFormat('dd/MM/yyyy').format(_toDate)}',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade50,
-                      foregroundColor: Colors.blue.shade700,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // ส่วนแสดงช่วงวันที่ที่เลือก
+          _buildDateRangeHeader(),
 
           // ช่องค้นหา
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 8),
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'ค้นหาเอกสาร...',
-                prefixIcon: const Icon(Icons.search),
+                labelText: 'ค้นหาเอกสารขาย',
+                hintText: 'ค้นหาจากเลขที่เอกสาร',
+                labelStyle: const TextStyle(fontSize: 14),
+                hintStyle: const TextStyle(fontSize: 13),
+                prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.clear),
+                        icon: const Icon(Icons.clear, size: 18),
                         onPressed: () {
                           _searchController.clear();
                         },
@@ -132,11 +127,11 @@ class _SaleDocumentSearchScreenState extends State<SaleDocumentSearchScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               ),
+              style: const TextStyle(fontSize: 14),
             ),
           ),
-
-          const SizedBox(height: 16),
 
           // รายการเอกสารขาย
           Expanded(
@@ -144,41 +139,53 @@ class _SaleDocumentSearchScreenState extends State<SaleDocumentSearchScreen> {
               builder: (context, state) {
                 if (state is ReturnProductLoading) {
                   return const Center(
-                    child: CircularProgressIndicator(),
+                    child: SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                   );
-                } else if (state is ReturnProductLoaded && state.saleDocuments.isNotEmpty) {
+                } else if (state is ReturnProductLoaded) {
                   final saleDocuments = state.saleDocuments;
 
-                  return ListView.builder(
+                  if (saleDocuments.isEmpty) {
+                    return Center(
+                      child: EmptyStateWidget(
+                        icon: Icons.receipt_long,
+                        message: 'ไม่พบข้อมูลเอกสารขาย',
+                        subMessage: _searchQuery.isNotEmpty ? 'ลองเปลี่ยนคำค้นหาหรือช่วงวันที่' : 'ในช่วงวันที่ ${_dateFormat.format(_fromDate)} - ${_dateFormat.format(_toDate)}',
+                        actionLabel: _searchQuery.isNotEmpty ? 'ล้างการค้นหา' : null,
+                        onAction: _searchQuery.isNotEmpty
+                            ? () {
+                                _searchController.clear();
+                              }
+                            : null,
+                      ),
+                    );
+                  }
+
+                  return Scrollbar(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(8.0),
-                    itemCount: saleDocuments.length,
-                    itemBuilder: (context, index) {
-                      final saleDoc = saleDocuments[index];
-                      return _buildSaleDocumentCard(context, saleDoc, currencyFormat);
-                    },
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(8),
+                      itemCount: saleDocuments.length,
+                      itemBuilder: (context, index) {
+                        final saleDoc = saleDocuments[index];
+                        return _buildSaleDocumentCard(context, saleDoc);
+                      },
+                    ),
                   );
                 } else {
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'ไม่พบข้อมูลเอกสารขาย',
-                          style: TextStyle(fontSize: 18, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 8),
-                        if (_searchQuery.isNotEmpty)
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                            icon: const Icon(Icons.clear),
-                            label: const Text('ล้างการค้นหา'),
-                          ),
-                      ],
+                    child: EmptyStateWidget(
+                      icon: Icons.error_outline,
+                      message: 'เกิดข้อผิดพลาด',
+                      subMessage: 'ไม่สามารถโหลดข้อมูลเอกสารขายได้',
+                      actionLabel: 'ลองใหม่',
+                      onAction: () {
+                        _fetchSaleDocuments();
+                      },
                     ),
                   );
                 }
@@ -226,165 +233,332 @@ class _SaleDocumentSearchScreenState extends State<SaleDocumentSearchScreen> {
     }
   }
 
+  Widget _buildDateRangeHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: AppTheme.primaryColor.withOpacity(0.1),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.date_range,
+            color: AppTheme.primaryColor,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'วันที่: ${_dateFormat.format(_fromDate)} - ${_dateFormat.format(_toDate)}',
+            style: const TextStyle(
+              color: AppTheme.primaryColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: () => _selectDateRange(context),
+            icon: const Icon(Icons.edit, size: 14),
+            label: const Text('เปลี่ยน', style: TextStyle(fontSize: 12)),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primaryColor,
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // สร้าง widget แสดงรายการเอกสารขาย
-  Widget _buildSaleDocumentCard(BuildContext context, SaleDocumentModel saleDoc, NumberFormat formatter) {
+  Widget _buildSaleDocumentCard(BuildContext context, SaleDocumentModel saleDoc) {
     // แปลงวันที่จากรูปแบบ API (2025-05-02) เป็นรูปแบบที่อ่านง่าย (02/05/2025)
     final originalDate = saleDoc.docDate;
     String formattedDate = originalDate;
 
     try {
       final date = DateTime.parse(originalDate);
-      formattedDate = DateFormat('dd/MM/yyyy').format(date);
+      formattedDate = _dateFormat.format(date);
     } catch (e) {
       // ถ้าแปลงวันที่ไม่ได้ ให้ใช้ค่าเดิม
     }
 
     final amount = double.tryParse(saleDoc.totalAmount) ?? 0;
+    final cashAmount = double.tryParse(saleDoc.cashAmount) ?? 0;
+    final transferAmount = double.tryParse(saleDoc.transferAmount) ?? 0;
+    final cardAmount = double.tryParse(saleDoc.cardAmount) ?? 0;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: InkWell(
         onTap: () {
+          // เลือกเอกสารขายและกลับไปหน้าที่แล้ว
           context.read<ReturnProductBloc>().add(SelectSaleDocument(saleDoc));
           Navigator.of(context).pop();
         },
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Document Number and Date
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.receipt, size: 20, color: AppTheme.primaryColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        saleDoc.docNo,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      saleDoc.docNo,
+                      style: const TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
-                    ],
+                    ),
                   ),
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$formattedDate ${saleDoc.docTime}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Total Amount and Payment Types
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'มูลค่ารวม:',
+                  const Spacer(),
+                  Text(
+                    formattedDate,
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
                     ),
                   ),
+                  const SizedBox(width: 4),
                   Text(
-                    '${formatter.format(amount)} บาท',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                    saleDoc.docTime.length > 5 ? saleDoc.docTime.substring(0, 5) : saleDoc.docTime,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
 
-              const SizedBox(height: 8),
-
-              // Wrap for payment types
-              Wrap(
-                spacing: 8,
+              // Customer name
+              Row(
                 children: [
-                  if ((double.tryParse(saleDoc.cashAmount) ?? 0) > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade100,
-                        borderRadius: BorderRadius.circular(12),
+                  const Icon(
+                    Icons.person,
+                    size: 16,
+                    color: AppTheme.primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      saleDoc.custName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: Text(
-                        'เงินสด: ${formatter.format(double.tryParse(saleDoc.cashAmount) ?? 0)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green.shade800,
-                        ),
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  if ((double.tryParse(saleDoc.transferAmount) ?? 0) > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'โอนเงิน: ${formatter.format(double.tryParse(saleDoc.transferAmount) ?? 0)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade800,
-                        ),
-                      ),
-                    ),
-                  if ((double.tryParse(saleDoc.cardAmount) ?? 0) > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'บัตรเครดิต: ${formatter.format(double.tryParse(saleDoc.cardAmount) ?? 0)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange.shade800,
-                        ),
-                      ),
-                    ),
+                  ),
                 ],
               ),
+              const SizedBox(height: 4),
 
-              const SizedBox(height: 12),
-
-              // กดเพื่อเลือก
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              // Customer Code
+              Row(
                 children: [
-                  Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.primaryColor),
-                  SizedBox(width: 4),
+                  const Icon(
+                    Icons.badge,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(width: 8),
                   Text(
-                    'กดเพื่อเลือก',
+                    'รหัสลูกค้า: ${saleDoc.custCode}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade700,
                     ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Divider
+              Divider(color: Colors.grey.shade300, height: 1),
+              const SizedBox(height: 8),
+
+              // Payment Information and Total Amount
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Payment methods
+                  Expanded(
+                    child: _buildPaymentInfo(cashAmount, transferAmount, cardAmount),
+                  ),
+
+                  // Total Amount
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '฿${_currencyFormat.format(amount)}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentInfo(double cashAmount, double transferAmount, double cardAmount) {
+    // ถ้าไม่มีการชำระเงินที่ระบุประเภท ให้แสดงข้อความ
+    if (cashAmount == 0 && transferAmount == 0 && cardAmount == 0) {
+      return const Row(
+        children: [
+          Icon(
+            Icons.payment,
+            size: 16,
+            color: Colors.grey,
+          ),
+          SizedBox(width: 6),
+          Text(
+            'ไม่ระบุประเภทการชำระเงิน',
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // ถ้ามีประเภทการชำระเงินหลายรูปแบบ ให้แสดงเป็นไอคอน
+    if ((cashAmount > 0 ? 1 : 0) + (transferAmount > 0 ? 1 : 0) + (cardAmount > 0 ? 1 : 0) > 1) {
+      return Row(
+        children: [
+          const Icon(
+            Icons.payment,
+            size: 16,
+            color: AppTheme.primaryColor,
+          ),
+          const SizedBox(width: 6),
+          const Text(
+            'ชำระแบบผสม:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(width: 6),
+          if (cashAmount > 0) _buildPaymentIcon(Icons.money, Colors.green, 'เงินสด'),
+          if (transferAmount > 0) _buildPaymentIcon(Icons.account_balance, Colors.blue, 'โอนเงิน'),
+          if (cardAmount > 0) _buildPaymentIcon(Icons.credit_card, Colors.orange, 'บัตรเครดิต'),
+        ],
+      );
+    }
+
+    // ถ้ามีแค่ประเภทเดียว ให้แสดงทั้งประเภทและจำนวนเงิน
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (cashAmount > 0)
+          Row(
+            children: [
+              const Icon(
+                Icons.money,
+                size: 16,
+                color: Colors.green,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'เงินสด: ฿${_currencyFormat.format(cashAmount)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.green,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        if (transferAmount > 0)
+          Row(
+            children: [
+              const Icon(
+                Icons.account_balance,
+                size: 16,
+                color: Colors.blue,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'โอนเงิน: ฿${_currencyFormat.format(transferAmount)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.blue,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        if (cardAmount > 0)
+          Row(
+            children: [
+              const Icon(
+                Icons.credit_card,
+                size: 16,
+                color: Colors.orange,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  'บัตรเครดิต: ฿${_currencyFormat.format(cardAmount)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.orange,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentIcon(IconData icon, Color color, String tooltip) {
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        margin: const EdgeInsets.only(right: 4),
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 14,
+          color: color,
         ),
       ),
     );

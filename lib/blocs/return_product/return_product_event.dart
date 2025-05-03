@@ -107,6 +107,9 @@ class UpdateReturnItemQuantity extends ReturnProductEvent {
 // ล้างตะกร้า
 class ClearReturnCart extends ReturnProductEvent {}
 
+// รีเซ็ตสถานะทั้งหมด (ล้างตะกร้าและข้อมูลลูกค้า)
+class ResetReturnProductState extends ReturnProductEvent {}
+
 // เพิ่มการชำระเงิน
 class AddReturnPayment extends ReturnProductEvent {
   final PaymentModel payment;
@@ -130,11 +133,12 @@ class RemoveReturnPayment extends ReturnProductEvent {
 // บันทึกการรับคืน
 class SubmitReturn extends ReturnProductEvent {
   final String remark;
+  final String docNo;
 
-  const SubmitReturn({this.remark = ''});
+  const SubmitReturn({this.remark = '', required this.docNo});
 
   @override
-  List<Object?> get props => [remark];
+  List<Object?> get props => [remark, docNo];
 }
 
 // อัปเดต step

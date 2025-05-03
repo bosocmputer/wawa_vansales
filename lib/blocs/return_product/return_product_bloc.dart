@@ -5,10 +5,8 @@ import 'package:logger/logger.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_event.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_state.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
-import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/data/models/return_product/return_product_model.dart';
 import 'package:wawa_vansales/data/repositories/return_product_repository.dart';
-import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 
 class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
@@ -30,10 +28,9 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
     on<RemoveItemFromReturnCart>(_onRemoveItem);
     on<UpdateReturnItemQuantity>(_onUpdateQuantity);
     on<ClearReturnCart>(_onClearCart);
-    on<AddReturnPayment>(_onAddPayment);
-    on<RemoveReturnPayment>(_onRemovePayment);
     on<SubmitReturn>(_onSubmitReturn);
     on<UpdateReturnStep>(_onUpdateStep);
+    on<ResetReturnProductState>(_onResetState);
   }
 
   // เลือกลูกค้า
@@ -47,6 +44,11 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
         currentStep: 0,
       ));
     }
+  }
+
+  // รีเซ็ตสถานะทั้งหมด
+  void _onResetState(ResetReturnProductState event, Emitter<ReturnProductState> emit) {
+    emit(ReturnProductInitial());
   }
 
   // ดึงรายการเอกสารขาย
@@ -99,7 +101,8 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
 
         emit(currentState.copyWith(
           documentDetails: details,
-          currentStep: 2,
+          // ไม่เปลี่ยน step อัตโนมัติ เพื่อให้ยังอยู่ที่หน้าเอกสารขาย
+          // currentStep: 2,
         ));
       } catch (e) {
         _logger.e('Error fetching sale document details: $e');
@@ -116,16 +119,29 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
       final List<CartItemModel> updatedItems = List.from(currentState.returnItems);
 
       // เช็คว่าสินค้านี้มีในเอกสารขายหรือไม่
-      final existsInDoc = currentState.documentDetails.any((detail) => detail.itemCode == event.item.itemCode && detail.unitCode == event.item.unitCode);
+      final existsInDoc = currentState.documentDetails.any((detail) => detail.itemCode == event.item.itemCode);
 
       if (!existsInDoc) {
-        emit(ReturnProductError('รหัสสินค้า ${event.item.itemCode} ไม่มีในบิลขาย'));
+        // ไม่ emit ReturnProductError เพื่อป้องกัน SnackBar ซ้ำซ้อน
+        // การตรวจสอบและแสดงข้อความเตือนนี้จะทำที่ UI layer แทน
+        _logger.i('Item not in original sale document: ${event.item.itemCode}');
         return;
       }
 
+      _logger.i('Adding item to return cart: ${event.item.itemCode}');
+
+      // หา refRow จากรายการสินค้าในเอกสารขาย
+      final originalDetail = currentState.documentDetails.firstWhere(
+        (detail) => detail.itemCode == event.item.itemCode,
+      );
+
+      // กำหนดค่า refRow จากเอกสารขายเดิม
+      String refRow = "0";
+      refRow = originalDetail.refRow;
+
       // เช็คว่ามีในตะกร้าแล้วหรือยัง
       final existingIndex = updatedItems.indexWhere(
-        (item) => item.itemCode == event.item.itemCode && item.barcode == event.item.barcode && item.unitCode == event.item.unitCode,
+        (item) => item.itemCode == event.item.itemCode && item.unitCode == event.item.unitCode,
       );
 
       if (existingIndex != -1) {
@@ -134,9 +150,17 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
         final existingQty = double.tryParse(existingItem.qty) ?? 0;
         final qtyToAdd = double.tryParse(event.item.qty) ?? 1.0;
 
+        // คำนวณราคารวม
+        final price = double.tryParse(existingItem.price) ?? 0;
+        final newQty = existingQty + qtyToAdd;
+        final newAmount = price * newQty;
+
         updatedItems[existingIndex] = existingItem.copyWith(
-          qty: (existingQty + qtyToAdd).toString(),
+          qty: newQty.toString(),
+          sumAmount: newAmount.toString(),
         );
+
+        _logger.i('Updated existing item quantity: ${newQty.toString()}');
       } else {
         // เพิ่มรายการใหม่
         final warehouse = await _localStorage.getWarehouse();
@@ -146,16 +170,28 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
           final newItem = event.item.copyWith(
             whCode: warehouse.code,
             shelfCode: location.code,
+            refRow: refRow, // กำหนดค่า refRow ให้กับ item ใหม่
           );
-          updatedItems.add(newItem);
+          // ตรวจสอบและอัพเดตค่า sumAmount ให้ถูกต้อง
+          final price = double.tryParse(newItem.price) ?? 0;
+          final qty = double.tryParse(newItem.qty) ?? 1;
+          final amount = price * qty;
+
+          final itemWithAmount = newItem.copyWith(
+            sumAmount: amount.toString(),
+          );
+
+          updatedItems.add(itemWithAmount);
+          _logger.i('Added new item: ${itemWithAmount.itemCode}, qty: ${itemWithAmount.qty}, sumAmount: ${itemWithAmount.sumAmount}, refRow: ${itemWithAmount.refRow}');
         } else {
           emit(const ReturnProductError('กรุณาเลือกคลังและพื้นที่เก็บก่อนเพิ่มสินค้า'));
           return;
         }
       }
 
-      // คำนวณยอดรวม
+      // คำนวณยอดรวมใหม่
       final totalAmount = _calculateTotal(updatedItems);
+      _logger.i('New total amount: $totalAmount, items count: ${updatedItems.length}');
 
       emit(currentState.copyWith(
         returnItems: updatedItems,
@@ -211,44 +247,6 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
     }
   }
 
-  // เพิ่มการชำระเงิน
-// เพิ่มการชำระเงิน
-  void _onAddPayment(AddReturnPayment event, Emitter<ReturnProductState> emit) {
-    if (state is ReturnProductLoaded) {
-      final currentState = state as ReturnProductLoaded;
-      final updatedPayments = List<PaymentModel>.from(currentState.payments);
-
-      // ตรวจสอบว่ามีการชำระเงินประเภทนี้แล้วหรือไม่
-      final existingIndex = updatedPayments.indexWhere(
-        (payment) => payment.payType == event.payment.payType,
-      );
-
-      if (existingIndex != -1) {
-        // ถ้ามีแล้ว แทนที่ด้วยข้อมูลใหม่
-        updatedPayments[existingIndex] = event.payment;
-      } else {
-        // ถ้ายังไม่มี เพิ่มเข้าไปใหม่
-        updatedPayments.add(event.payment);
-      }
-
-      emit(currentState.copyWith(
-        payments: updatedPayments,
-      ));
-    }
-  }
-
-  // ลบการชำระเงิน
-  void _onRemovePayment(RemoveReturnPayment event, Emitter<ReturnProductState> emit) {
-    if (state is ReturnProductLoaded) {
-      final currentState = state as ReturnProductLoaded;
-      final updatedPayments = currentState.payments.where((payment) => PaymentModel.intToPaymentType(payment.payType) != event.paymentType).toList();
-
-      emit(currentState.copyWith(
-        payments: updatedPayments,
-      ));
-    }
-  }
-
   // บันทึกการรับคืน
   Future<void> _onSubmitReturn(SubmitReturn event, Emitter<ReturnProductState> emit) async {
     if (state is ReturnProductLoaded) {
@@ -270,42 +268,14 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
         return;
       }
 
-      if (!currentState.isFullyPaid) {
-        emit(const ReturnProductError('กรุณาชำระเงินให้ครบจำนวน'));
-        return;
-      }
-
       emit(ReturnSubmitting());
 
       try {
         // ดึงข้อมูลที่จำเป็น
         final user = await _localStorage.getUserData();
-        final warehouse = await _localStorage.getWarehouse();
         final now = DateTime.now();
         final docDate = DateFormat('yyyy-MM-dd').format(now);
         final docTime = DateFormat('HH:mm').format(now);
-
-        // สร้างเลขที่เอกสาร
-        final docNo = await Global.generateReturnDocumentNumber(warehouse!.code);
-
-        // คำนวณยอดชำระแต่ละประเภท
-        double cashAmount = 0;
-        double transferAmount = 0;
-        double cardAmount = 0;
-
-        for (var payment in currentState.payments) {
-          switch (PaymentModel.intToPaymentType(payment.payType)) {
-            case PaymentType.cash:
-              cashAmount += payment.payAmount;
-              break;
-            case PaymentType.transfer:
-              transferAmount += payment.payAmount;
-              break;
-            case PaymentType.creditCard:
-              cardAmount += payment.payAmount;
-              break;
-          }
-        }
 
         // สร้าง transaction model
         final transaction = ReturnProductModel(
@@ -313,16 +283,16 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
           empCode: user?.userCode ?? 'TEST',
           docDate: docDate,
           docTime: docTime,
-          docNo: docNo,
+          docNo: event.docNo,
           refDocDate: currentState.selectedSaleDocument!.docDate,
           refDocNo: currentState.selectedSaleDocument!.docNo,
           refAmount: currentState.selectedSaleDocument!.totalAmount,
           items: currentState.returnItems,
           paymentDetail: currentState.payments,
-          transferAmount: transferAmount.toString(),
+          transferAmount: '0',
           creditAmount: '0',
-          cashAmount: cashAmount.toString(),
-          cardAmount: cardAmount.toString(),
+          cashAmount: '0',
+          cardAmount: '0',
           totalAmount: currentState.totalAmount.toString(),
           totalValue: currentState.totalAmount.toString(),
           remark: event.remark,
@@ -333,7 +303,7 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
 
         if (success) {
           emit(ReturnSubmitSuccess(
-            documentNumber: docNo,
+            documentNumber: event.docNo,
             customer: currentState.selectedCustomer!,
             items: currentState.returnItems,
             payments: currentState.payments,

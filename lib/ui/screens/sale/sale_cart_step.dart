@@ -37,18 +37,15 @@ class SaleCartStep extends StatefulWidget {
 class _SaleCartStepState extends State<SaleCartStep> {
   // Controllers สำหรับแต่ละโหมด
   final TextEditingController _barcodeScanController = TextEditingController();
-  final TextEditingController _barcodeSearchController = TextEditingController();
 
   final NumberFormat _currencyFormat = NumberFormat('#,##0.00', 'th_TH');
 
   // Focus nodes สำหรับแต่ละโหมด
   final FocusNode _barcodeScanFocusNode = FocusNode();
-  final FocusNode _barcodeSearchFocusNode = FocusNode();
 
   bool _isProcessingItem = false;
 
   // โหมดปัจจุบัน
-  bool _isScanMode = true; // true = scan mode, false = search mode
 
   @override
   void initState() {
@@ -62,9 +59,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
   @override
   void dispose() {
     _barcodeScanController.dispose();
-    _barcodeSearchController.dispose();
     _barcodeScanFocusNode.dispose();
-    _barcodeSearchFocusNode.dispose();
     super.dispose();
   }
 
@@ -95,39 +90,8 @@ class _SaleCartStepState extends State<SaleCartStep> {
     });
   }
 
-  void _searchBarcode() {
-    _processBarcode(_barcodeSearchController.text);
-  }
-
   void _scanBarcode() {
     _processBarcode(_barcodeScanController.text);
-  }
-
-  void _switchMode() {
-    setState(() {
-      _isScanMode = !_isScanMode;
-
-      if (_isScanMode) {
-        // Scan Mode
-        _barcodeSearchController.clear();
-        _barcodeScanController.clear();
-
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          FocusScope.of(context).unfocus(); // ละทิ้ง focus ก่อน
-          await Future.delayed(const Duration(milliseconds: 100));
-          SystemChannels.textInput.invokeMethod('TextInput.hide');
-          _barcodeScanFocusNode.requestFocus(); // โฟกัส แต่ไม่เปิดคีย์บอร์ด
-        });
-      } else {
-        // Search Mode
-        _barcodeScanController.clear();
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          _barcodeSearchFocusNode.requestFocus(); // โฟกัส TextField
-          await Future.delayed(const Duration(milliseconds: 100));
-          SystemChannels.textInput.invokeMethod('TextInput.show'); // แล้วค่อยเปิดคีย์บอร์ด
-        });
-      }
-    });
   }
 
   Future<void> _openProductSearch() async {
@@ -182,7 +146,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
 
             // เรียกใช้ AddItemToCart เฉพาะเมื่อไม่ได้เรียกจากการเลือกสินค้า (ProductSearchScreen)
             // โดยตรวจสอบจากสถานะว่าได้มาจากการสแกนบาร์โค้ด
-            if (_barcodeScanController.text.isNotEmpty || _barcodeSearchController.text.isNotEmpty) {
+            if (_barcodeScanController.text.isNotEmpty) {
               // เพิ่มสินค้าเข้าตะกร้า
               final cartItem = CartItemModel(
                 itemCode: state.product.itemCode,
@@ -225,13 +189,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
             ),
           );
 
-          if (_isScanMode) {
-            _barcodeScanController.clear();
-            _barcodeScanFocusNode.requestFocus();
-          } else {
-            _barcodeSearchController.clear();
-            _barcodeSearchFocusNode.requestFocus();
-          }
+          _barcodeScanFocusNode.requestFocus();
         } else if (state is ProductDetailError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -341,62 +299,6 @@ class _SaleCartStepState extends State<SaleCartStep> {
     );
   }
 
-  Widget _buildSearchTextField() {
-    return SizedBox(
-      height: 40,
-      child: TextField(
-        controller: _barcodeSearchController,
-        focusNode: _barcodeSearchFocusNode,
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          labelText: 'ค้นหาบาร์โค้ด',
-          labelStyle: const TextStyle(fontSize: 13),
-          prefixIcon: const Icon(
-            Icons.search,
-            size: 20,
-          ),
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_barcodeSearchController.text.isNotEmpty)
-                IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    _barcodeSearchController.clear();
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              IconButton(
-                icon: const Icon(Icons.search, size: 20),
-                onPressed: _searchBarcode,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-            ],
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          isDense: true,
-        ),
-        keyboardType: TextInputType.text,
-        onSubmitted: (_) => _searchBarcode(),
-        showCursor: true,
-        autofocus: !_isScanMode, // กำหนด autofocus เมื่ออยู่ในโหมดค้นหา
-        onTap: () {
-          // ทำให้แน่ใจว่า keyboard จะแสดงเมื่อกดที่ช่องค้นหา
-          if (!_isScanMode) {
-            SystemChannels.textInput.invokeMethod('TextInput.show');
-          }
-        },
-      ),
-    );
-  }
-
   Widget _buildEmptyCart() {
     return Center(
       child: Column(
@@ -417,7 +319,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
           ),
           const SizedBox(height: 4),
           Text(
-            _isScanMode ? 'สแกนบาร์โค้ดเพื่อเพิ่มสินค้า' : 'ค้นหาบาร์โค้ดเพื่อเพิ่มสินค้า',
+            'สแกนบาร์โค้ดเพื่อเพิ่มสินค้า',
             style: TextStyle(
               fontSize: 13,
               color: Colors.grey[500],

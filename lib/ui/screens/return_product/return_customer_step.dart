@@ -61,7 +61,7 @@ class ReturnCustomerStep extends StatelessWidget {
         if (selectedCustomer != null)
           SafeArea(
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [
@@ -73,16 +73,19 @@ class ReturnCustomerStep extends StatelessWidget {
                   ),
                 ],
               ),
-              child: ElevatedButton.icon(
-                onPressed: onNextStep,
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('ถัดไป'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onNextStep,
+                      icon: const Icon(Icons.arrow_forward, size: 20),
+                      label: const Text('ถัดไป'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 44),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -171,6 +174,7 @@ class ReturnCustomerStep extends StatelessWidget {
             TextButton.icon(
               onPressed: () {
                 context.read<ReturnProductBloc>().add(ClearReturnCart());
+                _selectCustomer(context);
               },
               icon: const Icon(Icons.refresh),
               label: const Text('เลือกใหม่'),

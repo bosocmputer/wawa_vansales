@@ -265,59 +265,80 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        // First row with 4 items equally spaced
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            _buildQuickActionItem(
-              Icons.add_shopping_cart,
-              'ขายสินค้า',
-              Colors.orange,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SaleScreen()),
-                );
-              },
+            Expanded(
+              child: _buildQuickActionItem(
+                Icons.add_shopping_cart,
+                'ขายสินค้า',
+                Colors.orange,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SaleScreen()),
+                  );
+                },
+              ),
             ),
-            _buildQuickActionItem(
-              Icons.shopping_cart_checkout,
-              'รับคืนสินค้า',
-              Colors.red,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ReturnProductScreen()),
-                );
-              },
+            Expanded(
+              child: _buildQuickActionItem(
+                Icons.receipt_long,
+                'ประวัติการขาย',
+                Colors.blue,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SaleHistoryListScreen()),
+                  );
+                },
+              ),
             ),
-            _buildQuickActionItem(
-              Icons.receipt_long,
-              'ประวัติการขาย',
-              Colors.blue,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SaleHistoryListScreen()),
-                );
-              },
+            Expanded(
+              child: _buildQuickActionItem(
+                Icons.history,
+                'ประวัติพรีออเดอร์',
+                Colors.green,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PreOrderHistoryListScreen()),
+                  );
+                },
+              ),
             ),
-            _buildQuickActionItem(
-              Icons.history,
-              'ประวัติพรีออเดอร์',
-              Colors.green,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const PreOrderHistoryListScreen()),
-                );
-              },
+            Expanded(
+              child: _buildQuickActionItem(
+                Icons.person_add,
+                'ลูกค้า',
+                Colors.purple,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CustomerListScreen()),
+                  );
+                },
+              ),
             ),
-            _buildQuickActionItem(
-              Icons.person_add,
-              'ลูกค้า',
-              Colors.purple,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const CustomerListScreen()),
-                );
-              },
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Second row - place on the left
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildQuickActionItem(
+                Icons.shopping_cart_checkout,
+                'รับคืนสินค้า',
+                Colors.red,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ReturnProductScreen()),
+                  );
+                },
+              ),
             ),
+            Expanded(child: Container()), // Empty placeholder to maintain grid structure
+            Expanded(child: Container()), // Empty placeholder to maintain grid structure
+            Expanded(child: Container()), // Empty placeholder to maintain grid structure
           ],
         ),
       ],

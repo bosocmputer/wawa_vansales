@@ -1,7 +1,6 @@
 // lib/ui/screens/return_product/return_product_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_event.dart';
@@ -13,7 +12,6 @@ import 'package:wawa_vansales/data/services/printer_status_provider.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_customer_step.dart';
-import 'package:wawa_vansales/ui/screens/return_product/return_payment_step.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_product_cart_step.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_product_stepper_widget.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_summary_step.dart';
@@ -40,6 +38,8 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
   @override
   void initState() {
     super.initState();
+    _isTransactionCompleted = false; // รีเซ็ตตัวแปรทุกครั้งเมื่อเปิดหน้าจอใหม่
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
         _warehouseCode = Global.whCode;
@@ -98,19 +98,22 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
         return;
       }
 
-      if (step == 4 && !returnState.isFullyPaid) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('กรุณาชำระเงินให้ครบก่อน')),
-        );
-        return;
-      }
+      print('Current step: ${returnState.currentStep}, Going to step: $step');
+      print('Selected document: ${returnState.selectedSaleDocument?.docNo}');
 
       context.read<ReturnProductBloc>().add(UpdateReturnStep(step));
-      _pageController.animateToPage(
-        step,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+
+      // เราไม่จำเป็นต้องใช้ _pageController.animateTo อีกต่อไปเมื่อใช้ IndexedStack
+      // แต่ถ้ายังต้องการใช้ ต้องเพิ่มการตรวจสอบ
+      /* 
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          step,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+      */
     }
   }
 
@@ -297,7 +300,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        context.read<ReturnProductBloc>().add(ClearReturnCart());
+                        context.read<ReturnProductBloc>().add(ResetReturnProductState());
 
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -315,11 +318,13 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
               false;
 
           if (shouldPop && mounted) {
+            // Use ResetReturnProductState instead of just clearing the cart
+            context.read<ReturnProductBloc>().add(ResetReturnProductState());
             Navigator.of(context).pop();
           }
         } else {
-          _goToStep(0);
-          context.read<ReturnProductBloc>().add(ClearReturnCart());
+          // Always use ResetReturnProductState to fully reset the state
+          context.read<ReturnProductBloc>().add(ResetReturnProductState());
           if (mounted) {
             Navigator.of(context).pop();
           }
@@ -329,6 +334,77 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
         child: Scaffold(
           appBar: AppBar(
             title: const Text('รับคืนสินค้า'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () async {
+                final returnState = context.read<ReturnProductBloc>().state;
+                if (returnState is ReturnProductLoaded && returnState.returnItems.isNotEmpty) {
+                  final bool shouldPop = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('ยืนยันการออก'),
+                          content: const Text('คุณต้องการออกจากหน้านี้หรือไม่? รายการสินค้าในรายการรับคืนจะถูกล้าง'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('ยกเลิก'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<ReturnProductBloc>().add(ResetReturnProductState());
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                                  (route) => false,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.errorColor,
+                              ),
+                              child: const Text('ออก', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      ) ??
+                      false;
+
+                  if (!shouldPop) return;
+                } else if (returnState is ReturnProductLoaded && returnState.selectedCustomer != null) {
+                  // เพิ่มการถามยืนยันเมื่อได้เลือกลูกค้าแล้ว แต่ยังไม่มีสินค้าในตะกร้า
+                  final bool shouldPop = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('ยืนยันการออก'),
+                          content: const Text('คุณต้องการออกจากหน้านี้หรือไม่? ข้อมูลลูกค้าที่เลือกจะถูกล้าง'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('ยกเลิก'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<ReturnProductBloc>().add(ResetReturnProductState());
+                                Navigator.of(context).pop(true);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.errorColor,
+                              ),
+                              child: const Text('ออก', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      ) ??
+                      false;
+
+                  if (!shouldPop) return;
+                }
+
+                // Always use ResetReturnProductState instead of just going to step 0
+                context.read<ReturnProductBloc>().add(ResetReturnProductState());
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
           ),
           body: BlocConsumer<ReturnProductBloc, ReturnProductState>(
             listenWhen: (previous, current) {
@@ -337,6 +413,13 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
               if (current is ReturnSubmitSuccess && _isTransactionCompleted) {
                 return false;
               }
+
+              // ไม่แสดง error สำหรับกรณีสินค้าไม่มีในบิลขายเดิม เพื่อป้องกัน SnackBar ซ้ำซ้อน
+              if (current is ReturnProductError &&
+                  (current.message.contains('ไม่มีในบิลขาย') || current.message.contains('รหัสสินค้า') && current.message.contains('ไม่มีในบิล'))) {
+                return false;
+              }
+
               return current is ReturnProductError || current is ReturnSubmitSuccess || current is ReturnSubmitting;
             },
             listener: (context, state) async {
@@ -383,7 +466,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                 }
 
                 // รีเซ็ตตะกร้าและกลับหน้าหลัก
-                context.read<ReturnProductBloc>().add(ClearReturnCart());
+                context.read<ReturnProductBloc>().add(ResetReturnProductState());
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const HomeScreen()),
                   (route) => false,
@@ -403,22 +486,20 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                       isCustomerSelected: loadedState?.selectedCustomer != null,
                       isDocumentSelected: loadedState?.selectedSaleDocument != null,
                       hasItems: loadedState?.returnItems.isNotEmpty ?? false,
-                      isFullyPaid: loadedState?.isFullyPaid ?? false,
                     ),
 
                     // เนื้อหาแต่ละ Step
                     Expanded(
-                      child: PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
+                      child: IndexedStack(
+                        index: loadedState?.currentStep ?? 0,
                         children: [
-                          // Step 1: เลือกลูกค้า
+                          // Step 0: เลือกลูกค้า
                           ReturnCustomerStep(
                             selectedCustomer: loadedState?.selectedCustomer,
                             onNextStep: () => _goToStep(1),
                           ),
 
-                          // Step 2: เลือกเอกสารขาย
+                          // Step 1: เลือกเอกสารขาย
                           SaleDocumentStep(
                             selectedSaleDocument: loadedState?.selectedSaleDocument,
                             customerCode: loadedState?.selectedCustomer?.code ?? '',
@@ -428,7 +509,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                             onBackStep: () => _goToStep(0),
                           ),
 
-                          // Step 3: เลือกสินค้าที่จะรับคืน
+                          // Step 2: เลือกสินค้าที่จะรับคืน
                           ReturnProductCartStep(
                             returnItems: loadedState?.returnItems ?? [],
                             documentDetails: loadedState?.documentDetails ?? [],
@@ -438,16 +519,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                             customerCode: loadedState?.selectedCustomer?.code ?? '',
                           ),
 
-                          // Step 4: ชำระเงิน
-                          ReturnPaymentStep(
-                            totalAmount: loadedState?.totalAmount ?? 0,
-                            payments: loadedState?.payments ?? [],
-                            remainingAmount: loadedState?.remainingAmount ?? 0,
-                            onBackStep: () => _goToStep(2),
-                            onNextStep: () => _goToStep(4),
-                          ),
-
-                          // Step 5: สรุปรายการ + พิมพ์ใบรับคืน
+                          // Step 3: สรุปรายการ + พิมพ์ใบรับคืน
                           if (loadedState?.selectedCustomer != null && loadedState?.selectedSaleDocument != null)
                             ReturnSummaryStep(
                               customer: loadedState!.selectedCustomer!,
@@ -455,7 +527,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                               items: loadedState.returnItems,
                               payments: loadedState.payments,
                               totalAmount: loadedState.totalAmount,
-                              onBackStep: () => _goToStep(3),
+                              onBackStep: () => _goToStep(2),
                               isConnected: _printerService.isConnected,
                               isConnecting: _printerService.isConnecting,
                               onReconnectPrinter: () async {

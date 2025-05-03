@@ -20,6 +20,7 @@ CartItemModel _$CartItemModelFromJson(Map<String, dynamic> json) =>
       standValue: json['stand_value'] as String,
       divideValue: json['divide_value'] as String,
       qty: json['qty'] as String? ?? '1',
+      refRow: json['ref_row'] as String? ?? '',
     );
 
 Map<String, dynamic> _$CartItemModelToJson(CartItemModel instance) =>
@@ -35,5 +36,6 @@ Map<String, dynamic> _$CartItemModelToJson(CartItemModel instance) =>
       'ratio': instance.ratio,
       'stand_value': instance.standValue,
       'divide_value': instance.divideValue,
+      'ref_row': instance.refRow,
       'qty': instance.qty,
     };

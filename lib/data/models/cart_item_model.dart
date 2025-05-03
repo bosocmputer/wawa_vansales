@@ -35,6 +35,10 @@ class CartItemModel {
   @JsonKey(name: 'divide_value')
   final String divideValue;
 
+  /// ref_row
+  @JsonKey(name: 'ref_row')
+  final String refRow;
+
   String qty;
 
   CartItemModel({
@@ -50,6 +54,7 @@ class CartItemModel {
     required this.standValue,
     required this.divideValue,
     this.qty = '1',
+    this.refRow = '',
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) => _$CartItemModelFromJson(json);
@@ -73,6 +78,7 @@ class CartItemModel {
     String? standValue,
     String? divideValue,
     String? qty,
+    String? refRow,
   }) {
     return CartItemModel(
       itemCode: itemCode ?? this.itemCode,
@@ -87,6 +93,7 @@ class CartItemModel {
       standValue: standValue ?? this.standValue,
       divideValue: divideValue ?? this.divideValue,
       qty: qty ?? this.qty,
+      refRow: refRow ?? this.refRow,
     );
   }
 }
