@@ -1,7 +1,6 @@
 // lib/ui/screens/sale/sale_cart_step.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
@@ -12,6 +11,7 @@ import 'package:wawa_vansales/blocs/product_detail/product_detail_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
+import 'package:wawa_vansales/utils/global.dart'; // เพิ่ม import Global
 import 'package:intl/intl.dart';
 
 class SaleCartStep extends StatefulWidget {
@@ -64,12 +64,15 @@ class _SaleCartStepState extends State<SaleCartStep> {
   }
 
   void _processBarcode(String barcode) {
+    // ถ้าบาร์โค้ดว่างหรือกำลังประมวลผลอยู่แล้ว ให้ไม่ทำอะไร
     if (barcode.isEmpty || _isProcessingItem) return;
 
+    // ตั้งค่า flag ว่ากำลังประมวลผลอยู่
     setState(() {
       _isProcessingItem = true;
     });
 
+    // ส่ง event ไปยัง ProductDetailBloc เพื่อค้นหาสินค้า
     final cartState = context.read<CartBloc>().state;
     if (cartState is CartLoaded && cartState.selectedCustomer != null) {
       context.read<ProductDetailBloc>().add(
@@ -80,14 +83,11 @@ class _SaleCartStepState extends State<SaleCartStep> {
           );
     }
 
-    // รีเซ็ต flag หลังจากระยะเวลาหนึ่ง
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      if (mounted) {
-        setState(() {
-          _isProcessingItem = false;
-        });
-      }
-    });
+    // ล้าง controller หลังจากส่งคำขอค้นหาสินค้า
+    _barcodeScanController.clear();
+
+    // หมายเหตุ: ไม่รีเซ็ต _isProcessingItem ที่นี่
+    // _isProcessingItem จะถูกรีเซ็ตใน BlocListener เมื่อกระบวนการเสร็จสิ้นจริงๆ แล้ว
   }
 
   void _scanBarcode() {
@@ -134,20 +134,25 @@ class _SaleCartStepState extends State<SaleCartStep> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<ProductDetailBloc, ProductDetailState>(
-      listenWhen: (previous, current) {
-        return current is ProductDetailLoaded && previous is! ProductDetailLoaded;
-      },
-      listener: (context, state) {
-        if (state is ProductDetailLoaded) {
-          // เพิ่ม flag ป้องกันเรียกซ้ำ
-          if (!_isProcessingItem) {
-            _isProcessingItem = true;
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ProductDetailBloc, ProductDetailState>(
+          listenWhen: (previous, current) {
+            // เพิ่ม debug logs เพื่อตรวจสอบว่า listenWhen ถูกเรียกหรือไม่
+            if (kDebugMode) {
+              print('[DEBUG] ProductDetailBloc listener - previous: ${previous.runtimeType}, current: ${current.runtimeType}');
+            }
+            // เปลี่ยนเงื่อนไขให้ตรวจจับเมื่อ current เป็น ProductDetailLoaded
+            // โดยไม่ต้องเช็ค previous เพื่อให้ทำงานทุกครั้งที่ได้ข้อมูลสินค้า
+            return current is ProductDetailLoaded;
+          },
+          listener: (context, state) {
+            if (state is ProductDetailLoaded) {
+              if (kDebugMode) {
+                print('[DEBUG] ProductDetailLoaded triggered - product: ${state.product.itemName}');
+              }
 
-            // เรียกใช้ AddItemToCart เฉพาะเมื่อไม่ได้เรียกจากการเลือกสินค้า (ProductSearchScreen)
-            // โดยตรวจสอบจากสถานะว่าได้มาจากการสแกนบาร์โค้ด
-            if (_barcodeScanController.text.isNotEmpty) {
-              // เพิ่มสินค้าเข้าตะกร้า
+              // เพิ่มสินค้าเข้าตะกร้าทันทีโดยไม่สนใจ isProcessingItem
               final cartItem = CartItemModel(
                 itemCode: state.product.itemCode,
                 itemName: state.product.itemName,
@@ -155,51 +160,110 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 price: state.product.price,
                 sumAmount: state.product.price,
                 unitCode: state.product.unitCode,
-                whCode: '',
-                shelfCode: '',
+                whCode: Global.whCode,
+                shelfCode: Global.shiftCode,
                 ratio: state.product.ratio,
                 standValue: state.product.standValue,
                 divideValue: state.product.divideValue,
                 qty: '1',
               );
 
+              // ส่ง event เพื่อเพิ่มสินค้า
+              if (kDebugMode) {
+                print('[DEBUG] Adding to cart: ${cartItem.itemName}, barcode: ${cartItem.barcode}');
+              }
+              
+              // กำหนด flag ป้องกันการสแกนซ้ำในช่วงประมวลผล
+              setState(() {
+                _isProcessingItem = true;
+              });
+
               context.read<CartBloc>().add(AddItemToCart(cartItem));
-            }
 
-            // Reset state หลังจากดำเนินการเสร็จ
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (mounted) {
-                setState(() {
-                  _isProcessingItem = false;
-                });
-
-                // Reset product detail หลังจาก delay
+              // เรียก ResetProductDetail หลังเพิ่มสินค้าเข้าตะกร้า
+              Future.delayed(const Duration(milliseconds: 100), () {
                 if (context.mounted) {
                   context.read<ProductDetailBloc>().add(ResetProductDetail());
                 }
-              }
-            });
-          }
-        } else if (state is ProductDetailNotFound) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ไม่พบสินค้าที่มีบาร์โค้ด: ${state.barcode}'),
-              backgroundColor: AppTheme.errorColor,
-              duration: const Duration(seconds: 2),
-            ),
-          );
+              });
+            } else if (state is ProductDetailNotFound) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('ไม่พบสินค้าที่มีบาร์โค้ด: ${state.barcode}'),
+                  backgroundColor: AppTheme.errorColor,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
 
-          _barcodeScanFocusNode.requestFocus();
-        } else if (state is ProductDetailError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('เกิดข้อผิดพลาด: ${state.message}'),
-              backgroundColor: AppTheme.errorColor,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      },
+              // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
+              setState(() {
+                _isProcessingItem = false;
+              });
+
+              // Set focus กลับไปที่ช่อง scan barcode เมื่อไม่พบสินค้า
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (mounted) {
+                  _barcodeScanFocusNode.requestFocus();
+                }
+              });
+            } else if (state is ProductDetailError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('เกิดข้อผิดพลาด: ${state.message}'),
+                  backgroundColor: AppTheme.errorColor,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+
+              // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
+              setState(() {
+                _isProcessingItem = false;
+              });
+
+              // Set focus กลับไปที่ช่อง scan barcode เมื่อเกิดข้อผิดพลาด
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (mounted) {
+                  _barcodeScanFocusNode.requestFocus();
+                }
+              });
+            }
+          },
+        ),
+
+        // เพิ่ม BlocListener สำหรับ CartBloc เพื่อรับรู้การเปลี่ยนแปลงของรายการสินค้า
+        BlocListener<CartBloc, CartState>(
+          listenWhen: (previous, current) {
+            // เพิ่ม debug logs เพื่อตรวจสอบ CartBloc listener
+            if (kDebugMode) {
+              print('[DEBUG] CartBloc listener - previous items: ${previous is CartLoaded ? (previous as CartLoaded).items.length : 0}, current items: ${current is CartLoaded ? (current as CartLoaded).items.length : 0}');
+            }
+            // เช็คเฉพาะเมื่อเป็น CartLoaded ทั้งคู่ และมีการเปลี่ยนแปลงจำนวนไอเทม
+            if (previous is CartLoaded && current is CartLoaded) {
+              return previous.items.length != current.items.length || previous.totalAmount != current.totalAmount;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is CartLoaded) {
+              if (kDebugMode) {
+                print('[DEBUG] CartLoaded triggered - items: ${state.items.length}, isProcessingItem: $_isProcessingItem');
+              }
+              
+              // รีเซ็ต flag เมื่อการเปลี่ยนแปลงสินค้าเสร็จสมบูรณ์
+              setState(() {
+                _isProcessingItem = false;
+              });
+
+              // ตั้งโฟกัสกลับไปที่ช่องสแกนบาร์โค้ดเพื่อให้สามารถสแกนรายการต่อไปได้ทันที
+              Future.delayed(const Duration(milliseconds: 100), () {
+                if (mounted) {
+                  _barcodeScanFocusNode.requestFocus();
+                }
+              });
+            }
+          },
+        ),
+      ],
       child: Column(
         children: [
           // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า - ซ่อนเมื่อเป็น PreOrder

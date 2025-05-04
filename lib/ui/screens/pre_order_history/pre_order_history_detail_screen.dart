@@ -18,6 +18,7 @@ import 'package:wawa_vansales/data/services/printer_status_provider.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/sale/print_receipt_dialog.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/emty_state_widget.dart';
+import 'package:wawa_vansales/ui/widgets/dialogs/printing_dialog.dart';
 import 'package:wawa_vansales/utils/global.dart';
 
 class PreOrderHistoryDetailScreen extends StatefulWidget {
@@ -134,29 +135,14 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
       return;
     }
 
-    // แสดง loading dialog และเริ่มกระบวนการพิมพ์
-    showDialog(
+    PrintingDialog.show(
       context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return WillPopScope(
-          onWillPop: () async => false, // ป้องกันการกดปุ่ม back
-          child: AlertDialog(
-            title: const Text('กำลังพิมพ์ใบเสร็จ'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text('กำลังพิมพ์ใบเสร็จเลขที่: $docNo'),
-                const SizedBox(height: 8),
-                const Text('โปรดรอสักครู่...', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-          ),
-        );
-      },
+      title: 'กำลังพิมพ์ใบเสร็จ',
+      documentNumber: docNo,
+      additionalMessage: 'โปรดรอสักครู่...',
     );
+
+    await Future.delayed(const Duration(seconds: 2));
 
     // แปลง PreOrderHistoryDetailModel เป็น CartItemModel เพื่อใช้กับ ReceiptPrinterService
     List<CartItemModel> cartItems = items.map((item) {

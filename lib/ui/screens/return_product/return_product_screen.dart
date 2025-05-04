@@ -1,4 +1,7 @@
 // lib/ui/screens/return_product/return_product_screen.dart
+// ignore_for_file: use_build_context_synchronously
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
@@ -9,14 +12,15 @@ import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_event.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/services/printer_status_provider.dart';
-import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
+import 'package:wawa_vansales/data/services/receipt_return_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_customer_step.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_product_cart_step.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_product_stepper_widget.dart';
 import 'package:wawa_vansales/ui/screens/return_product/return_summary_step.dart';
 import 'package:wawa_vansales/ui/screens/return_product/sale_document_step.dart';
-import 'package:wawa_vansales/ui/screens/sale/print_receipt_dialog.dart';
+import 'package:wawa_vansales/ui/screens/return_product/print_return_receipt_dialog.dart';
+import 'package:wawa_vansales/ui/widgets/dialogs/printing_dialog.dart';
 import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 
@@ -29,7 +33,7 @@ class ReturnProductScreen extends StatefulWidget {
 
 class _ReturnProductScreenState extends State<ReturnProductScreen> {
   final PageController _pageController = PageController();
-  final ReceiptPrinterService _printerService = ReceiptPrinterService();
+  final ReceiptReturnPrinterService _printerService = ReceiptReturnPrinterService();
 
   String _warehouseCode = 'NA';
   String _empCode = 'NA';
@@ -98,8 +102,12 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
         return;
       }
 
-      print('Current step: ${returnState.currentStep}, Going to step: $step');
-      print('Selected document: ${returnState.selectedSaleDocument?.docNo}');
+      if (kDebugMode) {
+        print('Current step: ${returnState.currentStep}, Going to step: $step');
+      }
+      if (kDebugMode) {
+        print('Selected document: ${returnState.selectedSaleDocument?.docNo}');
+      }
 
       context.read<ReturnProductBloc>().add(UpdateReturnStep(step));
 
@@ -180,33 +188,20 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
     }
 
     // แสดง loading dialog และเริ่มกระบวนการพิมพ์
-    showDialog(
+    PrintingDialog.show(
       context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return PopScope(
-          canPop: false,
-          child: AlertDialog(
-            title: const Text('กำลังพิมพ์ใบรับคืนสินค้า'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text('กำลังพิมพ์ใบรับคืนสินค้าเลขที่: ${state.documentNumber}'),
-                const SizedBox(height: 8),
-                const Text('โปรดรอสักครู่...', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-          ),
-        );
-      },
+      title: 'กำลังพิมพ์ใบรับคืนสินค้า',
+      documentNumber: state.documentNumber,
+      additionalMessage: 'โปรดรอสักครู่...',
     );
+
+    await Future.delayed(const Duration(seconds: 2));
 
     // เริ่มพิมพ์ใบรับคืนในแบ็คกราวนด์
     try {
-      bool printSuccess = await _printerService.printReceipt(
+      bool printSuccess = await _printerService.printReturnReceipt(
         customer: state.customer,
+        saleDocument: state.refSaleDocument,
         items: state.items,
         payments: state.payments,
         totalAmount: state.totalAmount,
@@ -245,8 +240,9 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
         // ทำการพิมพ์ซ้ำถ้าผู้ใช้เลือก
         if (printResult == 'reprint') {
           // พิมพ์ซ้ำโดยกำหนด isCopy เป็น true
-          await _printerService.printReceipt(
+          await _printerService.printReturnReceipt(
             customer: state.customer,
+            saleDocument: state.refSaleDocument,
             items: state.items,
             payments: state.payments,
             totalAmount: state.totalAmount,
@@ -334,75 +330,96 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
         child: Scaffold(
           appBar: AppBar(
             title: const Text('รับคืนสินค้า'),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () async {
-                final returnState = context.read<ReturnProductBloc>().state;
-                if (returnState is ReturnProductLoaded && returnState.returnItems.isNotEmpty) {
-                  final bool shouldPop = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('ยืนยันการออก'),
-                          content: const Text('คุณต้องการออกจากหน้านี้หรือไม่? รายการสินค้าในรายการรับคืนจะถูกล้าง'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('ยกเลิก'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                context.read<ReturnProductBloc>().add(ResetReturnProductState());
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                                  (route) => false,
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.errorColor,
+            leading: BlocBuilder<ReturnProductBloc, ReturnProductState>(
+              buildWhen: (previous, current) {
+                // สร้าง widget ใหม่เมื่อ step เปลี่ยน
+                return previous is ReturnProductLoaded && current is ReturnProductLoaded && (previous).currentStep != (current).currentStep;
+              },
+              builder: (context, state) {
+                if (state is ReturnProductLoaded) {
+                  return IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () async {
+                      // ถ้าอยู่ที่ step 0 แสดง dialog ยืนยันการออก
+                      if (state.currentStep == 0) {
+                        final shouldExit = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('ยืนยันการออก'),
+                                content: const Text('คุณต้องการออกจากหน้านี้หรือไม่?'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: const Text('ยกเลิก'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      context.read<ReturnProductBloc>().add(ResetReturnProductState());
+                                      Navigator.of(context).pop(true);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.errorColor,
+                                    ),
+                                    child: const Text('ออก', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
                               ),
-                              child: const Text('ออก', style: TextStyle(color: Colors.white)),
-                            ),
-                          ],
-                        ),
-                      ) ??
-                      false;
+                            ) ??
+                            false;
 
-                  if (!shouldPop) return;
-                } else if (returnState is ReturnProductLoaded && returnState.selectedCustomer != null) {
-                  // เพิ่มการถามยืนยันเมื่อได้เลือกลูกค้าแล้ว แต่ยังไม่มีสินค้าในตะกร้า
-                  final bool shouldPop = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('ยืนยันการออก'),
-                          content: const Text('คุณต้องการออกจากหน้านี้หรือไม่? ข้อมูลลูกค้าที่เลือกจะถูกล้าง'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('ยกเลิก'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                context.read<ReturnProductBloc>().add(ResetReturnProductState());
-                                Navigator.of(context).pop(true);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.errorColor,
-                              ),
-                              child: const Text('ออก', style: TextStyle(color: Colors.white)),
-                            ),
-                          ],
-                        ),
-                      ) ??
-                      false;
-
-                  if (!shouldPop) return;
+                        if (shouldExit && mounted) {
+                          Navigator.of(context).pop();
+                        }
+                      }
+                      // ถ้าอยู่ที่ step 1, 2, 3 ให้ย้อนกลับทีละ step
+                      else {
+                        _goToStep(state.currentStep - 1);
+                      }
+                    },
+                  );
                 }
+                return IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () async {
+                    final returnState = context.read<ReturnProductBloc>().state;
+                    if (returnState is ReturnProductLoaded && returnState.returnItems.isNotEmpty) {
+                      final bool shouldPop = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('ยืนยันการออก'),
+                              content: const Text('คุณต้องการออกจากหน้านี้หรือไม่? รายการสินค้าในรายการรับคืนจะถูกล้าง'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('ยกเลิก'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    context.read<ReturnProductBloc>().add(ResetReturnProductState());
+                                    Navigator.of(context).pop(true);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.errorColor,
+                                  ),
+                                  child: const Text('ออก', style: TextStyle(color: Colors.white)),
+                                ),
+                              ],
+                            ),
+                          ) ??
+                          false;
 
-                // Always use ResetReturnProductState instead of just going to step 0
-                context.read<ReturnProductBloc>().add(ResetReturnProductState());
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
+                      if (shouldPop && mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    } else {
+                      // ไม่มีสินค้าในรายการรับคืน รีเซ็ตสถานะและออก
+                      context.read<ReturnProductBloc>().add(ResetReturnProductState());
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    }
+                  },
+                );
               },
             ),
           ),
@@ -453,7 +470,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                 context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
 
                 // ถามว่าต้องการพิมพ์ใบรับคืนสินค้าหรือไม่
-                final receiptChoice = await PrintReceiptDialog.show(
+                final receiptChoice = await PrintReturnReceiptDialog.show(
                   context,
                   documentNumber: state.documentNumber,
                   customer: state.customer,

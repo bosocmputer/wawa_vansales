@@ -23,6 +23,7 @@ class SaleHistoryBloc extends Bloc<SaleHistoryEvent, SaleHistoryState> {
     on<SetDateRange>(_onSetDateRange);
     on<SetHistorySearchQuery>(_onSetHistorySearchQuery);
     on<ResetSaleHistoryDetail>(_onResetSaleHistoryDetail);
+    on<ResetSaleHistoryState>(_onResetSaleHistoryState); // เพิ่ม handler สำหรับ reset ทั้งหมด
   }
 
   // ดึงประวัติการขาย
@@ -145,5 +146,18 @@ class SaleHistoryBloc extends Bloc<SaleHistoryEvent, SaleHistoryState> {
     } else {
       emit(SaleHistoryInitial());
     }
+  }
+
+  // รีเซ็ตสถานะทั้งหมด
+  void _onResetSaleHistoryState(
+    ResetSaleHistoryState event,
+    Emitter<SaleHistoryState> emit,
+  ) {
+    _logger.i('Resetting entire sale history state');
+    _salesHistory = [];
+    _searchQuery = '';
+    _fromDate = null;
+    _toDate = null;
+    emit(SaleHistoryInitial());
   }
 }

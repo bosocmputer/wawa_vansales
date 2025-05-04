@@ -306,28 +306,7 @@ class _ReceiptReturnPreviewWidgetState extends State<ReceiptReturnPreviewWidget>
               height: 1,
               color: Colors.grey,
             ),
-
-            // พนักงานขายและผู้คืนสินค้า
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'พนักงาน: ',
-                  style: TextStyle(fontSize: 10),
-                ),
-                Text(
-                  staffCode,
-                  style: const TextStyle(fontSize: 10),
-                ),
-                if (warehouseInfo != null)
-                  Text(
-                    ' ($warehouseInfo)',
-                    style: const TextStyle(fontSize: 10),
-                  ),
-              ],
-            ),
-
             const SizedBox(height: 16),
             const Align(
               alignment: Alignment.center,
@@ -346,11 +325,29 @@ class _ReceiptReturnPreviewWidgetState extends State<ReceiptReturnPreviewWidget>
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'ลายมือชื่อผู้คืนสินค้า',
-              style: TextStyle(
-                fontSize: 10,
-              ),
+            // พนักงานขายและผู้คืนสินค้า
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'พนักงาน: ',
+                  style: TextStyle(fontSize: 10),
+                ),
+                Text(
+                  staffCode,
+                  style: const TextStyle(fontSize: 10),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (warehouseInfo != null)
+                  Text(
+                    ' ($warehouseInfo / $locationInfo)',
+                    style: const TextStyle(fontSize: 10),
+                  ),
+              ],
             ),
 
             const SizedBox(height: 16),

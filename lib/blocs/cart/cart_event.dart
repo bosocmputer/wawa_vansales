@@ -118,6 +118,9 @@ class UpdateStep extends CartEvent {
   List<Object?> get props => [step];
 }
 
+// รีเซ็ตสถานะทั้งหมดของ Cart
+class ResetCartState extends CartEvent {}
+
 // Event สำหรับตั้งค่าเอกสารพรีออเดอร์
 class SetPreOrderDocument extends CartEvent {
   final String docNo;

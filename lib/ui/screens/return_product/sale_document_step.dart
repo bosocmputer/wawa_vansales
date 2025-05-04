@@ -264,7 +264,7 @@ class SaleDocumentStep extends StatelessWidget {
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
-                              '${formattedDate} ${saleDoc.docTime}',
+                              '$formattedDate ${saleDoc.docTime}',
                               style: TextStyle(
                                 color: Colors.grey[700],
                                 fontSize: 12,
@@ -352,7 +352,7 @@ class SaleDocumentStep extends StatelessWidget {
                   children: [
                     const Icon(Icons.inventory_2, size: 14, color: AppTheme.primaryColor),
                     const SizedBox(width: 6),
-                    Text(
+                    const Text(
                       'รายการสินค้า',
                       style: TextStyle(
                         fontSize: 14,
@@ -494,7 +494,7 @@ class SaleDocumentStep extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     '${index + 1}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primaryColor,
@@ -558,7 +558,7 @@ class SaleDocumentStep extends StatelessWidget {
                   // ราคารวม
                   Text(
                     '฿${formatter.format(product.totalAmount)}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primaryColor,

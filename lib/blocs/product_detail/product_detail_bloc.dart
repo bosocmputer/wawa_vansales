@@ -21,13 +21,9 @@ class ProductDetailBloc extends Bloc<ProductDetailEvent, ProductDetailState> {
     FetchProductByBarcode event,
     Emitter<ProductDetailState> emit,
   ) async {
-    // ตรวจสอบว่า state ปัจจุบันไม่ใช่ ProductDetailLoaded
-    // เพื่อป้องกันการส่ง event ซ้ำซ้อน
-    if (state is ProductDetailLoaded) {
-      // ถ้าเป็น state ProductDetailLoaded อยู่แล้ว ให้ reset ก่อน
-      emit(ProductDetailInitial());
-    }
-
+    // ตัดเงื่อนไขการเช็ค state เดิมออก เพื่อให้กระบวนการทำงานได้ทุกครั้งที่มีการสแกน
+    // ไม่ว่า state ก่อนหน้าจะเป็นอะไรก็ตาม
+    
     _logger.i('Fetching product detail for barcode: ${event.barcode}');
     emit(ProductDetailLoading());
 

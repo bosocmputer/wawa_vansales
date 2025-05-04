@@ -61,3 +61,6 @@ class SetHistorySearchQuery extends SaleHistoryEvent {
 
 // รีเซ็ตข้อมูลรายละเอียด
 class ResetSaleHistoryDetail extends SaleHistoryEvent {}
+
+// รีเซ็ตสถานะทั้งหมด
+class ResetSaleHistoryState extends SaleHistoryEvent {}

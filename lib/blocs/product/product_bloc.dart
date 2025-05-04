@@ -20,6 +20,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<SelectProduct>(_onSelectProduct);
     on<ResetSelectedProduct>(_onResetSelectedProduct);
     on<SetProductSearchQuery>(_onSetProductSearchQuery);
+    on<ResetProductState>(_onResetProductState); // เพิ่ม handler สำหรับ reset ทั้งหมด
   }
 
   // ดึงรายการสินค้า
@@ -71,6 +72,17 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       products: _products,
       searchQuery: _searchQuery,
     ));
+  }
+
+  // รีเซ็ตสถานะทั้งหมด
+  void _onResetProductState(
+    ResetProductState event,
+    Emitter<ProductState> emit,
+  ) {
+    _logger.i('Reset entire product state');
+    _products = [];
+    _searchQuery = '';
+    emit(ProductInitial());
   }
 
   // กำหนดคำค้นหา

@@ -277,6 +277,10 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
         final docDate = DateFormat('yyyy-MM-dd').format(now);
         final docTime = DateFormat('HH:mm').format(now);
 
+        // คำนวณยอดรวมใหม่จากรายการสินค้าในตะกร้า
+        final calculatedTotal = _calculateTotal(currentState.returnItems);
+        final totalAmountStr = calculatedTotal.toString();
+
         // สร้าง transaction model
         final transaction = ReturnProductModel(
           custCode: currentState.selectedCustomer!.code!,
@@ -293,8 +297,8 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
           creditAmount: '0',
           cashAmount: '0',
           cardAmount: '0',
-          totalAmount: currentState.totalAmount.toString(),
-          totalValue: currentState.totalAmount.toString(),
+          totalAmount: totalAmountStr,
+          totalValue: totalAmountStr,
           remark: event.remark,
         );
 
@@ -307,7 +311,7 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
             customer: currentState.selectedCustomer!,
             items: currentState.returnItems,
             payments: currentState.payments,
-            totalAmount: currentState.totalAmount,
+            totalAmount: calculatedTotal,
             refSaleDocument: currentState.selectedSaleDocument!,
           ));
         } else {

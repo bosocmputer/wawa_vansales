@@ -33,7 +33,8 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<UpdateStep>(_onUpdateStep);
     on<SetPreOrderDocument>(_onSetPreOrderDocument);
     on<AddItemsToCart>(_onAddItems);
-    on<SetDocumentNumber>(_onSetDocumentNumber); // เพิ่มการจัดการ Event ใหม่
+    on<SetDocumentNumber>(_onSetDocumentNumber);
+    on<ResetCartState>(_onResetState); // เพิ่มการจัดการ Reset State
   }
 
   // เลือกลูกค้า
@@ -45,6 +46,12 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         currentStep: 0, // ไปยังขั้นตอนถัดไป
       ));
     }
+  }
+
+  // รีเซ็ตสถานะทั้งหมดของ Cart
+  void _onResetState(ResetCartState event, Emitter<CartState> emit) {
+    _logger.i('Resetting cart state to initial');
+    emit(const CartLoaded()); // รีเซ็ตกลับไปเป็น state เริ่มต้น
   }
 
   // อัปเดต step ปัจจุบัน

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart'; // เพิ่ม import นี้
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -9,30 +9,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
+import 'package:wawa_vansales/blocs/network/network_bloc.dart'; // เพิ่ม import NetworkBloc
 import 'package:wawa_vansales/blocs/pre_order_history/pre_order_history_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_bloc.dart';
+import 'package:wawa_vansales/blocs/return_product_history/return_product_history_bloc.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_bloc.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
-import 'package:wawa_vansales/blocs/pre_order/pre_order_bloc.dart'; // เพิ่ม import นี้
+import 'package:wawa_vansales/blocs/pre_order/pre_order_bloc.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
 import 'package:wawa_vansales/data/repositories/pre_order_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/product_repository.dart';
+import 'package:wawa_vansales/data/repositories/return_product_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/return_product_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/data/repositories/warehouse_repository.dart';
-import 'package:wawa_vansales/data/repositories/pre_order_repository.dart'; // เพิ่ม import นี้
+import 'package:wawa_vansales/data/repositories/pre_order_repository.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
 import 'package:wawa_vansales/data/services/printer_status_provider.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/splash_screen.dart';
 import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
+import 'package:wawa_vansales/utils/network_helper.dart'; // เพิ่ม import NetworkHelper
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -101,6 +105,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // สร้าง dependencies
     final apiService = ApiService();
+    final networkHelper = NetworkHelper(); // สร้าง NetworkHelper
 
     final authRepository = AuthRepository(
       apiService: apiService,
@@ -141,10 +146,24 @@ class MyApp extends StatelessWidget {
       apiService: apiService,
     );
 
+    final returnProductHistoryRepository = ReturnProductHistoryRepository(
+      apiService: apiService,
+    );
+
     return MultiBlocProvider(
       providers: [
         // เพิ่ม Provider สำหรับ LocalStorage
         Provider<LocalStorage>.value(value: localStorage),
+
+        // เพิ่ม Provider สำหรับ NetworkHelper
+        Provider<NetworkHelper>.value(value: networkHelper),
+
+        // เพิ่ม NetworkBloc
+        BlocProvider<NetworkBloc>(
+          create: (context) => NetworkBloc(
+            networkHelper: networkHelper,
+          ),
+        ),
 
         ChangeNotifierProvider(
           create: (context) => PrinterStatusProvider(printerService),
@@ -207,6 +226,11 @@ class MyApp extends StatelessWidget {
           create: (context) => ReturnProductBloc(
             returnProductRepository: returnProductRepository,
             localStorage: localStorage,
+          ),
+        ),
+        BlocProvider<ReturnProductHistoryBloc>(
+          create: (context) => ReturnProductHistoryBloc(
+            repository: returnProductHistoryRepository,
           ),
         ),
       ],

@@ -31,6 +31,9 @@ class SelectProduct extends ProductEvent {
 // รีเซ็ตสถานะสินค้าที่เลือก
 class ResetSelectedProduct extends ProductEvent {}
 
+// รีเซ็ตสถานะทั้งหมด
+class ResetProductState extends ProductEvent {}
+
 // กำหนดคำค้นหา
 class SetProductSearchQuery extends ProductEvent {
   final String query;
