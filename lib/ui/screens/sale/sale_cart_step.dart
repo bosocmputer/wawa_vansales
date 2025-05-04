@@ -142,9 +142,8 @@ class _SaleCartStepState extends State<SaleCartStep> {
             if (kDebugMode) {
               print('[DEBUG] ProductDetailBloc listener - previous: ${previous.runtimeType}, current: ${current.runtimeType}');
             }
-            // เปลี่ยนเงื่อนไขให้ตรวจจับเมื่อ current เป็น ProductDetailLoaded
-            // โดยไม่ต้องเช็ค previous เพื่อให้ทำงานทุกครั้งที่ได้ข้อมูลสินค้า
-            return current is ProductDetailLoaded;
+            // ให้ทำงานกับทั้ง ProductDetailLoaded และ ProductDetailNotFound
+            return current is ProductDetailLoaded || current is ProductDetailNotFound || current is ProductDetailError;
           },
           listener: (context, state) {
             if (state is ProductDetailLoaded) {
@@ -172,7 +171,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
               if (kDebugMode) {
                 print('[DEBUG] Adding to cart: ${cartItem.itemName}, barcode: ${cartItem.barcode}');
               }
-              
+
               // กำหนด flag ป้องกันการสแกนซ้ำในช่วงประมวลผล
               setState(() {
                 _isProcessingItem = true;
@@ -235,7 +234,8 @@ class _SaleCartStepState extends State<SaleCartStep> {
           listenWhen: (previous, current) {
             // เพิ่ม debug logs เพื่อตรวจสอบ CartBloc listener
             if (kDebugMode) {
-              print('[DEBUG] CartBloc listener - previous items: ${previous is CartLoaded ? (previous as CartLoaded).items.length : 0}, current items: ${current is CartLoaded ? (current as CartLoaded).items.length : 0}');
+              print(
+                  '[DEBUG] CartBloc listener - previous items: ${previous is CartLoaded ? (previous as CartLoaded).items.length : 0}, current items: ${current is CartLoaded ? (current as CartLoaded).items.length : 0}');
             }
             // เช็คเฉพาะเมื่อเป็น CartLoaded ทั้งคู่ และมีการเปลี่ยนแปลงจำนวนไอเทม
             if (previous is CartLoaded && current is CartLoaded) {
@@ -248,7 +248,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
               if (kDebugMode) {
                 print('[DEBUG] CartLoaded triggered - items: ${state.items.length}, isProcessingItem: $_isProcessingItem');
               }
-              
+
               // รีเซ็ต flag เมื่อการเปลี่ยนแปลงสินค้าเสร็จสมบูรณ์
               setState(() {
                 _isProcessingItem = false;

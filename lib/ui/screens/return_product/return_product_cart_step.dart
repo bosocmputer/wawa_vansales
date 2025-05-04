@@ -162,9 +162,12 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         // BlocListener สำหรับ ProductDetailBloc
         BlocListener<ProductDetailBloc, ProductDetailState>(
           listenWhen: (previous, current) {
-            // เปลี่ยนเงื่อนไขให้ตรวจจับเมื่อ current เป็น ProductDetailLoaded
-            // โดยไม่ต้องเช็ค previous เพื่อให้ทำงานทุกครั้งที่ได้ข้อมูลสินค้า
-            return current is ProductDetailLoaded;
+            // เพิ่ม debug logs เพื่อตรวจสอบว่า listenWhen ถูกเรียกหรือไม่
+            if (kDebugMode) {
+              print('[DEBUG] ProductDetailBloc listener - previous: ${previous.runtimeType}, current: ${current.runtimeType}');
+            }
+            // ให้ทำงานกับทั้ง ProductDetailLoaded, ProductDetailNotFound และ ProductDetailError
+            return current is ProductDetailLoaded || current is ProductDetailNotFound || current is ProductDetailError;
           },
           listener: (context, state) {
             if (state is ProductDetailLoaded) {
