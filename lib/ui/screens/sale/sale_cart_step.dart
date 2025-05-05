@@ -11,7 +11,8 @@ import 'package:wawa_vansales/blocs/product_detail/product_detail_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
-import 'package:wawa_vansales/utils/global.dart'; // เพิ่ม import Global
+import 'package:wawa_vansales/ui/widgets/number_pad_component.dart'; // เพิ่ม import
+import 'package:wawa_vansales/utils/global.dart';
 import 'package:intl/intl.dart';
 
 class SaleCartStep extends StatefulWidget {
@@ -19,7 +20,7 @@ class SaleCartStep extends StatefulWidget {
   final double totalAmount;
   final VoidCallback onNextStep;
   final VoidCallback onBackStep;
-  final bool isFromPreOrder; // เพิ่มตัวแปรเพื่อระบุว่าสินค้ามาจากพรีออเดอร์หรือไม่
+  final bool isFromPreOrder;
 
   const SaleCartStep({
     super.key,
@@ -27,7 +28,7 @@ class SaleCartStep extends StatefulWidget {
     required this.totalAmount,
     required this.onNextStep,
     required this.onBackStep,
-    this.isFromPreOrder = false, // ค่าเริ่มต้นเป็น false
+    this.isFromPreOrder = false,
   });
 
   @override
@@ -35,17 +36,17 @@ class SaleCartStep extends StatefulWidget {
 }
 
 class _SaleCartStepState extends State<SaleCartStep> {
-  // Controllers สำหรับแต่ละโหมด
+  // Controllers
   final TextEditingController _barcodeScanController = TextEditingController();
+  final TextEditingController _qtyController = TextEditingController(text: '1'); // เพิ่ม controller จำนวน
 
   final NumberFormat _currencyFormat = NumberFormat('#,##0.00', 'th_TH');
 
-  // Focus nodes สำหรับแต่ละโหมด
+  // Focus nodes
   final FocusNode _barcodeScanFocusNode = FocusNode();
 
   bool _isProcessingItem = false;
-
-  // โหมดปัจจุบัน
+  bool _showNumPad = false; // เพิ่มควบคุมการแสดง numpad
 
   @override
   void initState() {
@@ -60,6 +61,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
   void dispose() {
     _barcodeScanController.dispose();
     _barcodeScanFocusNode.dispose();
+    _qtyController.dispose(); // เพิ่มการ dispose controller
     super.dispose();
   }
 
@@ -72,12 +74,25 @@ class _SaleCartStepState extends State<SaleCartStep> {
       _isProcessingItem = true;
     });
 
+    // แยกจำนวนและบาร์โค้ด กรณีที่มีการใช้ *
+    int quantity = 1;
+    String processedBarcode = barcode;
+
+    try {
+      quantity = int.parse(_qtyController.text);
+    } catch (e) {
+      quantity = 1;
+    }
+
+    // บันทึกค่า quantity ที่ใช้
+    _qtyController.text = quantity.toString();
+
     // ส่ง event ไปยัง ProductDetailBloc เพื่อค้นหาสินค้า
     final cartState = context.read<CartBloc>().state;
     if (cartState is CartLoaded && cartState.selectedCustomer != null) {
       context.read<ProductDetailBloc>().add(
             FetchProductByBarcode(
-              barcode: barcode,
+              barcode: processedBarcode,
               customerCode: cartState.selectedCustomer!.code!,
             ),
           );
@@ -85,9 +100,6 @@ class _SaleCartStepState extends State<SaleCartStep> {
 
     // ล้าง controller หลังจากส่งคำขอค้นหาสินค้า
     _barcodeScanController.clear();
-
-    // หมายเหตุ: ไม่รีเซ็ต _isProcessingItem ที่นี่
-    // _isProcessingItem จะถูกรีเซ็ตใน BlocListener เมื่อกระบวนการเสร็จสิ้นจริงๆ แล้ว
   }
 
   void _scanBarcode() {
@@ -117,8 +129,33 @@ class _SaleCartStepState extends State<SaleCartStep> {
           print('Returned from search with item: ${result.itemCode}, qty=${result.qty}');
         }
 
-        // ส่ง event และรอให้เสร็จก่อนกำหนด isProcessingItem เป็น false
-        context.read<CartBloc>().add(AddItemToCart(result));
+        // อัพเดทจำนวนจากค่า _qtyController
+        try {
+          final qty = int.parse(_qtyController.text);
+          if (qty > 0) {
+            // สร้าง CartItemModel ใหม่โดยใช้ข้อมูลจาก result แต่ปรับ qty
+            final updatedItem = CartItemModel(
+              itemCode: result.itemCode,
+              itemName: result.itemName,
+              barcode: result.barcode,
+              price: result.price,
+              sumAmount: ((double.tryParse(result.price) ?? 0) * qty).toString(),
+              unitCode: result.unitCode,
+              whCode: result.whCode,
+              shelfCode: result.shelfCode,
+              ratio: result.ratio,
+              standValue: result.standValue,
+              divideValue: result.divideValue,
+              qty: qty.toString(),
+            );
+            context.read<CartBloc>().add(AddItemToCart(updatedItem));
+          } else {
+            context.read<CartBloc>().add(AddItemToCart(result));
+          }
+        } catch (e) {
+          // ถ้าแปลงเป็นตัวเลขไม่ได้ ให้ใช้ค่าเดิม
+          context.read<CartBloc>().add(AddItemToCart(result));
+        }
 
         // Reset flag หลังจาก delay
         Future.delayed(const Duration(milliseconds: 500), () {
@@ -132,17 +169,227 @@ class _SaleCartStepState extends State<SaleCartStep> {
     }
   }
 
+  // สร้างฟังก์ชันใหม่สำหรับแสดงช่องค้นหาบาร์โค้ดพร้อมช่อง qty
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      color: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              // ช่อง QTY
+              Container(
+                width: 70,
+                height: 44,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    TextField(
+                      controller: _qtyController,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                      ),
+                      keyboardType: TextInputType.none,
+                      onTap: () {
+                        // เมื่อกดที่ช่อง qty ให้แสดง/ซ่อน numpad
+                        setState(() {
+                          _showNumPad = !_showNumPad;
+                        });
+                        FocusScope.of(context).unfocus();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // ช่องค้นหาบาร์โค้ด
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: TextField(
+                    controller: _barcodeScanController,
+                    focusNode: _barcodeScanFocusNode,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'สแกนบาร์โค้ด',
+                      labelStyle: const TextStyle(fontSize: 13),
+                      prefixIcon: const Icon(
+                        Icons.qr_code_scanner,
+                        size: 20,
+                      ),
+                      suffixIcon: _barcodeScanController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _barcodeScanController.clear();
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.none, // ซ่อน keyboard
+                    onSubmitted: (_) => _scanBarcode(),
+                    onTap: () {
+                      // ซ่อน numpad เมื่อกดที่ช่องบาร์โค้ด
+                      setState(() {
+                        _showNumPad = false;
+                      });
+                      FocusScope.of(context).unfocus();
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // ปุ่มเลือกสินค้า
+              SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: _openProductSearch,
+                  icon: const Icon(Icons.search, size: 20),
+                  label: const Text('เลือกสินค้า'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // แสดง NumberPad เมื่อ _showNumPad เป็น true
+          if (_showNumPad)
+            NumberPadComponent(
+              onNumberPressed: (number) {
+                // จัดการเมื่อกดปุ่มตัวเลข
+                setState(() {
+                  final currentQty = _qtyController.text;
+
+                  if (currentQty == '1' && number == '0') {
+                    // ถ้าค่าปัจจุบันเป็น 1 และกดปุ่ม 0 ให้กลายเป็น 10
+                    _qtyController.text = '10';
+                  } else if (currentQty == '10' && number == '0') {
+                    // ถ้าค่าปัจจุบันเป็น 10 และกดปุ่ม 0 ให้กลายเป็น 100
+                    _qtyController.text = '100';
+                  } else if (currentQty == '1') {
+                    // ถ้าค่าปัจจุบันเป็น 1 (ค่าเริ่มต้น) ให้แทนที่ด้วยตัวเลขใหม่
+                    _qtyController.text = number;
+                  } else {
+                    // กรณีอื่นๆ ให้ต่อท้าย
+                    _qtyController.text += number;
+                  }
+                });
+              },
+              onClearPressed: () {
+                // จัดการเมื่อกดปุ่ม C
+                setState(() {
+                  _qtyController.text = '1';
+                });
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  // เพิ่มเมธอด _showQuantityEditDialog
+  void _showQuantityEditDialog(BuildContext context, CartItemModel item) {
+    // สร้าง controller สำหรับ TextField ใน dialog
+    TextEditingController qtyController = TextEditingController(text: (double.tryParse(item.qty) ?? 0).toStringAsFixed(0));
+    // แสดง dialog
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('แก้ไขจำนวน'),
+            content: TextField(
+              controller: qtyController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.center,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'จำนวน',
+                hintText: 'ระบุจำนวน',
+                suffixText: item.unitCode,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('ยกเลิก'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  double? qty = double.tryParse(qtyController.text);
+                  if (qty != null && qty > 0) {
+                    context.read<CartBloc>().add(
+                          UpdateItemQuantity(
+                            itemCode: item.itemCode,
+                            barcode: item.barcode,
+                            unitCode: item.unitCode,
+                            quantity: qty,
+                          ),
+                        );
+                    Navigator.of(context).pop();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('กรุณาระบุจำนวนให้ถูกต้อง'),
+                        backgroundColor: AppTheme.errorColor,
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('บันทึก'),
+              ),
+            ],
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
         BlocListener<ProductDetailBloc, ProductDetailState>(
           listenWhen: (previous, current) {
-            // เพิ่ม debug logs เพื่อตรวจสอบว่า listenWhen ถูกเรียกหรือไม่
             if (kDebugMode) {
               print('[DEBUG] ProductDetailBloc listener - previous: ${previous.runtimeType}, current: ${current.runtimeType}');
             }
-            // ให้ทำงานกับทั้ง ProductDetailLoaded และ ProductDetailNotFound
             return current is ProductDetailLoaded || current is ProductDetailNotFound || current is ProductDetailError;
           },
           listener: (context, state) {
@@ -151,28 +398,35 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 print('[DEBUG] ProductDetailLoaded triggered - product: ${state.product.itemName}');
               }
 
-              // เพิ่มสินค้าเข้าตะกร้าทันทีโดยไม่สนใจ isProcessingItem
+              // ดึงจำนวนจาก _qtyController
+              int quantity = 1;
+              try {
+                quantity = int.parse(_qtyController.text);
+              } catch (e) {
+                // หากแปลงเป็นตัวเลขไม่ได้ ใช้ค่าเริ่มต้น
+                quantity = 1;
+              }
+
+              // สร้าง cartItem โดยกำหนดจำนวนจาก quantity
               final cartItem = CartItemModel(
                 itemCode: state.product.itemCode,
                 itemName: state.product.itemName,
                 barcode: state.product.barcode,
                 price: state.product.price,
-                sumAmount: state.product.price,
+                sumAmount: ((double.tryParse(state.product.price) ?? 0) * quantity).toString(), // คำนวณยอดรวมตามจำนวน
                 unitCode: state.product.unitCode,
                 whCode: Global.whCode,
                 shelfCode: Global.shiftCode,
                 ratio: state.product.ratio,
                 standValue: state.product.standValue,
                 divideValue: state.product.divideValue,
-                qty: '1',
+                qty: quantity.toString(), // กำหนดจำนวนตามที่ระบุ
               );
 
-              // ส่ง event เพื่อเพิ่มสินค้า
               if (kDebugMode) {
-                print('[DEBUG] Adding to cart: ${cartItem.itemName}, barcode: ${cartItem.barcode}');
+                print('[DEBUG] Adding to cart: ${cartItem.itemName}, barcode: ${cartItem.barcode}, qty: $quantity');
               }
 
-              // กำหนด flag ป้องกันการสแกนซ้ำในช่วงประมวลผล
               setState(() {
                 _isProcessingItem = true;
               });
@@ -194,12 +448,10 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 ),
               );
 
-              // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
               setState(() {
                 _isProcessingItem = false;
               });
 
-              // Set focus กลับไปที่ช่อง scan barcode เมื่อไม่พบสินค้า
               Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted) {
                   _barcodeScanFocusNode.requestFocus();
@@ -214,12 +466,10 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 ),
               );
 
-              // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
               setState(() {
                 _isProcessingItem = false;
               });
 
-              // Set focus กลับไปที่ช่อง scan barcode เมื่อเกิดข้อผิดพลาด
               Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted) {
                   _barcodeScanFocusNode.requestFocus();
@@ -228,16 +478,12 @@ class _SaleCartStepState extends State<SaleCartStep> {
             }
           },
         ),
-
-        // เพิ่ม BlocListener สำหรับ CartBloc เพื่อรับรู้การเปลี่ยนแปลงของรายการสินค้า
         BlocListener<CartBloc, CartState>(
           listenWhen: (previous, current) {
-            // เพิ่ม debug logs เพื่อตรวจสอบ CartBloc listener
             if (kDebugMode) {
               print(
-                  '[DEBUG] CartBloc listener - previous items: ${previous is CartLoaded ? (previous as CartLoaded).items.length : 0}, current items: ${current is CartLoaded ? (current as CartLoaded).items.length : 0}');
+                  '[DEBUG] CartBloc listener - previous items: ${previous is CartLoaded ? (previous).items.length : 0}, current items: ${current is CartLoaded ? (current).items.length : 0}');
             }
-            // เช็คเฉพาะเมื่อเป็น CartLoaded ทั้งคู่ และมีการเปลี่ยนแปลงจำนวนไอเทม
             if (previous is CartLoaded && current is CartLoaded) {
               return previous.items.length != current.items.length || previous.totalAmount != current.totalAmount;
             }
@@ -249,12 +495,11 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 print('[DEBUG] CartLoaded triggered - items: ${state.items.length}, isProcessingItem: $_isProcessingItem');
               }
 
-              // รีเซ็ต flag เมื่อการเปลี่ยนแปลงสินค้าเสร็จสมบูรณ์
               setState(() {
                 _isProcessingItem = false;
+                _qtyController.text = '1'; // รีเซ็ตจำนวนกลับเป็น 1 หลังจากเพิ่มสินค้า
               });
 
-              // ตั้งโฟกัสกลับไปที่ช่องสแกนบาร์โค้ดเพื่อให้สามารถสแกนรายการต่อไปได้ทันที
               Future.delayed(const Duration(milliseconds: 100), () {
                 if (mounted) {
                   _barcodeScanFocusNode.requestFocus();
@@ -267,36 +512,8 @@ class _SaleCartStepState extends State<SaleCartStep> {
       child: Column(
         children: [
           // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า - ซ่อนเมื่อเป็น PreOrder
-          if (!widget.isFromPreOrder)
-            Container(
-              padding: const EdgeInsets.all(12),
-              color: Colors.white,
-              child: Row(
-                children: [
-                  // ช่องค้นหาบาร์โค้ด
-                  Expanded(
-                    child: SizedBox(height: 44, child: _buildScanTextField()),
-                  ),
-                  const SizedBox(width: 8),
+          if (!widget.isFromPreOrder) _buildSearchBar(),
 
-                  // ปุ่มเลือกสินค้า
-                  SizedBox(
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: _openProductSearch,
-                      icon: const Icon(Icons.search, size: 20),
-                      label: const Text('เลือกสินค้า'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           // แสดงสถานะการค้นหา เฉพาะเมื่อไม่ใช่ PreOrder
           if (!widget.isFromPreOrder)
             BlocBuilder<ProductDetailBloc, ProductDetailState>(
@@ -316,49 +533,6 @@ class _SaleCartStepState extends State<SaleCartStep> {
           // ยอดรวมและปุ่มดำเนินการ
           _buildBottomActions(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildScanTextField() {
-    return SizedBox(
-      height: 40,
-      child: TextField(
-        controller: _barcodeScanController,
-        focusNode: _barcodeScanFocusNode,
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          labelText: 'สแกนบาร์โค้ด',
-          labelStyle: const TextStyle(fontSize: 13),
-          prefixIcon: const Icon(
-            Icons.qr_code_scanner,
-            size: 20,
-          ),
-          suffixIcon: _barcodeScanController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  onPressed: () {
-                    _barcodeScanController.clear();
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          isDense: true,
-        ),
-        keyboardType: TextInputType.none, // ซ่อน keyboard
-        onSubmitted: (_) => _scanBarcode(),
-        onTap: () {
-          // ในโหมดสแกน ซ่อน keyboard
-          FocusScope.of(context).unfocus();
-        },
       ),
     );
   }
@@ -405,10 +579,9 @@ class _SaleCartStepState extends State<SaleCartStep> {
     );
   }
 
-// ใน _buildCartItemCard อาจเพิ่มการแสดงข้อมูลบาร์โค้ดและหน่วยนับ
   Widget _buildCartItemCard(CartItemModel item) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 6),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -508,13 +681,26 @@ class _SaleCartStepState extends State<SaleCartStep> {
                             child: Icon(Icons.remove, size: 18, color: Colors.grey[700]),
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            (double.tryParse(item.qty) ?? 0).toStringAsFixed(0),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        // แสดงจำนวนแบบเดิม
+                        InkWell(
+                          onTap: () {
+                            // เมื่อกดที่จำนวน ให้แสดง dialog สำหรับป้อนจำนวนใหม่
+                            _showQuantityEditDialog(context, item);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Row(
+                              children: [
+                                Text(
+                                  (double.tryParse(item.qty) ?? 0).toStringAsFixed(0),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 2),
+                                Icon(Icons.edit, size: 12, color: Colors.grey[400]),
+                              ],
                             ),
                           ),
                         ),

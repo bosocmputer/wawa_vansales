@@ -10,6 +10,7 @@ import 'package:wawa_vansales/blocs/cart/cart_state.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_event.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
+import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/data/services/printer_status_provider.dart';
 import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/home_screen.dart';
@@ -141,6 +142,19 @@ class _SaleScreenState extends State<SaleScreen> {
   Future<void> _printReceipt(CartSubmitSuccess state, String receiptType) async {
     final printerStatus = Provider.of<PrinterStatusProvider>(context, listen: false);
 
+    // คำนวณเงินทอนจากข้อมูล payments โดยตรง
+    double? changeAmount;
+    // ค้นหาการชำระเงินแบบเงินสด
+    final cashPayments = state.payments.where((payment) => PaymentModel.intToPaymentType(payment.payType) == PaymentType.cash).toList();
+
+    // คำนวณเงินทอนจากการชำระด้วยเงินสด
+    for (var payment in cashPayments) {
+      if (payment.payAmount > state.totalAmount) {
+        // กรณีจ่ายเงินสดมากกว่ายอดรวม จะมีเงินทอน
+        changeAmount = (changeAmount ?? 0) + (payment.payAmount - state.totalAmount);
+      }
+    }
+
     // ถ้าเครื่องพิมพ์ไม่ได้เชื่อมต่อ ให้พยายามเชื่อมต่อก่อน
     if (!printerStatus.isConnected) {
       // แสดง dialog กำลังเชื่อมต่อ
@@ -214,6 +228,7 @@ class _SaleScreenState extends State<SaleScreen> {
         warehouseCode: _warehouseCode,
         empCode: _empCode,
         receiptType: receiptType,
+        changeAmount: changeAmount, // เพิ่มการส่งค่าเงินทอน
       );
 
       // ปิด dialog
@@ -242,7 +257,7 @@ class _SaleScreenState extends State<SaleScreen> {
 
         // ทำการพิมพ์ซ้ำถ้าผู้ใช้เลือก
         if (printResult == 'reprint') {
-          // พิมพ์ซ้ำโดยกำหนด isCopy เป็น true
+          // พิมพ์ซ้ำโดยกำหนด isCopy เป็น true (ไม่ส่งค่าเงินทอนไปในสำเนา)
           await _printerService.printReceipt(
             customer: state.customer,
             items: state.items,
@@ -252,7 +267,7 @@ class _SaleScreenState extends State<SaleScreen> {
             warehouseCode: _warehouseCode,
             empCode: _empCode,
             receiptType: receiptType,
-            isCopy: true,
+            isCopy: true, // ระบุว่าเป็นสำเนา
           );
         }
       } else {
@@ -275,6 +290,20 @@ class _SaleScreenState extends State<SaleScreen> {
         );
       }
     }
+  }
+
+  // ฟังก์ชั่นช่วยในการค้นหา SalePaymentStep
+  List<Element> findPaymentStepState(BuildContext context) {
+    final List<Element> elements = <Element>[];
+    void visitor(Element element) {
+      if (element.widget is SalePaymentStep) {
+        elements.add(element);
+      }
+      element.visitChildren(visitor);
+    }
+
+    context.visitChildElements(visitor);
+    return elements;
   }
 
   @override

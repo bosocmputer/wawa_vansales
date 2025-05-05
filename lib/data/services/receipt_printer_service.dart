@@ -169,6 +169,7 @@ class ReceiptPrinterService {
     String? empCode,
     String receiptType = 'taxReceipt',
     bool isCopy = false, // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นใบสำเนาหรือไม่
+    double? changeAmount, // เพิ่มพารามิเตอร์สำหรับเงินทอน
   }) async {
     // ตรวจสอบการเชื่อมต่อ
     if (!_isConnected) {
@@ -297,6 +298,11 @@ class ReceiptPrinterService {
         if (payment.transNumber.isNotEmpty) {
           await _printer.printCustom("อ้างอิง: ${payment.transNumber}", smallSize, 0);
         }
+      }
+
+      // แสดงเงินทอน (ถ้ามี)
+      if (changeAmount != null && changeAmount > 0) {
+        await _printer.printLeftRight("เงินทอน", currencyFormat.format(changeAmount), smallSize);
       }
 
       // ส่วนท้าย

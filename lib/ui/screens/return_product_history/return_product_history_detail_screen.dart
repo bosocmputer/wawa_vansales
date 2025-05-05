@@ -102,7 +102,6 @@ class _ReturnProductHistoryDetailScreenState extends State<ReturnProductHistoryD
               );
             }
 
-            // คำนวณยอดรวมทั้งหมด
             final totalAmount = state.totalAmount;
 
             return Column(

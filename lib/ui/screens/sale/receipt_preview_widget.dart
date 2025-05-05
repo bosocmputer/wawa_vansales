@@ -70,6 +70,13 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
     final double vatAmount = widget.totalAmount * 0.07;
     final double priceBeforeVat = widget.totalAmount - vatAmount;
 
+    // คำนวณเงินถอน (เงินทอน)
+    double totalPayment = 0;
+    for (var payment in widget.payments) {
+      totalPayment += payment.payAmount;
+    }
+    double changeAmount = totalPayment - widget.totalAmount;
+
     final String staffCode = widget.empCode;
 
     return Container(
@@ -335,6 +342,43 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                 ],
               );
             }),
+
+            // เพิ่มแสดงเงินถอน (เงินทอน)
+            if (changeAmount > 0) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'รับเงิน',
+                    style: TextStyle(fontSize: 10),
+                  ),
+                  Text(
+                    currencyFormat.format(totalPayment),
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'เงินทอน',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    currencyFormat.format(changeAmount),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
 
             // เส้นคั่น
             const SizedBox(height: 8),

@@ -12,6 +12,7 @@ import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/return_product/sale_document_detail_model.dart';
 import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
+import 'package:wawa_vansales/ui/widgets/number_pad_component.dart';
 import 'package:wawa_vansales/utils/global.dart'; // เพิ่ม import Global
 import 'package:intl/intl.dart';
 
@@ -48,9 +49,13 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
 
   bool _isProcessingItem = false;
 
+  final TextEditingController _qtyController = TextEditingController(text: '1');
+  bool _showNumPad = false; // เพิ่ม state ควบคุมการแสดง/ซ่อน numpad
+
   @override
   void initState() {
     super.initState();
+    _qtyController.text = '1'; // ตั้งค่าเริ่มต้นเป็น 1
     // เริ่มต้นด้วยการ focus ที่ช่อง scan
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _barcodeScanFocusNode.requestFocus();
@@ -59,6 +64,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
 
   @override
   void dispose() {
+    _qtyController.dispose(); // เพิ่มการ dispose controller
     _barcodeScanController.dispose();
     _barcodeScanFocusNode.dispose();
     super.dispose();
@@ -73,18 +79,28 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
       _isProcessingItem = true;
     });
 
+    // แยกจำนวนและบาร์โค้ด กรณีที่มีการใช้ *
+    int quantity = 1;
+    String processedBarcode = barcode;
+
+    try {
+      quantity = int.parse(_qtyController.text);
+    } catch (e) {
+      quantity = 1;
+    }
+
+    // ใช้ค่า quantity ที่ได้
+    _qtyController.text = quantity.toString();
+
     // ส่ง event ไปยัง ProductDetailBloc เพื่อค้นหาสินค้า
     context.read<ProductDetailBloc>().add(
           FetchProductByBarcode(
-            barcode: barcode,
+            barcode: processedBarcode,
             customerCode: widget.customerCode,
           ),
         );
 
-    // ล้าง controller หลังจากส่งคำขอค้นหาสินค้า
     _barcodeScanController.clear();
-
-    // หมายเหตุ: _isProcessingItem จะถูกรีเซ็ตใน BlocListener เมื่อกระบวนการเสร็จสิ้น
   }
 
   void _scanBarcode() {
@@ -313,7 +329,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
       ],
       child: Column(
         children: [
-          // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า (ปรับปรุงดีไซน์)
+          // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า
           _buildSearchBar(),
 
           // แสดงสถานะการค้นหา
@@ -325,7 +341,6 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
               return const SizedBox.shrink();
             },
           ),
-
           // แสดง debug แบบง่ายๆ เพื่อตรวจสอบ state ของ ReturnProductBloc เฉพาะใน debug mode
           if (kDebugMode)
             BlocBuilder<ReturnProductBloc, ReturnProductState>(
@@ -370,104 +385,298 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // ช่องค้นหาบาร์โค้ด (ปรับปรุงการแสดงผล)
-          Expanded(
-            child: SizedBox(
-              height: 40,
-              child: TextField(
-                controller: _barcodeScanController,
-                focusNode: _barcodeScanFocusNode,
-                style: const TextStyle(fontSize: 14),
-                decoration: InputDecoration(
-                  labelText: 'สแกนบาร์โค้ด',
-                  labelStyle: const TextStyle(fontSize: 13),
-                  prefixIcon: const Icon(
-                    Icons.qr_code_scanner,
-                    size: 18,
-                  ),
-                  suffixIcon: _barcodeScanController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 16),
-                          onPressed: () {
-                            _barcodeScanController.clear();
-                          },
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  isDense: true,
+          Row(
+            children: [
+              // ช่อง QTY
+              Container(
+                width: 70,
+                height: 40,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                keyboardType: TextInputType.none, // ซ่อน keyboard
-                onSubmitted: (_) => _scanBarcode(),
-                onTap: () {
-                  // ในโหมดสแกน ซ่อน keyboard
-                  FocusScope.of(context).unfocus();
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // ปุ่มเลือกสินค้า (ปรับปรุงรูปแบบปุ่ม)
-          Container(
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppTheme.primaryColor.withOpacity(0.9), AppTheme.primaryColor],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(0.2),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: _openProductSearch,
-                borderRadius: BorderRadius.circular(8),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, size: 18, color: Colors.white),
-                      SizedBox(width: 4),
-                      Text(
-                        'เลือกสินค้า',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    TextField(
+                      controller: _qtyController,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                      ),
+                      keyboardType: TextInputType.none,
+                      onTap: () {
+                        // เมื่อกดที่ช่อง qty ให้แสดง/ซ่อน numpad
+                        setState(() {
+                          _showNumPad = !_showNumPad;
+                        });
+                        FocusScope.of(context).unfocus();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              // ช่องค้นหาบาร์โค้ด (ปรับปรุงการแสดงผล)
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: TextField(
+                    controller: _barcodeScanController,
+                    focusNode: _barcodeScanFocusNode,
+                    style: const TextStyle(fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'สแกนบาร์โค้ด',
+                      labelStyle: const TextStyle(fontSize: 13),
+                      prefixIcon: const Icon(
+                        Icons.qr_code_scanner,
+                        size: 18,
+                      ),
+                      suffixIcon: _barcodeScanController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 16),
+                              onPressed: () {
+                                _barcodeScanController.clear();
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.none, // ซ่อน keyboard
+                    onSubmitted: (_) => _scanBarcode(),
+                    onTap: () {
+                      // ซ่อน numpad เมื่อกดที่ช่องบาร์โค้ด
+                      setState(() {
+                        _showNumPad = false;
+                      });
+                      FocusScope.of(context).unfocus();
+                    },
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+
+              // ปุ่มเลือกสินค้า (ปรับปรุงรูปแบบปุ่ม)
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.primaryColor.withOpacity(0.9), AppTheme.primaryColor],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.2),
+                      blurRadius: 2,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _openProductSearch,
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, size: 18, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            'เลือกสินค้า',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+
+          // แสดง NumberPad เมื่อ _showNumPad เป็น true
+          if (_showNumPad)
+            NumberPadComponent(
+              onNumberPressed: (number) {
+                // จัดการเมื่อกดปุ่มตัวเลข
+                setState(() {
+                  final currentQty = _qtyController.text;
+
+                  if (currentQty == '1' && number == '0') {
+                    // ถ้าค่าปัจจุบันเป็น 1 และกดปุ่ม 0 ให้กลายเป็น 10
+                    _qtyController.text = '10';
+                  } else if (currentQty == '10' && number == '0') {
+                    // ถ้าค่าปัจจุบันเป็น 10 และกดปุ่ม 0 ให้กลายเป็น 100
+                    _qtyController.text = '100';
+                  } else if (currentQty == '1') {
+                    // ถ้าค่าปัจจุบันเป็น 1 (ค่าเริ่มต้น) ให้แทนที่ด้วยตัวเลขใหม่
+                    _qtyController.text = number;
+                  } else {
+                    // กรณีอื่นๆ ให้ต่อท้าย
+                    _qtyController.text += number;
+                  }
+                });
+              },
+              onClearPressed: () {
+                // จัดการเมื่อกดปุ่ม C
+                setState(() {
+                  _qtyController.text = '1';
+                });
+              },
+            ),
         ],
       ),
     );
+  }
+
+  // เพิ่มเมธอด _showQuantityEditDialog ใน ReturnProductCartStep
+  void _showQuantityEditDialog(BuildContext context, CartItemModel item) {
+    // สร้าง controller สำหรับ TextField ใน dialog
+    TextEditingController qtyController = TextEditingController(text: (double.tryParse(item.qty) ?? 0).toStringAsFixed(0));
+
+    // ค้นหารายการในเอกสารขายเดิมเพื่อเช็คจำนวนสูงสุดที่รับคืนได้
+    final originalItem = widget.documentDetails.firstWhere(
+      (detail) => detail.itemCode == item.itemCode && detail.unitCode == item.unitCode,
+      orElse: () => SaleDocumentDetailModel(
+        itemCode: '',
+        itemName: '',
+        unitCode: '',
+        price: '0',
+        qty: '0',
+        whCode: '',
+        shelfCode: '',
+        standValue: '0',
+        divideValue: '0',
+        ratio: '0',
+        refRow: '0',
+      ),
+    );
+
+    final maxReturnQty = double.tryParse(originalItem.qty) ?? 0;
+
+    // แสดง dialog
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('แก้ไขจำนวนรับคืน'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'สินค้า: ${item.itemName}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'จำนวนในบิลขาย: ${maxReturnQty.toStringAsFixed(0)} ${item.unitCode}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.blue[700],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: qtyController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: 'จำนวนรับคืน',
+                    hintText: 'ระบุจำนวน',
+                    suffixText: item.unitCode,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('ยกเลิก'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  double? qty = double.tryParse(qtyController.text);
+                  if (qty != null && qty > 0) {
+                    // เช็คว่าจำนวนที่รับคืนไม่เกินจำนวนในบิลขาย
+                    if (qty <= maxReturnQty) {
+                      context.read<ReturnProductBloc>().add(
+                            UpdateReturnItemQuantity(
+                              itemCode: item.itemCode,
+                              barcode: item.barcode,
+                              unitCode: item.unitCode,
+                              quantity: qty,
+                            ),
+                          );
+                      Navigator.of(context).pop();
+                    } else {
+                      // แสดงข้อความเตือนเมื่อระบุจำนวนเกิน
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${maxReturnQty.toStringAsFixed(0)})'),
+                          backgroundColor: AppTheme.errorColor,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('กรุณาระบุจำนวนให้ถูกต้อง'),
+                        backgroundColor: AppTheme.errorColor,
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('บันทึก'),
+              ),
+            ],
+          );
+        });
   }
 
   // TabBar (ปรับปรุง)
@@ -942,16 +1151,30 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                           child: Icon(Icons.remove, size: 18, color: Colors.grey[700]),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          (double.tryParse(item.qty) ?? 0).toStringAsFixed(0),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      // แสดงจำนวนและไอคอนแก้ไข
+                      InkWell(
+                        onTap: () {
+                          // เมื่อกดที่จำนวน ให้แสดง dialog สำหรับป้อนจำนวนใหม่
+                          _showQuantityEditDialog(context, item);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            children: [
+                              Text(
+                                (double.tryParse(item.qty) ?? 0).toStringAsFixed(0),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(Icons.edit, size: 12, color: Colors.grey[400]),
+                            ],
                           ),
                         ),
                       ),
+
                       InkWell(
                         onTap: () {
                           final currentQty = double.tryParse(item.qty) ?? 0;

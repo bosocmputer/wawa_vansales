@@ -283,7 +283,7 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
     }
   }
 
-  List<Widget> _calculateTotalChange() {
+  double calculateTotalChange() {
     // หาชำระเงินสด
     final cashPayments = widget.payments.where((p) => PaymentModel.intToPaymentType(p.payType) == PaymentType.cash).toList();
 
@@ -294,6 +294,13 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
         totalChange += payment.payAmount - widget.totalAmount;
       }
     }
+
+    return totalChange;
+  }
+
+  List<Widget> _calculateTotalChange() {
+    // ใช้ฟังก์ชันที่เพิ่มเข้ามาใหม่
+    double totalChange = calculateTotalChange();
 
     // ถ้ามีเงินทอน ให้แสดง
     if (totalChange > 0) {

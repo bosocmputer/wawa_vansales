@@ -304,7 +304,6 @@ class ReceiptReturnPrinterService {
       await _printer.printCustom("ขอบคุณที่ใช้บริการ", smallSize, 1);
       await _printer.printNewLine();
       await _printer.printNewLine();
-      await _printer.printNewLine();
       await _printer.printCustom("", smallSize, 1);
 
       // 18. ตัดกระดาษ
