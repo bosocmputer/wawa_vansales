@@ -15,6 +15,7 @@ class ReceiptPreviewWidget extends StatefulWidget {
   final double totalAmount;
   final String docNumber;
   final String empCode;
+  final bool isFromPreOrder; // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นการขายจาก Pre-Order หรือไม่
 
   const ReceiptPreviewWidget({
     super.key,
@@ -24,6 +25,7 @@ class ReceiptPreviewWidget extends StatefulWidget {
     required this.totalAmount,
     required this.docNumber,
     required this.empCode,
+    this.isFromPreOrder = false, // ค่าเริ่มต้นเป็น false
   });
 
   @override
@@ -181,66 +183,69 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
             ),
             const SizedBox(height: 2),
 
-            // หัวข้อรายการสินค้า
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'รายการ',
-                  style: TextStyle(fontSize: 10),
-                ),
-                Text(
-                  'จำนวนเงิน',
-                  style: TextStyle(fontSize: 10),
-                ),
-              ],
-            ),
-            const Divider(
-              height: 1,
-              color: Colors.grey,
-            ),
-
-            const SizedBox(height: 4),
-
-            // แสดงรายการสินค้า
-            ...widget.items.map((item) {
-              final qtyValue = double.tryParse(item.qty) ?? 0;
-              final priceValue = double.tryParse(item.price) ?? 0;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // ถ้าเป็นการขายจาก pre-order จะไม่แสดงรายการสินค้า
+            if (!widget.isFromPreOrder) ...[
+              // หัวข้อรายการสินค้า
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // ชื่อสินค้า
                   Text(
-                    item.itemName,
-                    style: const TextStyle(fontSize: 10),
+                    'รายการ',
+                    style: TextStyle(fontSize: 10),
                   ),
-                  // จำนวน x ราคา = รวม
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)} ${item.unitCode}",
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                      Text(
-                        currencyFormat.format(item.totalAmount),
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                    ],
+                  Text(
+                    'จำนวนเงิน',
+                    style: TextStyle(fontSize: 10),
                   ),
-                  const SizedBox(height: 4),
                 ],
-              );
-            }),
+              ),
+              const Divider(
+                height: 1,
+                color: Colors.grey,
+              ),
 
-            // เส้นคั่น
-            const Divider(
-              height: 1,
-              color: Colors.grey,
-            ),
+              const SizedBox(height: 4),
 
-            const SizedBox(height: 4),
+              // แสดงรายการสินค้าเฉพาะกรณีที่ไม่ใช่การขายจาก pre-order
+              ...widget.items.map((item) {
+                final qtyValue = double.tryParse(item.qty) ?? 0;
+                final priceValue = double.tryParse(item.price) ?? 0;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ชื่อสินค้า
+                    Text(
+                      item.itemName,
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    // จำนวน x ราคา = รวม
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)} ${item.unitCode}",
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        Text(
+                          currencyFormat.format(item.totalAmount),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                );
+              }),
+
+              // เส้นคั่น
+              const Divider(
+                height: 1,
+                color: Colors.grey,
+              ),
+
+              const SizedBox(height: 4),
+            ],
 
             // แสดงยอดรวม, VAT, และยอดสุทธิ
             Row(

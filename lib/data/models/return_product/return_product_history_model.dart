@@ -23,6 +23,9 @@ class ReturnProductHistoryModel {
   @JsonKey(name: 'doc_time')
   final String docTime;
 
+  @JsonKey(name: 'total_amount')
+  final String totalAmount;
+
   ReturnProductHistoryModel({
     required this.custCode,
     required this.docNo,
@@ -30,6 +33,7 @@ class ReturnProductHistoryModel {
     required this.custName,
     required this.invNo,
     required this.docTime,
+    required this.totalAmount,
   });
 
   factory ReturnProductHistoryModel.fromJson(Map<String, dynamic> json) => _$ReturnProductHistoryModelFromJson(json);

@@ -90,4 +90,31 @@ class Global {
 
     return 'MINV$warehouseCode$dateStr-$random';
   }
+
+  static String getPriceLevelText(String priceLevel) {
+    switch (priceLevel) {
+      case '0':
+        return 'ราคากลาง';
+      case '1':
+        return 'ราคาที่ 1';
+      case '2':
+        return 'ราคาที่ 2';
+      case '3':
+        return 'ราคาที่ 3';
+      case '4':
+        return 'ราคาที่ 4';
+      case '5':
+        return 'ราคาที่ 5';
+      case '6':
+        return 'ราคาที่ 6';
+      case '7':
+        return 'ราคาที่ 7';
+      case '8':
+        return 'ราคาที่ 8';
+      case '9':
+        return 'ราคาที่ 9';
+      default:
+        return 'ไม่มีข้อมูล';
+    }
+  }
 }

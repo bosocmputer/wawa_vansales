@@ -80,7 +80,12 @@ class CustomerRepository {
         'address': customer.address,
         'telephone': customer.telephone,
         'tax_id': customer.taxId,
+        'website': customer.website,
+        'price_level': customer.priceLevel,
       };
+
+      /// debug log customer data
+      _logger.i('Customer data: $customerData');
 
       final response = await _apiService.post(
         '/createNewCust',

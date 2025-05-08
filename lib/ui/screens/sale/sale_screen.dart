@@ -215,7 +215,7 @@ class _SaleScreenState extends State<SaleScreen> {
       additionalMessage: 'โปรดรอสักครู่...',
     );
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
     // เริ่มพิมพ์ในแบ็คกราวนด์
     try {
@@ -229,6 +229,7 @@ class _SaleScreenState extends State<SaleScreen> {
         empCode: _empCode,
         receiptType: receiptType,
         changeAmount: changeAmount, // เพิ่มการส่งค่าเงินทอน
+        isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
       );
 
       // ปิด dialog
@@ -268,6 +269,7 @@ class _SaleScreenState extends State<SaleScreen> {
             empCode: _empCode,
             receiptType: receiptType,
             isCopy: true, // ระบุว่าเป็นสำเนา
+            isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
           );
         }
       } else {
@@ -407,13 +409,38 @@ class _SaleScreenState extends State<SaleScreen> {
               // ปิด dialog กรณีที่มี dialog กำลังแสดงอยู่ เมื่อได้รับ state เป็น CartError
               if (state is CartError) {
                 // ตรวจสอบว่ามี dialog ที่กำลังแสดงอยู่หรือไม่
-                // แล้วปิด dialog ก่อนแสดง SnackBar
+                // แล้วปิด dialog ก่อนแสดง dialog ข้อผิดพลาด
                 Navigator.of(context).popUntil((route) => route.isActive);
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                // แสดง dialog แจ้งข้อผิดพลาด
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => AlertDialog(
+                    title: const Text('เกิดข้อผิดพลาด'),
                     content: Text(state.message),
-                    backgroundColor: AppTheme.errorColor,
+                    actions: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // ปิด dialog
+
+                          // รอให้ dialog ปิดก่อนจึงนำทางกลับไปหน้า summary step
+                          Future.delayed(Duration.zero, () {
+                            if (mounted && _pageController.hasClients) {
+                              // ใช้ currentStep จาก bloc state แทนการใช้ค่าคงที่ 3
+                              final cartState = context.read<CartBloc>().state;
+                              if (cartState is CartLoaded) {
+                                // ตั้งค่า current step ให้เป็น 3 ก่อน
+                                context.read<CartBloc>().add(const UpdateStep(3));
+                                // แล้วค่อยเลื่อนหน้าไปที่ step 3
+                                _pageController.jumpToPage(3);
+                              }
+                            }
+                          });
+                        },
+                        child: const Text('ตกลง'),
+                      ),
+                    ],
                   ),
                 );
               } else if (state is CartSubmitSuccess && !_isTransactionCompleted) {
@@ -507,6 +534,7 @@ class _SaleScreenState extends State<SaleScreen> {
                               },
                               empCode: _empCode,
                               preOrderDocNumber: preOrderDocNo, // ส่งเลขที่เอกสาร preOrder ถ้ามาจาก PreOrderDetailScreen
+                              isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
                             )
                           else
                             Center(

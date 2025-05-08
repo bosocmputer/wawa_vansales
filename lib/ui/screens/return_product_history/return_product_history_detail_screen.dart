@@ -24,6 +24,7 @@ class ReturnProductHistoryDetailScreen extends StatefulWidget {
   final String docDate;
   final String docTime;
   final String invNo;
+  final double totalAmount; // เพิ่ม totalAmount parameter
 
   const ReturnProductHistoryDetailScreen({
     super.key,
@@ -33,6 +34,7 @@ class ReturnProductHistoryDetailScreen extends StatefulWidget {
     required this.docDate,
     required this.docTime,
     required this.invNo,
+    required this.totalAmount, // เพิ่มใน constructor
   });
 
   @override
@@ -73,7 +75,7 @@ class _ReturnProductHistoryDetailScreenState extends State<ReturnProductHistoryD
             icon: const Icon(Icons.print),
             onPressed: () {
               // เรียกฟังก์ชันพิมพ์ใบรับคืนสินค้า
-              _printReturnReceipt(0);
+              _printReturnReceipt(widget.totalAmount);
             },
           ),
         ],
@@ -571,7 +573,7 @@ class _ReturnProductHistoryDetailScreenState extends State<ReturnProductHistoryD
           docTime: '',
           custCode: widget.custCode,
           custName: widget.custName,
-          totalAmount: totalAmount.toString(),
+          totalAmount: widget.totalAmount.toString(), // ใช้ค่า totalAmount จาก widget
           cashAmount: "0",
           transferAmount: "0",
           cardAmount: "0",
@@ -585,7 +587,7 @@ class _ReturnProductHistoryDetailScreenState extends State<ReturnProductHistoryD
           additionalMessage: 'โปรดรอสักครู่...',
         );
 
-        await Future.delayed(const Duration(seconds: 2));
+        await Future.delayed(const Duration(seconds: 1));
 
         // เริ่มพิมพ์ใบรับคืนในแบ็คกราวนด์
         try {
@@ -600,7 +602,7 @@ class _ReturnProductHistoryDetailScreenState extends State<ReturnProductHistoryD
             saleDocument: saleDocument,
             items: items,
             payments: const [], // ไม่มีข้อมูลการชำระเงิน
-            totalAmount: totalAmount,
+            totalAmount: widget.totalAmount, // ใช้ค่า totalAmount จาก widget
             docNumber: widget.docNo,
             warehouseCode: warehouseCode,
             empCode: empCode,

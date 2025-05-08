@@ -142,7 +142,7 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
       additionalMessage: 'โปรดรอสักครู่...',
     );
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
     // แปลง PreOrderHistoryDetailModel เป็น CartItemModel เพื่อใช้กับ ReceiptPrinterService
     List<CartItemModel> cartItems = items.map((item) {
@@ -190,6 +190,7 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
         empCode: Global.empCode,
         receiptType: receiptType,
         isCopy: true, // ระบุว่าเป็นการพิมพ์สำเนา
+        isFromPreOrder: true, // เพิ่มค่า isFromPreOrder เป็น true เพื่อระบุว่าเป็นการพิมพ์จาก Pre-Order
       );
 
       // ปิด loading dialog

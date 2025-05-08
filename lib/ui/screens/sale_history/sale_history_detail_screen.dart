@@ -151,7 +151,7 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
       additionalMessage: 'โปรดรอสักครู่...',
     );
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
     // แปลง SaleHistoryDetailModel เป็น CartItemModel เพื่อใช้กับ ReceiptPrinterService
     List<CartItemModel> cartItems = items

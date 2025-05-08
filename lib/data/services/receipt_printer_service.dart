@@ -170,6 +170,7 @@ class ReceiptPrinterService {
     String receiptType = 'taxReceipt',
     bool isCopy = false, // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นใบสำเนาหรือไม่
     double? changeAmount, // เพิ่มพารามิเตอร์สำหรับเงินทอน
+    bool isFromPreOrder = false, // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นการขายจาก PreOrder หรือไม่
   }) async {
     // ตรวจสอบการเชื่อมต่อ
     if (!_isConnected) {
@@ -239,26 +240,28 @@ class ReceiptPrinterService {
       await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("ลูกค้า: ${customer.name}", smallSize, 0);
       await _printer.printCustom("รหัส: ${customer.code}", smallSize, 0);
+      // ถ้าเป็นการขายจาก pre-order จะไม่แสดงรายการสินค้า
+      if (!isFromPreOrder) {
+        // เส้นคั่น
+        await Future.delayed(const Duration(milliseconds: 50));
+        await _printer.printCustom("------------------------------", smallSize, 1);
 
-      // เส้นคั่น
-      await Future.delayed(const Duration(milliseconds: 50));
-      await _printer.printCustom("------------------------------", smallSize, 1);
+        // พิมพ์แต่ละรายการสินค้า โดยเพิ่ม delay ระหว่างรายการเพื่อป้องกัน buffer overflow
+        await _printer.printLeftRight("รายการ", "จำนวนเงิน", smallSize);
+        await _printer.printCustom("------------------------------", smallSize, 1);
 
-      // พิมพ์แต่ละรายการสินค้า โดยเพิ่ม delay ระหว่างรายการเพื่อป้องกัน buffer overflow
-      await _printer.printLeftRight("รายการ", "จำนวนเงิน", smallSize);
-      await _printer.printCustom("------------------------------", smallSize, 1);
+        for (var item in items) {
+          await Future.delayed(const Duration(milliseconds: 30));
 
-      for (var item in items) {
-        await Future.delayed(const Duration(milliseconds: 30));
+          // ชื่อสินค้า
+          await _printer.printCustom("${item.itemName}/${item.unitCode}", smallSize, 0);
 
-        // ชื่อสินค้า
-        await _printer.printCustom("${item.itemName}/${item.unitCode}", smallSize, 0);
-
-        // จำนวน x ราคา
-        final qtyValue = double.tryParse(item.qty) ?? 0;
-        final priceValue = double.tryParse(item.price) ?? 0;
-        String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}";
-        await _printer.printLeftRight(qtyPriceText, currencyFormat.format(item.totalAmount), smallSize);
+          // จำนวน x ราคา
+          final qtyValue = double.tryParse(item.qty) ?? 0;
+          final priceValue = double.tryParse(item.price) ?? 0;
+          String qtyPriceText = "${qtyValue.toStringAsFixed(0)} x ${currencyFormat.format(priceValue)}";
+          await _printer.printLeftRight(qtyPriceText, currencyFormat.format(item.totalAmount), smallSize);
+        }
       }
 
       // เส้นคั่น

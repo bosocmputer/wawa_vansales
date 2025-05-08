@@ -271,11 +271,14 @@ class ReceiptReturnPrinterService {
 
       // 12. ยอดรวมสุทธิ
       await Future.delayed(const Duration(milliseconds: 30));
-      await _printer.printLeftRight("ยอดรับคืนสุทธิ", currencyFormat.format(totalAmount), smallSize);
+      // เพิ่มเส้นคั่นเพื่อแยกส่วนก่อนยอดรวม
+      await _printer.printCustom("------------------------------", smallSize, 1);
+      // ปรับขนาดตัวอักษรให้ใหญ่ขึ้นและใช้ตัวหนาสำหรับยอดสุทธิ
+      await _printer.printLeftRight("ยอดรับคืนสุทธิ", currencyFormat.format(totalAmount), mediumSize);
 
       // 13. เส้นคั่น
       await Future.delayed(const Duration(milliseconds: 50));
-      await _printer.printCustom("------------------------------", smallSize, 1);
+      await _printer.printCustom("==============================", smallSize, 1);
 
       // 14. ส่วนลายเซ็น
       await Future.delayed(const Duration(milliseconds: 100));

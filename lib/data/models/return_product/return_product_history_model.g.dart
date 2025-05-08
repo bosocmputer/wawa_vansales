@@ -15,6 +15,7 @@ ReturnProductHistoryModel _$ReturnProductHistoryModelFromJson(
       custName: json['cust_name'] as String,
       invNo: json['inv_no'] as String,
       docTime: json['doc_time'] as String,
+      totalAmount: json['total_amount'] as String,
     );
 
 Map<String, dynamic> _$ReturnProductHistoryModelToJson(
@@ -26,4 +27,5 @@ Map<String, dynamic> _$ReturnProductHistoryModelToJson(
       'cust_name': instance.custName,
       'inv_no': instance.invNo,
       'doc_time': instance.docTime,
+      'total_amount': instance.totalAmount,
     };

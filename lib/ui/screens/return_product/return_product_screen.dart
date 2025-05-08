@@ -195,7 +195,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
       additionalMessage: 'โปรดรอสักครู่...',
     );
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
     // เริ่มพิมพ์ใบรับคืนในแบ็คกราวนด์
     try {

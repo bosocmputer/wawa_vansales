@@ -14,6 +14,8 @@ CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) =>
       telephone: json['telephone'] as String?,
       taxId: json['tax_id'] as String?,
       arstatus: json['ar_status'] as String?,
+      website: json['website'] as String?,
+      priceLevel: json['price_level'] as String?,
     );
 
 Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) =>
@@ -24,6 +26,8 @@ Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) =>
       'telephone': instance.telephone,
       'tax_id': instance.taxId,
       'ar_status': instance.arstatus,
+      'website': instance.website,
+      'price_level': instance.priceLevel,
     };
 
 CustomerResponse _$CustomerResponseFromJson(Map<String, dynamic> json) =>

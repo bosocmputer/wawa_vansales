@@ -4,6 +4,7 @@ import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
+import 'package:wawa_vansales/utils/global.dart';
 
 class CustomerDetailScreen extends StatelessWidget {
   const CustomerDetailScreen({super.key});
@@ -36,7 +37,7 @@ class CustomerDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCustomerHeader(customer),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
                 _buildCustomerDetails(customer),
               ],
             ),
@@ -146,6 +147,20 @@ class CustomerDetailScreen extends StatelessWidget {
               icon: Icons.confirmation_number,
               label: 'เลขประจำตัวผู้เสียภาษี',
               value: customer.taxId!.isNotEmpty ? customer.taxId! : 'ไม่มีข้อมูล',
+            ),
+            const Divider(height: 24),
+            // เว็บไซต์
+            _buildDetailItem(
+              icon: Icons.language,
+              label: 'GPRS',
+              value: customer.website?.isNotEmpty ?? false ? customer.website! : 'ไม่มีข้อมูล',
+            ),
+            const Divider(height: 24),
+            // ระดับราคา
+            _buildDetailItem(
+              icon: Icons.price_change,
+              label: 'ระดับราคา',
+              value: Global.getPriceLevelText(customer.priceLevel ?? '0'),
             ),
             const Divider(height: 24),
             // สถานะ AR

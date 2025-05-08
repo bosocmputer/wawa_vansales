@@ -22,6 +22,7 @@ class SaleSummaryStep extends StatefulWidget {
   final Future<bool> Function() onReconnectPrinter;
   final String empCode;
   final String? preOrderDocNumber; // เพิ่มพารามิเตอร์สำหรับเลขที่เอกสาร pre-order
+  final bool isFromPreOrder; // เพิ่มพารามิเตอร์ระบุว่าเป็นการขายจาก pre-order หรือไม่
 
   const SaleSummaryStep({
     super.key,
@@ -35,6 +36,7 @@ class SaleSummaryStep extends StatefulWidget {
     required this.onReconnectPrinter,
     required this.empCode,
     this.preOrderDocNumber, // พารามิเตอร์เลขที่เอกสาร pre-order (ไม่บังคับ)
+    this.isFromPreOrder = false, // ค่าเริ่มต้นคือ false
   });
 
   @override
@@ -132,6 +134,7 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
                     totalAmount: widget.totalAmount,
                     docNumber: generatedDocNumber,
                     empCode: widget.empCode,
+                    isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
                   ),
                 ),
               ],

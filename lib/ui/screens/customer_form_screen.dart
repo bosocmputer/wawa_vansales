@@ -23,10 +23,12 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   final _taxIdController = TextEditingController();
   final _addressController = TextEditingController();
   final _telephoneController = TextEditingController();
+  final _websiteController = TextEditingController();
 
   bool _isFormValid = false;
   bool _autoValidate = false;
   String _selectedArStatus = '0'; // เริ่มต้นเป็นบุคคลธรรมดา
+  String _selectedPriceLevel = '0'; // เริ่มต้นเป็นราคากลาง
 
   @override
   void dispose() {
@@ -35,6 +37,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
     _taxIdController.dispose();
     _addressController.dispose();
     _telephoneController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
@@ -75,6 +78,8 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
         address: _addressController.text.trim(),
         telephone: _telephoneController.text.trim(),
         arstatus: _selectedArStatus, // ใช้ค่าที่เลือก
+        website: _websiteController.text.trim(),
+        priceLevel: _selectedPriceLevel,
       );
 
       // เรียก event สร้างลูกค้าใหม่
@@ -92,6 +97,13 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('เพิ่มลูกค้าใหม่'),
+        actions: [
+          /// save
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _isFormValid ? _submitForm : null,
+          ),
+        ],
       ),
       body: BlocListener<CustomerBloc, CustomerState>(
         listener: (context, state) {
@@ -99,6 +111,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
             // แสดง loading
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
+                backgroundColor: AppTheme.primaryColor,
                 content: Row(
                   children: [
                     SizedBox(
@@ -213,7 +226,68 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   icon: Icons.phone,
                   keyboardType: TextInputType.phone,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+
+                // เว็บไซต์
+                _buildTextField(
+                  controller: _websiteController,
+                  label: 'GPRS',
+                  hint: 'ระบุ GPRS (ถ้ามี)',
+                  icon: Icons.language,
+                ),
+                const SizedBox(height: 16),
+
+                // ระดับราคา (Price Level)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8.0, bottom: 8.0),
+                      child: Text(
+                        'ระดับราคา',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 4.0),
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedPriceLevel,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                          prefixIcon: Icon(Icons.price_change, color: AppTheme.primaryColor),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: '0', child: Text('ราคากลาง')),
+                          DropdownMenuItem(value: '1', child: Text('ราคาที่ 1')),
+                          DropdownMenuItem(value: '2', child: Text('ราคาที่ 2')),
+                          DropdownMenuItem(value: '3', child: Text('ราคาที่ 3')),
+                          DropdownMenuItem(value: '4', child: Text('ราคาที่ 4')),
+                          DropdownMenuItem(value: '5', child: Text('ราคาที่ 5')),
+                          DropdownMenuItem(value: '6', child: Text('ราคาที่ 6')),
+                          DropdownMenuItem(value: '7', child: Text('ราคาที่ 7')),
+                          DropdownMenuItem(value: '8', child: Text('ราคาที่ 8')),
+                          DropdownMenuItem(value: '9', child: Text('ราคาที่ 9')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedPriceLevel = value!;
+                          });
+                        },
+                        isExpanded: true,
+                        icon: Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                        iconSize: 30,
+                        style: const TextStyle(color: Colors.black, fontSize: 16),
+                        dropdownColor: Colors.white,
+                        focusColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
 
                 // ประเภทลูกค้า (AR Status)
                 Column(
@@ -270,7 +344,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
 
                 // ปุ่มบันทึก
                 CustomButton(

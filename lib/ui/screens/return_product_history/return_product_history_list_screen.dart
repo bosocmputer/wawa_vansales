@@ -279,6 +279,11 @@ class _ReturnProductHistoryListScreenState extends State<ReturnProductHistoryLis
 
     final formattedDate = returnDate != null ? _dateFormat.format(returnDate) : returnHistory.docDate;
 
+    // แปลง total_amount จาก String เป็น double
+    final double totalAmount = double.tryParse(returnHistory.totalAmount) ?? 0.0;
+    // ฟอร์แมตยอดเงิน
+    final formattedAmount = NumberFormat('#,##0.00', 'th_TH').format(totalAmount);
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       elevation: 2,
@@ -296,6 +301,7 @@ class _ReturnProductHistoryListScreenState extends State<ReturnProductHistoryLis
                 docDate: formattedDate,
                 docTime: returnHistory.docTime,
                 invNo: returnHistory.invNo,
+                totalAmount: totalAmount, // ส่งค่า totalAmount เข้าไปด้วย
               ),
             ),
           );
@@ -390,7 +396,7 @@ class _ReturnProductHistoryListScreenState extends State<ReturnProductHistoryLis
               Divider(color: Colors.grey.shade300),
               const SizedBox(height: 4),
 
-              // Invoice Number
+              // Invoice Number and Total Amount
               Row(
                 children: [
                   const Icon(
@@ -407,6 +413,34 @@ class _ReturnProductHistoryListScreenState extends State<ReturnProductHistoryLis
                         fontWeight: FontWeight.w500,
                         color: Colors.deepOrange,
                       ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Total Amount
+              Row(
+                children: [
+                  const Icon(
+                    Icons.monetization_on,
+                    size: 18,
+                    color: AppTheme.primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'มูลค่ารับคืน: ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  Text(
+                    '฿$formattedAmount',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
                 ],
