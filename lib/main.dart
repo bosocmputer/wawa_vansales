@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wawa_vansales/blocs/ar_balance/ar_balance_bloc.dart'; // เพิ่ม import
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
@@ -20,6 +21,7 @@ import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
 import 'package:wawa_vansales/blocs/pre_order/pre_order_bloc.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
+import 'package:wawa_vansales/data/repositories/ar_balance_repository.dart'; // เพิ่ม import
 import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
 import 'package:wawa_vansales/data/repositories/pre_order_history_repository.dart';
@@ -150,6 +152,10 @@ class MyApp extends StatelessWidget {
       apiService: apiService,
     );
 
+    final arBalanceRepository = ArBalanceRepository(
+      apiService: apiService,
+    ); // เพิ่ม ArBalanceRepository
+
     return MultiBlocProvider(
       providers: [
         // เพิ่ม Provider สำหรับ LocalStorage
@@ -233,6 +239,11 @@ class MyApp extends StatelessWidget {
             repository: returnProductHistoryRepository,
           ),
         ),
+        BlocProvider<ArBalanceBloc>(
+          create: (context) => ArBalanceBloc(
+            arBalanceRepository: arBalanceRepository,
+          ),
+        ), // เพิ่ม ArBalanceBloc
       ],
       child: MaterialApp(
         title: 'WAWA Van Sales',

@@ -6,6 +6,7 @@ import 'package:wawa_vansales/blocs/cart/cart_state.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/data/models/sale_transaction_model.dart';
+import 'package:wawa_vansales/data/models/balance_detail_model.dart';
 import 'package:wawa_vansales/data/repositories/sale_repository.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
 import 'package:wawa_vansales/utils/global.dart';
@@ -34,7 +35,10 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<SetPreOrderDocument>(_onSetPreOrderDocument);
     on<AddItemsToCart>(_onAddItems);
     on<SetDocumentNumber>(_onSetDocumentNumber);
-    on<ResetCartState>(_onResetState); // เพิ่มการจัดการ Reset State
+    on<ResetCartState>(_onResetState);
+    on<UpdatePaymentDetails>(_onUpdatePaymentDetails);
+    on<AddBalanceDetail>(_onAddBalanceDetail); // เพิ่มการจัดการ Event ใหม่
+    on<UpdateBalanceDetails>(_onUpdateBalanceDetails); // เพิ่มการจัดการ Event ใหม่
   }
 
   // เลือกลูกค้า
@@ -292,6 +296,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         double cashAmount = 0;
         double transferAmount = 0;
         double cardAmount = 0;
+        double totalCreditCharge = 0;
 
         for (var payment in currentState.payments) {
           switch (PaymentModel.intToPaymentType(payment.payType)) {
@@ -303,9 +308,52 @@ class CartBloc extends Bloc<CartEvent, CartState> {
               break;
             case PaymentType.creditCard:
               cardAmount += payment.payAmount;
+              totalCreditCharge += payment.charge;
               break;
           }
         }
+
+        // ยอดรวมการลดหนี้ (จาก state ที่เพิ่มเข้ามาใหม่)
+        final double balanceAmount = currentState.balanceAmount;
+
+        // เตรียมรายการลดหนี้
+        final List<BalanceDetailModel> balanceDetail = currentState.balanceDetail;
+
+        // เพิ่มรายการ PreOrder ถ้าเป็น PreOrder และมีการใช้ลดหนี้
+        if (currentState.preOrderDocNo.isNotEmpty && balanceAmount > 0) {
+          // เพิ่มรายการ PreOrder เข้าไปใน balanceDetail
+          balanceDetail.add(BalanceDetailModel(
+            transFlag: '44', // รหัสสำหรับ PreOrder
+            docNo: currentState.preOrderDocNo, // เลขที่เอกสาร PreOrder
+            docDate: docDate,
+            amount: currentState.totalAmount.toString(),
+            balanceRef: currentState.totalAmount.toString(),
+          ));
+        }
+
+        // ปรับยอดรวมหลังจากหักลดหนี้
+        final double adjustedTotalAmount = currentState.totalAmount - balanceAmount;
+
+        // คำนวณยอดรวมสุทธิ (รวมค่าธรรมเนียมบัตรเครดิต)
+        final double totalNetAmount = adjustedTotalAmount + totalCreditCharge;
+        final double totalAmountPay = cashAmount + transferAmount + cardAmount;
+
+        // กรองรายการชำระเงินให้มีเฉพาะเงินโอน (pay_type 0) และบัตรเครดิต (pay_type 1)
+        final List<PaymentModel> filteredPayments = currentState.payments
+            .where((payment) => PaymentModel.intToPaymentType(payment.payType) == PaymentType.transfer || PaymentModel.intToPaymentType(payment.payType) == PaymentType.creditCard)
+            .toList();
+
+        // ปรับ payType ให้เป็น 0 สำหรับเงินโอน, 1 สำหรับบัตรเครดิต ตามที่กำหนดใหม่
+        final List<PaymentModel> adjustedPayments = filteredPayments.map((payment) {
+          int newPayType;
+          if (PaymentModel.intToPaymentType(payment.payType) == PaymentType.transfer) {
+            newPayType = 0; // เงินโอน
+          } else {
+            newPayType = 1; // บัตรเครดิต
+          }
+
+          return PaymentModel(payType: newPayType, transNumber: payment.transNumber, payAmount: payment.payAmount, charge: payment.charge);
+        }).toList();
 
         // สร้าง transaction model
         final transaction = SaleTransactionModel(
@@ -330,16 +378,31 @@ class CartBloc extends Bloc<CartEvent, CartState> {
                     divideValue: item.divideValue,
                   ))
               .toList(),
-          paymentDetail: currentState.payments,
+          paymentDetail: adjustedPayments, // ใช้รายการชำระเงินที่กรองแล้ว
           transferAmount: transferAmount.toString(),
           creditAmount: '0',
           cashAmount: cashAmount.toString(),
           cardAmount: cardAmount.toString(),
-          totalAmount: currentState.totalAmount.toString(),
-          totalValue: currentState.totalAmount.toString(),
+          totalAmount: adjustedTotalAmount.toString(), // ใช้ยอดที่หักลบกับยอดลดหนี้แล้ว
+          totalValue: currentState.totalAmount.toString(), // totalValue ยังคงเก็บยอดรวมจริงก่อนหักลดหนี้
+          totalCreditCharge: totalCreditCharge.toString(),
+          totalNetAmount: totalNetAmount.toString(),
+          totalAmountPay: totalAmountPay.toString(),
+          balanceAmount: balanceAmount.toString(), // เพิ่มยอดลดหนี้
+          balanceDetail: balanceDetail, // เพิ่มรายละเอียดการลดหนี้
           remark: event.remark,
           carCode: warehouseCode, // ใช้ warehouseCode จาก localStorage แทน Global.whCode ที่อาจจะเป็น NA
         );
+
+        _logger.i('Transaction to save:');
+        _logger.i('Payment Detail: ${adjustedPayments.length} items');
+        if (adjustedPayments.isNotEmpty) {
+          for (var pay in adjustedPayments) {
+            _logger.i('Payment Type: ${pay.payType}, Amount: ${pay.payAmount}, TransNum: ${pay.transNumber}');
+          }
+        } else {
+          _logger.i('Payment Detail is empty (cash only payment)');
+        }
 
         bool success = false;
 
@@ -363,6 +426,8 @@ class CartBloc extends Bloc<CartEvent, CartState> {
             items: currentState.items,
             payments: currentState.payments,
             totalAmount: currentState.totalAmount,
+            balanceAmount: balanceAmount, // เพิ่มยอดลดหนี้
+            balanceDetail: balanceDetail, // เพิ่มรายละเอียดการลดหนี้
           ));
           return; // เพิ่ม return เพื่อจบการทำงานทันที
         } else {
@@ -389,5 +454,64 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   // คำนวณยอดรวม
   double _calculateTotal(List<CartItemModel> items) {
     return items.fold(0, (sum, item) => sum + item.totalAmount);
+  }
+
+  // อัปเดตรายละเอียดการชำระเงินทั้งหมด (รวมค่าธรรมเนียมบัตรเครดิต)
+  void _onUpdatePaymentDetails(UpdatePaymentDetails event, Emitter<CartState> emit) {
+    if (state is CartLoaded) {
+      final currentState = state as CartLoaded;
+
+      // เพิ่ม log เพื่อดูค่าที่ส่งเข้ามา
+      _logger.i('Updating payment details with ${event.payments.length} payments');
+
+      // อัปเดตการชำระเงิน
+      emit(currentState.copyWith(
+        payments: event.payments,
+      ));
+    }
+  }
+
+  // เพิ่มรายการลดหนี้
+  void _onAddBalanceDetail(AddBalanceDetail event, Emitter<CartState> emit) {
+    if (state is CartLoaded) {
+      final currentState = state as CartLoaded;
+      final List<BalanceDetailModel> updatedBalanceDetails = List.from(currentState.balanceDetail);
+
+      // ตรวจสอบว่ามีรายการลดหนี้นี้แล้วหรือไม่
+      final existingIndex = updatedBalanceDetails.indexWhere(
+        (detail) => detail.docNo == event.balanceDetail.docNo && detail.transFlag == event.balanceDetail.transFlag,
+      );
+
+      if (existingIndex != -1) {
+        // ถ้ามีแล้ว แทนที่ด้วยข้อมูลใหม่
+        updatedBalanceDetails[existingIndex] = event.balanceDetail;
+      } else {
+        // ถ้ายังไม่มี เพิ่มเข้าไปใหม่
+        updatedBalanceDetails.add(event.balanceDetail);
+      }
+
+      // คำนวณยอดรวมลดหนี้
+      final double totalBalanceAmount = updatedBalanceDetails.fold(0.0, (sum, detail) => sum + detail.amountValue);
+
+      emit(currentState.copyWith(
+        balanceDetail: updatedBalanceDetails,
+        balanceAmount: totalBalanceAmount,
+      ));
+    }
+  }
+
+  // อัปเดตรายการลดหนี้ทั้งหมด
+  void _onUpdateBalanceDetails(UpdateBalanceDetails event, Emitter<CartState> emit) {
+    if (state is CartLoaded) {
+      final currentState = state as CartLoaded;
+
+      // เพิ่ม log เพื่อดูค่าที่ส่งเข้ามา
+      _logger.i('Updating balance details with ${event.balanceDetails.length} items, total amount: ${event.totalBalanceAmount}');
+
+      emit(currentState.copyWith(
+        balanceDetail: event.balanceDetails,
+        balanceAmount: event.totalBalanceAmount,
+      ));
+    }
   }
 }

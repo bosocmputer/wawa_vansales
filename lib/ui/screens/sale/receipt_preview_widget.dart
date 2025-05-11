@@ -16,6 +16,7 @@ class ReceiptPreviewWidget extends StatefulWidget {
   final String docNumber;
   final String empCode;
   final bool isFromPreOrder; // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นการขายจาก Pre-Order หรือไม่
+  final double balanceAmount; // เพิ่มพารามิเตอร์สำหรับยอดลดหนี้
 
   const ReceiptPreviewWidget({
     super.key,
@@ -26,6 +27,7 @@ class ReceiptPreviewWidget extends StatefulWidget {
     required this.docNumber,
     required this.empCode,
     this.isFromPreOrder = false, // ค่าเริ่มต้นเป็น false
+    this.balanceAmount = 0, // ค่าเริ่มต้นเป็น 0
   });
 
   @override
@@ -72,12 +74,21 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
     final double vatAmount = widget.totalAmount * 0.07;
     final double priceBeforeVat = widget.totalAmount - vatAmount;
 
-    // คำนวณเงินถอน (เงินทอน)
+    // คำนวณเงินถอน (เงินทอน) และค่าธรรมเนียมบัตรเครดิต
     double totalPayment = 0;
+    double totalCreditCardCharge = 0;
+
     for (var payment in widget.payments) {
+      // ถ้าเป็นบัตรเครดิต คำนวณค่าธรรมเนียม
+      if (payment.payType == PaymentModel.paymentTypeToInt(PaymentType.creditCard)) {
+        totalCreditCardCharge += payment.charge;
+      }
       totalPayment += payment.payAmount;
     }
-    double changeAmount = totalPayment - widget.totalAmount;
+
+    // คำนวณยอดสุทธิโดยรวมค่าธรรมเนียมบัตรเครดิต
+    double totalNetAmount = widget.totalAmount + totalCreditCardCharge;
+    double changeAmount = totalPayment - totalNetAmount > 0 ? totalPayment - totalNetAmount : 0;
 
     final String staffCode = widget.empCode;
 
@@ -275,6 +286,23 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
               ],
             ),
             const SizedBox(height: 4),
+            if (totalCreditCardCharge > 0) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'ค่าธรรมเนียมบัตรเครดิต',
+                    style: TextStyle(fontSize: 10),
+                  ),
+                  Text(
+                    currencyFormat.format(totalCreditCardCharge),
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -286,7 +314,7 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                   ),
                 ),
                 Text(
-                  currencyFormat.format(widget.totalAmount),
+                  currencyFormat.format(totalNetAmount),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -304,6 +332,21 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                 style: TextStyle(fontSize: 10),
               ),
             ),
+            if (widget.balanceAmount > 0) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'ยอดลดหนี้',
+                    style: TextStyle(fontSize: 10),
+                  ),
+                  Text(
+                    currencyFormat.format(widget.balanceAmount),
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 4),
             ...widget.payments.map((payment) {
               final paymentType = PaymentModel.intToPaymentType(payment.payType);
@@ -344,6 +387,35 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                         style: const TextStyle(fontSize: 8),
                       ),
                     ),
+                  // แสดงค่าธรรมเนียมบัตรเครดิต ถ้าเป็นการจ่ายด้วยบัตรและมีค่าธรรมเนียม
+                  if (paymentType == PaymentType.creditCard && payment.charge > 0) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Charge 1.5%',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                        Text(
+                          currencyFormat.format(payment.charge),
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'รวมบัตร',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          currencyFormat.format(payment.payAmount + payment.charge),
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               );
             }),

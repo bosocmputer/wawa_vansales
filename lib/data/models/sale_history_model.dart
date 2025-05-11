@@ -31,6 +31,15 @@ class SaleHistoryModel {
   @JsonKey(name: 'card_amount')
   final String? cardAmount;
 
+  @JsonKey(name: 'total_credit_charge')
+  final String? totalCreditCharge;
+
+  @JsonKey(name: 'total_net_amount')
+  final String? totalNetAmount;
+
+  @JsonKey(name: 'total_amount_pay')
+  final String? totalAmountPay;
+
   SaleHistoryModel({
     required this.custCode,
     required this.totalAmount,
@@ -41,6 +50,9 @@ class SaleHistoryModel {
     this.cashAmount,
     this.tranferAmount,
     this.cardAmount,
+    this.totalCreditCharge,
+    this.totalNetAmount,
+    this.totalAmountPay,
   });
 
   factory SaleHistoryModel.fromJson(Map<String, dynamic> json) => _$SaleHistoryModelFromJson(json);
@@ -49,6 +61,15 @@ class SaleHistoryModel {
 
   // Get total amount as double
   double get totalAmountValue => double.tryParse(totalAmount) ?? 0.0;
+
+  // Get total credit charge as double
+  double get totalCreditChargeValue => double.tryParse(totalCreditCharge ?? '0') ?? 0.0;
+
+  // Get total net amount as double
+  double get totalNetAmountValue => double.tryParse(totalNetAmount ?? totalAmount) ?? totalAmountValue;
+
+  // Get total amount pay as double
+  double get totalAmountPayValue => double.tryParse(totalAmountPay ?? totalAmount) ?? totalAmountValue;
 }
 
 @JsonSerializable()

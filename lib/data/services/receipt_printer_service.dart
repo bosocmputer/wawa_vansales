@@ -171,6 +171,7 @@ class ReceiptPrinterService {
     bool isCopy = false, // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นใบสำเนาหรือไม่
     double? changeAmount, // เพิ่มพารามิเตอร์สำหรับเงินทอน
     bool isFromPreOrder = false, // เพิ่มพารามิเตอร์สำหรับระบุว่าเป็นการขายจาก PreOrder หรือไม่
+    double balanceAmount = 0, // เพิ่มพารามิเตอร์สำหรับยอดลดหนี้
   }) async {
     // ตรวจสอบการเชื่อมต่อ
     if (!_isConnected) {
@@ -274,7 +275,21 @@ class ReceiptPrinterService {
         await _printer.printLeftRight("VAT 7%", currencyFormat.format(vatAmount), smallSize);
       }
 
-      // ยอดรวม (ให้เห็นชัดเจน)
+      // แสดงค่าธรรมเนียมบัตรเครดิต (ถ้ามีการชำระด้วยบัตรเครดิต)
+      for (var payment in payments) {
+        final paymentType = PaymentModel.intToPaymentType(payment.payType);
+        if (paymentType == PaymentType.creditCard && payment.charge > 0) {
+          await _printer.printLeftRight("Charge 1.5%", currencyFormat.format(payment.charge), smallSize);
+        }
+      }
+
+      // แสดงยอดลดหนี้ (ถ้ามี)
+      if (balanceAmount > 0) {
+        // แสดงยอดลดหนี้
+        await _printer.printLeftRight("ยอดลดหนี้", currencyFormat.format(balanceAmount), smallSize);
+      }
+
+      // ยอดรวม
       await _printer.printLeftRight("ยอดรวมสุทธิ", currencyFormat.format(totalAmount), mediumSize);
 
       // แสดงการชำระเงิน
@@ -298,8 +313,10 @@ class ReceiptPrinterService {
 
         await _printer.printLeftRight(paymentText, currencyFormat.format(payment.payAmount), smallSize);
 
-        if (payment.transNumber.isNotEmpty) {
-          await _printer.printCustom("อ้างอิง: ${payment.transNumber}", smallSize, 0);
+        // แสดงค่าธรรมเนียมบัตรเครดิต (ถ้ามี)
+        if (paymentType == PaymentType.creditCard && payment.charge > 0) {
+          await _printer.printLeftRight("Charge 1.5%", currencyFormat.format(payment.charge), smallSize);
+          await _printer.printLeftRight("ยอดสุทธิ", currencyFormat.format(payment.payAmount + payment.charge), smallSize);
         }
       }
 

@@ -63,6 +63,17 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
 
     final printerStatus = Provider.of<PrinterStatusProvider>(context, listen: false);
 
+    // ดึงข้อมูลจำนวนเงินจากแต่ละประเภทการชำระเงิน
+    final double cashAmount = double.tryParse(widget.orderHistory.cashAmount) ?? 0;
+    final double transferAmount = double.tryParse(widget.orderHistory.tranferAmount) ?? 0;
+    final double cardAmount = double.tryParse(widget.orderHistory.cardAmount) ?? 0;
+
+    // คำนวณเงินทอน (กรณีจ่ายเงินสดมากกว่ายอดรวม)
+    double? changeAmount;
+    if (cashAmount > totalAmount) {
+      changeAmount = cashAmount - totalAmount;
+    }
+
     // ถ้าเครื่องพิมพ์ไม่ได้เชื่อมต่อ ให้พยายามเชื่อมต่อก่อน
     if (!printerStatus.isConnected) {
       // แสดง dialog กำลังเชื่อมต่อ
@@ -166,13 +177,42 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
       );
     }).toList();
 
-    // สร้างรายการชำระเงิน - สำหรับ PreOrder อาจไม่มีข้อมูลการชำระเงิน
+    // รายการชำระเงิน - สร้างจากข้อมูลจริงของ PreOrder
     List<PaymentModel> payments = [];
 
-    // สามารถเพิ่มค่า default หรือค่าที่รู้ได้จาก orderHistory ถ้ามี
-    if (totalAmount > 0) {
+    // เพิ่มข้อมูลการชำระเงินตามประเภท
+    if (cashAmount > 0) {
       payments.add(PaymentModel(
-        payType: 1, // เงินสด เป็นค่าเริ่มต้น
+        payType: 0, // เงินสด
+        payAmount: cashAmount,
+        transNumber: '',
+      ));
+    }
+
+    if (transferAmount > 0) {
+      payments.add(PaymentModel(
+        payType: 1, // เงินโอน
+        payAmount: transferAmount,
+        transNumber: '',
+      ));
+    }
+
+    if (cardAmount > 0) {
+      // ใช้ค่า totalCreditCharge จาก API หรือคำนวณถ้าไม่มีค่า
+      final double creditCardCharge = double.tryParse(widget.orderHistory.totalCreditCharge ?? '0') ?? (cardAmount * 0.015);
+
+      payments.add(PaymentModel(
+        payType: 2, // บัตรเครดิต
+        payAmount: cardAmount,
+        transNumber: '', // เพิ่มการสร้างเลขอ้างอิงจากเลขที่เอกสาร
+        charge: creditCardCharge, // ใช้ค่าธรรมเนียมบัตรเครดิตจาก API
+      ));
+    }
+
+    // ถ้าไม่มีข้อมูลการชำระเงินเลย ให้ตั้งเป็นเงินสดทั้งหมด
+    if (payments.isEmpty && totalAmount > 0) {
+      payments.add(PaymentModel(
+        payType: 1, // เงินสด
         payAmount: totalAmount,
         transNumber: '',
       ));
@@ -190,6 +230,7 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
         empCode: Global.empCode,
         receiptType: receiptType,
         isCopy: true, // ระบุว่าเป็นการพิมพ์สำเนา
+        changeAmount: changeAmount, // เพิ่มการส่งค่าเงินทอน
         isFromPreOrder: true, // เพิ่มค่า isFromPreOrder เป็น true เพื่อระบุว่าเป็นการพิมพ์จาก Pre-Order
       );
 
@@ -562,6 +603,17 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
   }
 
   Widget _buildTotalSummary(double totalAmount) {
+    // ใช้ยอดสุทธิจาก API ถ้ามี ไม่เช่นนั้นใช้ยอดรวมที่คำนวณจากรายการสินค้า
+    final double displayAmount = double.tryParse(widget.orderHistory.totalNetAmount ?? '0') ?? totalAmount;
+
+    // ตรวจสอบว่ามีค่าธรรมเนียมบัตรเครดิตหรือไม่
+    final double creditCharge = double.tryParse(widget.orderHistory.totalCreditCharge ?? '0') ?? 0;
+    final bool hasCharge = creditCharge > 0;
+
+    // ตรวจสอบค่าบัตรเครดิตว่ามีการใช้จ่ายหรือไม่
+    final double cardAmount = double.tryParse(widget.orderHistory.cardAmount) ?? 0;
+    final bool hasCardPayment = cardAmount > 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -576,43 +628,109 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            // แสดงรายละเอียดค่าธรรมเนียมบัตรเครดิตและยอดสุทธิ เฉพาะเมื่อมีการใช้บัตรเครดิต
+            if (hasCardPayment && hasCharge) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'ยอดรวมทั้งสิ้น',
+                    'ยอดรวมสินค้า',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey.shade700,
                     ),
                   ),
                   Text(
                     '฿${_currencyFormat.format(totalAmount)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade700,
                     ),
                   ),
                 ],
               ),
-            ),
-            ElevatedButton.icon(
-              onPressed: () {
-                // ก่อนกลับไปหน้าก่อนหน้า ให้รีเซ็ตสถานะของ detail
-                context.read<PreOrderHistoryBloc>().add(ResetPreOrderHistoryDetail());
-                Navigator.of(context).pop();
-              },
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('กลับ'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(120, 44),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.credit_card,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'ค่าธรรมเนียมบัตรเครดิต (1.5%)',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '฿${_currencyFormat.format(creditCharge)}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
               ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Divider(color: Colors.grey.shade300, height: 1),
+              ),
+            ],
+
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'ยอดรวมทั้งสิ้น',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      Text(
+                        '฿${_currencyFormat.format(displayAmount)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // ก่อนกลับไปหน้าก่อนหน้า ให้รีเซ็ตสถานะของ detail
+                    context.read<PreOrderHistoryBloc>().add(ResetPreOrderHistoryDetail());
+                    Navigator.of(context).pop();
+                  },
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('กลับ'),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(120, 44),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

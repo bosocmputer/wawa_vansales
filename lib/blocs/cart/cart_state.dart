@@ -1,5 +1,6 @@
 // lib/blocs/cart/cart_state.dart
 import 'package:equatable/equatable.dart';
+import 'package:wawa_vansales/data/models/balance_detail_model.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
@@ -23,6 +24,8 @@ class CartLoaded extends CartState {
   final int currentStep; // 0: เลือกลูกค้า, 1: เลือกสินค้า, 2: ชำระเงิน, 3: สรุปรายการ
   final String preOrderDocNo; // เพิ่มฟิลด์สำหรับเก็บเลขที่เอกสารพรีออเดอร์
   final String documentNumber; // เพิ่มฟิลด์สำหรับเก็บเลขที่เอกสาร
+  final double balanceAmount; // เพิ่มฟิลด์สำหรับเก็บยอดลดหนี้
+  final List<BalanceDetailModel> balanceDetail; // เพิ่มฟิลด์สำหรับเก็บรายละเอียดการลดหนี้
 
   const CartLoaded({
     this.selectedCustomer,
@@ -32,10 +35,12 @@ class CartLoaded extends CartState {
     this.currentStep = 0,
     this.preOrderDocNo = '', // กำหนดค่าเริ่มต้นเป็นสตริงว่าง
     this.documentNumber = '', // กำหนดค่าเริ่มต้นเป็นสตริงว่าง
+    this.balanceAmount = 0, // กำหนดค่าเริ่มต้นเป็น 0
+    this.balanceDetail = const [], // กำหนดค่าเริ่มต้นเป็น list ว่าง
   });
 
   @override
-  List<Object?> get props => [selectedCustomer, items, payments, totalAmount, currentStep, preOrderDocNo, documentNumber];
+  List<Object?> get props => [selectedCustomer, items, payments, totalAmount, currentStep, preOrderDocNo, documentNumber, balanceAmount, balanceDetail];
 
   // สร้าง copyWith method
   CartLoaded copyWith({
@@ -46,6 +51,8 @@ class CartLoaded extends CartState {
     int? currentStep,
     String? preOrderDocNo,
     String? documentNumber,
+    double? balanceAmount,
+    List<BalanceDetailModel>? balanceDetail,
   }) {
     return CartLoaded(
       selectedCustomer: selectedCustomer ?? this.selectedCustomer,
@@ -55,12 +62,14 @@ class CartLoaded extends CartState {
       currentStep: currentStep ?? this.currentStep,
       preOrderDocNo: preOrderDocNo ?? this.preOrderDocNo,
       documentNumber: documentNumber ?? this.documentNumber,
+      balanceAmount: balanceAmount ?? this.balanceAmount,
+      balanceDetail: balanceDetail ?? this.balanceDetail,
     );
   }
 
   // คำนวณยอดชำระแล้ว
   double get totalPaid {
-    return payments.fold(0, (sum, payment) => sum + payment.payAmount);
+    return payments.fold(0.0, (sum, payment) => sum + payment.payAmount) + balanceAmount;
   }
 
   // คำนวณยอดคงเหลือ
@@ -84,6 +93,8 @@ class CartSubmitSuccess extends CartState {
   final List<CartItemModel> items;
   final List<PaymentModel> payments;
   final double totalAmount;
+  final double balanceAmount; // เพิ่มฟิลด์สำหรับเก็บยอดลดหนี้
+  final List<BalanceDetailModel> balanceDetail; // เพิ่มฟิลด์สำหรับเก็บรายละเอียดการลดหนี้
 
   const CartSubmitSuccess({
     required this.documentNumber,
@@ -91,10 +102,12 @@ class CartSubmitSuccess extends CartState {
     required this.items,
     required this.payments,
     required this.totalAmount,
+    this.balanceAmount = 0,
+    this.balanceDetail = const [],
   });
 
   @override
-  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount];
+  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount, balanceAmount, balanceDetail];
 }
 
 // เกิดข้อผิดพลาด

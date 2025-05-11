@@ -283,9 +283,9 @@ class _SaleDocumentSearchScreenState extends State<SaleDocumentSearchScreen> {
     }
 
     final amount = double.tryParse(saleDoc.totalAmount) ?? 0;
-    final cashAmount = double.tryParse(saleDoc.cashAmount) ?? 0;
-    final transferAmount = double.tryParse(saleDoc.transferAmount) ?? 0;
-    final cardAmount = double.tryParse(saleDoc.cardAmount) ?? 0;
+    final cashAmount = double.tryParse(saleDoc.cashAmount!) ?? 0;
+    final transferAmount = double.tryParse(saleDoc.transferAmount!) ?? 0;
+    final cardAmount = double.tryParse(saleDoc.cardAmount!) ?? 0;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

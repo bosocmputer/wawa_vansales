@@ -233,7 +233,7 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
                               ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
                         ElevatedButton.icon(
                           onPressed: () {
                             _loadPreOrderHistoryList();
@@ -309,6 +309,12 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
     final custCode = preOrderHistory.custCode;
     final totalAmount = preOrderHistory.totalAmount;
     final docTime = preOrderHistory.docTime;
+
+    // แปลงค่าตัวเลขให้อยู่ในรูปแบบที่ถูกต้อง
+    final double totalNetAmount = double.tryParse(preOrderHistory.totalNetAmount ?? '0') ?? 0.0;
+
+    // ใช้ค่าที่ถูกต้องสำหรับการแสดงผล (totalNetAmount มีค่าคือยอดสุทธิรวมค่าธรรมเนียม)
+    final displayAmount = totalNetAmount > 0 ? totalNetAmount : totalAmount;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -439,7 +445,7 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '฿${formatter.format(totalAmount)}',
+                        '฿${formatter.format(displayAmount)}',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -459,89 +465,102 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
 
   // เพิ่มฟังก์ชันแสดงข้อมูลการชำระเงิน
   Widget _buildPaymentInfo(PreOrderHistoryModel preOrder) {
-    // แปลงค่าเป็น double
+    // แปลงค่าเป็น double ด้วยวิธีที่ปลอดภัยมากขึ้น
     final double cashAmount = double.tryParse(preOrder.cashAmount) ?? 0;
     final double transferAmount = double.tryParse(preOrder.tranferAmount) ?? 0;
     final double cardAmount = double.tryParse(preOrder.cardAmount) ?? 0;
 
-    // สร้างรายการวิธีการชำระเงิน
-    final List<Widget> paymentMethods = [];
-
-    if (cashAmount > 0) {
-      paymentMethods.add(
-        Row(
-          children: [
-            Icon(
-              Icons.money,
-              size: 16,
-              color: _screenColor,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'เงินสด: ฿${currencyFormat.format(cashAmount)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ],
-        ),
-      );
+    // Log เพื่อตรวจสอบข้อมูล
+    if (kDebugMode) {
+      print("PreOrder Payment - Cash: ${preOrder.cashAmount}, Transfer: ${preOrder.tranferAmount}, Card: ${preOrder.cardAmount}");
     }
 
-    if (transferAmount > 0) {
-      if (paymentMethods.isNotEmpty) {
-        paymentMethods.add(const SizedBox(height: 2));
-      }
-      paymentMethods.add(
-        Row(
-          children: [
-            Icon(
-              Icons.account_balance,
-              size: 16,
-              color: _screenColor,
+    // ถ้าไม่มีการชำระเงินที่ระบุประเภท ให้แสดงข้อความ
+    if (cashAmount == 0 && transferAmount == 0 && cardAmount == 0) {
+      return Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 18,
+            color: _screenColor,
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'ไม่ระบุประเภทการชำระเงิน',
+            style: TextStyle(
+              fontSize: 14,
+              fontStyle: FontStyle.italic,
+              color: Colors.grey,
             ),
-            const SizedBox(width: 4),
-            Text(
-              'โอนเงิน: ฿${currencyFormat.format(transferAmount)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (cardAmount > 0) {
-      if (paymentMethods.isNotEmpty) {
-        paymentMethods.add(const SizedBox(height: 2));
-      }
-      paymentMethods.add(
-        Row(
-          children: [
-            Icon(
-              Icons.credit_card,
-              size: 16,
-              color: _screenColor,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              'บัตรเครดิต: ฿${currencyFormat.format(cardAmount)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: paymentMethods,
+      children: [
+        if (cashAmount > 0)
+          Row(
+            children: [
+              Icon(
+                Icons.money,
+                size: 18,
+                color: _screenColor,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'เงินสด: ฿${currencyFormat.format(cashAmount)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        if (transferAmount > 0)
+          Padding(
+            padding: EdgeInsets.only(top: cashAmount > 0 ? 4 : 0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.account_balance,
+                  size: 18,
+                  color: _screenColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'โอนเงิน: ฿${currencyFormat.format(transferAmount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (cardAmount > 0)
+          Padding(
+            padding: EdgeInsets.only(top: (cashAmount > 0 || transferAmount > 0) ? 4 : 0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.credit_card,
+                  size: 18,
+                  color: _screenColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'บัตรเครดิต: ฿${currencyFormat.format(cardAmount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

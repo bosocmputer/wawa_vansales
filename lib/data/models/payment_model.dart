@@ -20,10 +20,14 @@ class PaymentModel {
   @JsonKey(name: 'pay_amount')
   final double payAmount;
 
+  @JsonKey(name: 'charge')
+  final double charge;
+
   PaymentModel({
     required this.payType,
     required this.transNumber,
     required this.payAmount,
+    this.charge = 0.0,
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) => _$PaymentModelFromJson(json);

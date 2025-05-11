@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_event.dart';
@@ -29,6 +30,21 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   bool _autoValidate = false;
   String _selectedArStatus = '0'; // เริ่มต้นเป็นบุคคลธรรมดา
   String _selectedPriceLevel = '0'; // เริ่มต้นเป็นราคากลาง
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize with a random customer code
+    _codeController.text = _generateRandomCode();
+  }
+
+  // Generate a random customer code with OR- prefix
+  String _generateRandomCode() {
+    final random = Random();
+    // Generate a random 4-digit number
+    final randomNumber = (1000 + random.nextInt(9000)).toString(); // Number between 1000-9999
+    return "OR-$randomNumber";
+  }
 
   @override
   void dispose() {
@@ -164,7 +180,6 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                   label: 'รหัสลูกค้า',
                   hint: 'กรอกรหัสลูกค้า เช่น 0001',
                   icon: Icons.badge,
-                  prefixText: 'OR-',
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'กรุณากรอกรหัสลูกค้า';
@@ -278,7 +293,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                           });
                         },
                         isExpanded: true,
-                        icon: Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
+                        icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryColor),
                         iconSize: 30,
                         style: const TextStyle(color: Colors.black, fontSize: 16),
                         dropdownColor: Colors.white,

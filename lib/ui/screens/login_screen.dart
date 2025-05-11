@@ -29,8 +29,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     // เติมข้อมูลตัวอย่าง (สำหรับการพัฒนา)
-    _userCodeController.text = 'test';
-    _passwordController.text = '8888';
+    _userCodeController.text = '';
+    _passwordController.text = '';
   }
 
   @override

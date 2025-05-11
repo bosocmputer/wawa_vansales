@@ -14,9 +14,9 @@ SaleDocumentModel _$SaleDocumentModelFromJson(Map<String, dynamic> json) =>
       custCode: json['cust_code'] as String,
       custName: json['cust_name'] as String,
       totalAmount: json['total_amount'] as String,
-      cashAmount: json['cash_amount'] as String,
-      cardAmount: json['card_amount'] as String,
-      transferAmount: json['tranfer_amount'] as String,
+      cashAmount: json['cash_amount'] as String?,
+      cardAmount: json['card_amount'] as String?,
+      transferAmount: json['tranfer_amount'] as String?,
     );
 
 Map<String, dynamic> _$SaleDocumentModelToJson(SaleDocumentModel instance) =>

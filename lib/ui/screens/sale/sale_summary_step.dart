@@ -23,6 +23,8 @@ class SaleSummaryStep extends StatefulWidget {
   final String empCode;
   final String? preOrderDocNumber; // เพิ่มพารามิเตอร์สำหรับเลขที่เอกสาร pre-order
   final bool isFromPreOrder; // เพิ่มพารามิเตอร์ระบุว่าเป็นการขายจาก pre-order หรือไม่
+  final Function(List<PaymentModel>)? onUpdatePayments; // เพิ่มฟังก์ชันสำหรับอัปเดตการชำระเงินเมื่อมีการคำนวณค่าธรรมเนียมบัตรเครดิต
+  final double balanceAmount; // เพิ่มพารามิเตอร์สำหรับยอดลดหนี้
 
   const SaleSummaryStep({
     super.key,
@@ -37,6 +39,8 @@ class SaleSummaryStep extends StatefulWidget {
     required this.empCode,
     this.preOrderDocNumber, // พารามิเตอร์เลขที่เอกสาร pre-order (ไม่บังคับ)
     this.isFromPreOrder = false, // ค่าเริ่มต้นคือ false
+    this.onUpdatePayments,
+    this.balanceAmount = 0, // ค่าเริ่มต้นเป็น 0
   });
 
   @override
@@ -45,11 +49,46 @@ class SaleSummaryStep extends StatefulWidget {
 
 class _SaleSummaryStepState extends State<SaleSummaryStep> {
   String generatedDocNumber = '';
+  List<PaymentModel> updatedPayments = [];
 
   @override
   void initState() {
     super.initState();
     _generateDocNumber();
+    _calculateCreditCardCharge();
+  }
+
+  void _calculateCreditCardCharge() {
+    // คัดลอกรายการชำระเงินเดิม
+    updatedPayments = List<PaymentModel>.from(widget.payments);
+
+    bool hasUpdated = false;
+
+    // คำนวณค่าธรรมเนียมบัตรเครดิต 1.5% สำหรับชำระด้วยบัตร
+    for (int i = 0; i < updatedPayments.length; i++) {
+      PaymentModel payment = updatedPayments[i];
+
+      // ตรวจสอบว่าเป็นการชำระด้วยบัตรเครดิตหรือไม่
+      if (payment.payType == PaymentModel.paymentTypeToInt(PaymentType.creditCard)) {
+        // คำนวณค่าธรรมเนียม 1.5%
+        final double cardCharge = payment.payAmount * 0.015;
+
+        // สร้างรายการชำระเงินใหม่พร้อมค่าธรรมเนียม
+        updatedPayments[i] = PaymentModel(
+          payType: payment.payType,
+          transNumber: payment.transNumber,
+          payAmount: payment.payAmount,
+          charge: cardCharge,
+        );
+
+        hasUpdated = true;
+      }
+    }
+
+    // แจ้งการเปลี่ยนแปลงกลับไปยังหน้าจอหลักถ้ามีการอัปเดต
+    if (hasUpdated && widget.onUpdatePayments != null) {
+      widget.onUpdatePayments!(updatedPayments);
+    }
   }
 
   Future<void> _generateDocNumber() async {
@@ -93,9 +132,16 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
     );
 
     if (confirm == true) {
+      // ส่งค่าการชำระเงินใหม่ที่มีการคิดค่าธรรมเนียมบัตรเครดิตแล้ว
+      if (updatedPayments.isNotEmpty && widget.onUpdatePayments != null) {
+        widget.onUpdatePayments!(updatedPayments);
+      }
+
       // ignore: use_build_context_synchronously
       context.read<CartBloc>()
         ..add(SetDocumentNumber(generatedDocNumber))
+        // นำรายการชำระเงินที่อัปเดตแล้วส่งไปให้ bloc
+        ..add(UpdatePaymentDetails(updatedPayments.isNotEmpty ? updatedPayments : widget.payments))
         ..add(const SubmitSale());
     }
   }
@@ -130,11 +176,12 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
                   child: ReceiptPreviewWidget(
                     customer: widget.customer,
                     items: widget.items,
-                    payments: widget.payments,
+                    payments: updatedPayments.isNotEmpty ? updatedPayments : widget.payments,
                     totalAmount: widget.totalAmount,
                     docNumber: generatedDocNumber,
                     empCode: widget.empCode,
                     isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
+                    balanceAmount: widget.balanceAmount, // ส่งค่า balanceAmount ไปด้วย
                   ),
                 ),
               ],

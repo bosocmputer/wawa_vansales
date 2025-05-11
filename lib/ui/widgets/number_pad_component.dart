@@ -37,44 +37,44 @@ class NumberPadComponent extends StatelessWidget {
               Column(
                 children: [
                   _buildNumberButton('1', buttonSize, buttonHeight),
-                  SizedBox(height: verticalSpacing),
+                  const SizedBox(height: verticalSpacing),
                   _buildNumberButton('4', buttonSize, buttonHeight),
-                  SizedBox(height: verticalSpacing),
+                  const SizedBox(height: verticalSpacing),
                   _buildNumberButton('7', buttonSize, buttonHeight),
                 ],
               ),
-              SizedBox(width: horizontalSpacing),
+              const SizedBox(width: horizontalSpacing),
 
               // คอลัมน์กลางซ้าย (2, 5, 8)
               Column(
                 children: [
                   _buildNumberButton('2', buttonSize, buttonHeight),
-                  SizedBox(height: verticalSpacing),
+                  const SizedBox(height: verticalSpacing),
                   _buildNumberButton('5', buttonSize, buttonHeight),
-                  SizedBox(height: verticalSpacing),
+                  const SizedBox(height: verticalSpacing),
                   _buildNumberButton('8', buttonSize, buttonHeight),
                 ],
               ),
-              SizedBox(width: horizontalSpacing),
+              const SizedBox(width: horizontalSpacing),
 
               // คอลัมน์กลางขวา (3, 6, 9)
               Column(
                 children: [
                   _buildNumberButton('3', buttonSize, buttonHeight),
-                  SizedBox(height: verticalSpacing),
+                  const SizedBox(height: verticalSpacing),
                   _buildNumberButton('6', buttonSize, buttonHeight),
-                  SizedBox(height: verticalSpacing),
+                  const SizedBox(height: verticalSpacing),
                   _buildNumberButton('9', buttonSize, buttonHeight),
                 ],
               ),
-              SizedBox(width: horizontalSpacing),
+              const SizedBox(width: horizontalSpacing),
 
               // คอลัมน์ขวาสุด (C, 0)
               Column(
                 children: [
                   // ปุ่ม C ขนาดใหญ่ (สูงเท่ากับ 2 ปุ่ม + ระยะห่าง)
                   _buildLargeActionButton('C', buttonSize, (buttonHeight * 2) + verticalSpacing, Colors.red.shade100, Colors.red.shade800, onClearPressed),
-                  SizedBox(height: verticalSpacing),
+                  const SizedBox(height: verticalSpacing),
                   _buildNumberButton('0', buttonSize, buttonHeight),
                 ],
               ),

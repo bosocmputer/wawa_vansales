@@ -32,6 +32,18 @@ class PreOrderHistoryModel {
   @JsonKey(name: 'card_amount', defaultValue: '0')
   final String cardAmount;
 
+  @JsonKey(name: 'total_credit_charge', defaultValue: '0')
+  final String? totalCreditCharge;
+
+  @JsonKey(name: 'total_net_amount', defaultValue: '0')
+  final String? totalNetAmount;
+
+  @JsonKey(name: 'total_amount_pay', defaultValue: '0')
+  final String? totalAmountPay;
+
+  @JsonKey(name: 'transfer_ref', defaultValue: '')
+  final String? transferRef;
+
   const PreOrderHistoryModel({
     required this.docNo,
     required this.docDate,
@@ -42,6 +54,10 @@ class PreOrderHistoryModel {
     this.cashAmount = '0',
     this.tranferAmount = '0',
     this.cardAmount = '0',
+    this.totalCreditCharge,
+    this.totalNetAmount,
+    this.totalAmountPay,
+    this.transferRef,
   });
 
   // คำนวณยอดรวมในรูปแบบ double

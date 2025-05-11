@@ -26,6 +26,13 @@ SaleTransactionModel _$SaleTransactionModelFromJson(
       cardAmount: json['card_amount'] as String,
       totalAmount: json['total_amount'] as String,
       totalValue: json['total_value'] as String,
+      totalCreditCharge: json['total_credit_charge'] as String,
+      totalNetAmount: json['total_net_amount'] as String,
+      totalAmountPay: json['total_amount_pay'] as String?,
+      balanceAmount: json['balance_amount'] as String,
+      balanceDetail: (json['balance_detail'] as List<dynamic>)
+          .map((e) => BalanceDetailModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
       remark: json['remark'] as String? ?? '',
       carCode: json['car_code'] as String?,
     );
@@ -46,6 +53,11 @@ Map<String, dynamic> _$SaleTransactionModelToJson(
       'card_amount': instance.cardAmount,
       'total_amount': instance.totalAmount,
       'total_value': instance.totalValue,
+      'total_credit_charge': instance.totalCreditCharge,
+      'total_net_amount': instance.totalNetAmount,
+      'total_amount_pay': instance.totalAmountPay,
+      'balance_amount': instance.balanceAmount,
+      'balance_detail': instance.balanceDetail,
       'remark': instance.remark,
       'car_code': instance.carCode,
     };

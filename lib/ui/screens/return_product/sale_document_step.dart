@@ -340,9 +340,9 @@ class SaleDocumentStep extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     // แสดงไอคอนสำหรับวิธีชำระเงิน
-                    if ((double.tryParse(saleDoc.cashAmount) ?? 0) > 0) _buildPaymentIcon('เงินสด', Colors.green),
-                    if ((double.tryParse(saleDoc.transferAmount) ?? 0) > 0) _buildPaymentIcon('โอนเงิน', Colors.blue),
-                    if ((double.tryParse(saleDoc.cardAmount) ?? 0) > 0) _buildPaymentIcon('บัตรเครดิต', Colors.orange),
+                    if ((double.tryParse(saleDoc.cashAmount!) ?? 0) > 0) _buildPaymentIcon('เงินสด', Colors.green),
+                    if ((double.tryParse(saleDoc.transferAmount!) ?? 0) > 0) _buildPaymentIcon('โอนเงิน', Colors.blue),
+                    if ((double.tryParse(saleDoc.cardAmount!) ?? 0) > 0) _buildPaymentIcon('บัตรเครดิต', Colors.orange),
                   ],
                 ),
                 const SizedBox(height: 12),

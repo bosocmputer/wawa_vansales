@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
+import 'package:wawa_vansales/blocs/cart/cart_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
+import 'package:wawa_vansales/data/models/balance_detail_model.dart';
+import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
+import 'package:wawa_vansales/ui/screens/sale/balance_detail_screen.dart';
 import 'package:intl/intl.dart';
 
 class SalePaymentStep extends StatefulWidget {
@@ -13,6 +17,8 @@ class SalePaymentStep extends StatefulWidget {
   final double remainingAmount;
   final VoidCallback onBackStep;
   final VoidCallback? onNextStep;
+  final bool isFromPreOrder;
+  final CustomerModel customer;
 
   const SalePaymentStep({
     super.key,
@@ -21,6 +27,8 @@ class SalePaymentStep extends StatefulWidget {
     required this.remainingAmount,
     required this.onBackStep,
     this.onNextStep,
+    this.isFromPreOrder = false,
+    required this.customer,
   });
 
   @override
@@ -195,8 +203,17 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        // เพิ่มดาวแดงเพื่อแสดงว่าเป็นฟิลด์บังคับกรอก
+                        suffix: type == PaymentType.creditCard ? const Text('*', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)) : null,
                       ),
                     ),
+                    if (type == PaymentType.creditCard) ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        '* จำเป็นต้องระบุหมายเลขบัตรเมื่อชำระด้วยบัตรเครดิต',
+                        style: TextStyle(color: Colors.red, fontSize: 12),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -212,6 +229,14 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                   if (amount <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('กรุณาระบุจำนวนเงิน')),
+                    );
+                    return;
+                  }
+
+                  // ตรวจสอบว่ากรอกหมายเลขบัตรหรือไม่ในกรณีชำระด้วยบัตรเครดิต
+                  if (type == PaymentType.creditCard && refNumberController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('กรุณาระบุหมายเลขบัตรเครดิต')),
                     );
                     return;
                   }
@@ -330,6 +355,29 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
     }
 
     return [];
+  }
+
+  void _openArBalanceScreen() async {
+    // คำนวณยอดคงเหลือที่แท้จริงโดยหักลดหนี้ที่เลือกไว้แล้วออกจาก widget.remainingAmount
+    double actualRemainingAmount = widget.remainingAmount;
+
+    // ตรวจสอบ state ของ CartBloc เพื่อเรียกดูยอดลดหนี้ที่เลือกไว้ก่อนหน้า
+    final cartState = context.read<CartBloc>().state;
+    if (cartState is CartLoaded && cartState.balanceAmount > 0) {
+      // ไม่นำยอดลดหนี้ที่เคยเลือกแล้วมาหักออกอีกครั้ง เพราะจะทำให้เกิดการหักซ้ำ
+      // actualRemainingAmount = actualRemainingAmount; (คงไว้เหมือนเดิม)
+    }
+
+    // เปิดหน้า BalanceDetailScreen แทน ArBalanceScreen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => BalanceDetailScreen(
+          customerCode: widget.customer.code!,
+          customerName: widget.customer.name!,
+          remainingAmount: actualRemainingAmount,
+        ),
+      ),
+    );
   }
 
   @override
@@ -473,6 +521,74 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                       ),
                     ),
                   ],
+                ),
+
+                // ปุ่มชำระเงินแบบลดหนี้ (เฉพาะเมื่อมาจาก Pre-order)
+                if (widget.isFromPreOrder) ...[
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () => _openArBalanceScreen(),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.account_balance_wallet, color: Colors.purple),
+                          SizedBox(width: 8),
+                          Text(
+                            'ชำระด้วยการลดหนี้',
+                            style: TextStyle(
+                              color: Colors.purple,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
+                // รายการลดหนี้ (เฉพาะเมื่อมาจาก Pre-order)
+                BlocBuilder<CartBloc, CartState>(
+                  builder: (context, state) {
+                    if (state is CartLoaded && state.balanceDetail.isNotEmpty && state.balanceAmount > 0) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'รายการลดหนี้',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '฿${_currencyFormat.format(state.balanceAmount)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.purple,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          ...state.balanceDetail.map((detail) => _buildBalanceDetailItem(detail)),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
                 ),
 
                 // รายการชำระเงิน
@@ -636,6 +752,109 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildBalanceDetailItem(BalanceDetailModel detail) {
+    // แปลงวันที่เป็นรูปแบบที่อ่านง่ายขึ้น
+    String formattedDate = detail.docDate;
+    try {
+      final date = DateTime.parse(detail.docDate);
+      formattedDate = DateFormat('dd/MM/yyyy').format(date);
+    } catch (e) {
+      // ถ้าแปลงวันที่ไม่ได้ ให้ใช้ค่าเดิม
+    }
+
+    final amount = double.tryParse(detail.amount) ?? 0.0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.purple.withOpacity(0.2), width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // ไอคอนด้านซ้าย
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.receipt_long,
+                  color: Colors.purple,
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // ข้อมูลเอกสาร
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          detail.docNo,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.purple,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      // จำนวนเงิน
+                      Text(
+                        '฿${_currencyFormat.format(amount)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.purple,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // วันที่
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 12,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

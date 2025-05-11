@@ -24,13 +24,13 @@ class SaleDocumentModel {
   final String totalAmount;
 
   @JsonKey(name: 'cash_amount')
-  final String cashAmount;
+  String? cashAmount;
 
   @JsonKey(name: 'card_amount')
-  final String cardAmount;
+  String? cardAmount;
 
   @JsonKey(name: 'tranfer_amount')
-  final String transferAmount;
+  String? transferAmount;
 
   SaleDocumentModel({
     required this.docNo,
@@ -39,10 +39,12 @@ class SaleDocumentModel {
     required this.custCode,
     required this.custName,
     required this.totalAmount,
-    required this.cashAmount,
-    required this.cardAmount,
-    required this.transferAmount,
-  });
+    String? cashAmount,
+    String? cardAmount,
+    String? transferAmount,
+  })  : cashAmount = cashAmount ?? '0.00',
+        cardAmount = cardAmount ?? '0.00',
+        transferAmount = transferAmount ?? '0.00';
 
   factory SaleDocumentModel.fromJson(Map<String, dynamic> json) => _$SaleDocumentModelFromJson(json);
 

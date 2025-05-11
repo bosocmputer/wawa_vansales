@@ -511,14 +511,17 @@ class _SaleScreenState extends State<SaleScreen> {
                             onBackStep: () => _goToStep(0),
                             isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปยัง SaleCartStep
                           ),
-                          // Step 3: ชำระเงิน
-                          SalePaymentStep(
-                            totalAmount: state.totalAmount,
-                            payments: state.payments,
-                            remainingAmount: state.remainingAmount,
-                            onBackStep: () => _goToStep(1),
-                            onNextStep: () => _goToStep(3),
-                          ),
+                          if (state.selectedCustomer != null)
+                            // Step 3: ชำระเงิน
+                            SalePaymentStep(
+                              totalAmount: state.totalAmount,
+                              payments: state.payments,
+                              remainingAmount: state.remainingAmount,
+                              onBackStep: () => _goToStep(1),
+                              onNextStep: () => _goToStep(3),
+                              customer: state.selectedCustomer!,
+                              isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปยัง SalePaymentStep
+                            ),
                           // Step 4: สรุปรายการ + พิมพ์ใบเสร็จ
                           if (state.selectedCustomer != null)
                             SaleSummaryStep(
@@ -535,6 +538,7 @@ class _SaleScreenState extends State<SaleScreen> {
                               empCode: _empCode,
                               preOrderDocNumber: preOrderDocNo, // ส่งเลขที่เอกสาร preOrder ถ้ามาจาก PreOrderDetailScreen
                               isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
+                              balanceAmount: state.balanceAmount, // เพิ่มการส่งค่า balanceAmount
                             )
                           else
                             Center(

@@ -304,6 +304,9 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
                 cashAmount: sale.cashAmount,
                 tranferAmount: sale.tranferAmount,
                 cardAmount: sale.cardAmount,
+                totalCreditCharge: sale.totalCreditCharge,
+                totalNetAmount: sale.totalNetAmount,
+                totalAmountPay: sale.totalAmountPay,
               ),
             ),
           );
@@ -415,7 +418,7 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '฿${_currencyFormat.format(sale.totalAmountValue)}',
+                        '฿${_currencyFormat.format(sale.totalNetAmountValue)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

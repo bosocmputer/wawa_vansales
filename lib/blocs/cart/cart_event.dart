@@ -1,5 +1,6 @@
 // lib/blocs/cart/cart_event.dart
 import 'package:equatable/equatable.dart';
+import 'package:wawa_vansales/data/models/balance_detail_model.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
@@ -139,4 +140,38 @@ class SetDocumentNumber extends CartEvent {
 
   @override
   List<Object?> get props => [documentNumber];
+}
+
+// Event สำหรับอัปเดตรายละเอียดการชำระเงินทั้งหมด (รวมค่าธรรมเนียมบัตรเครดิต)
+class UpdatePaymentDetails extends CartEvent {
+  final List<PaymentModel> payments;
+
+  const UpdatePaymentDetails(this.payments);
+
+  @override
+  List<Object?> get props => [payments];
+}
+
+// Event สำหรับเพิ่มรายการลดหนี้
+class AddBalanceDetail extends CartEvent {
+  final BalanceDetailModel balanceDetail;
+
+  const AddBalanceDetail(this.balanceDetail);
+
+  @override
+  List<Object?> get props => [balanceDetail];
+}
+
+// Event สำหรับอัปเดตรายการลดหนี้ทั้งหมด
+class UpdateBalanceDetails extends CartEvent {
+  final List<BalanceDetailModel> balanceDetails;
+  final double totalBalanceAmount;
+
+  const UpdateBalanceDetails({
+    required this.balanceDetails,
+    required this.totalBalanceAmount,
+  });
+
+  @override
+  List<Object?> get props => [balanceDetails, totalBalanceAmount];
 }

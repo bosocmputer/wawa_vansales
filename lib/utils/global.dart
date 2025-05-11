@@ -77,18 +77,19 @@ class Global {
     _shiftCode = null;
   }
 
-  // Generate a document number for sales transactions
+// Generate a document number for sales transactions
   static String generateDocumentNumber(String warehouseCode) {
-    // Use warehouse code, current date, and random number to create a unique document number
+    // Use warehouse code, current date, time, and random number to create a unique document number
     final now = DateTime.now();
 
-    // ใช้รูปแบบปี 2 หลัก เดือน 2 หลัก วัน 2 หลัก
+    // Use format: YY MM DD HH MM
     final dateStr = '${(now.year % 100).toString().padLeft(2, '0')}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
 
-    // สร้างเลขสุ่ม 3 หลัก
+    // Generate random 3-digit number
     final random = (100 + Random().nextInt(900)).toString();
 
-    return 'MINV$warehouseCode$dateStr-$random';
+    return 'MINV$warehouseCode$dateStr$timeStr$random';
   }
 
   static String getPriceLevelText(String priceLevel) {
