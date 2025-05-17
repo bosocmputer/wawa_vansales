@@ -241,17 +241,6 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                     return;
                   }
 
-                  // ในกรณีที่เป็นเงินสด ตรวจสอบว่าเงินที่รับมาพอหรือไม่
-                  if (type == PaymentType.cash) {
-                    final receivedAmount = double.tryParse(amountController.text) ?? 0;
-                    if (receivedAmount < widget.remainingAmount) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('เงินที่รับมาไม่พอสำหรับการชำระ')),
-                      );
-                      return;
-                    }
-                  }
-
                   final payment = PaymentModel(
                     payType: PaymentModel.paymentTypeToInt(type),
                     transNumber: refNumberController.text,
@@ -636,15 +625,42 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                 ),
                 const SizedBox(width: 12),
 
-                // ปุ่มถัดไป
+                // ตรวจสอบ
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: widget.remainingAmount <= 0 ? widget.onNextStep : null,
-                    icon: const Icon(Icons.check_circle),
-                    label: const Text('ตรวจสอบ'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 44),
-                    ),
+                  child: Builder(
+                    builder: (context) {
+                      final cartState = context.watch<CartBloc>().state;
+                      final isPartialPay = cartState is CartLoaded && cartState.partialPay == '1';
+
+                      // ถ้าเลือกชำระเต็มจำนวน (ไม่ใช่ชำระบางส่วน) และจำนวนเงินยังไม่ครบ ให้ปุ่มเป็น disable
+                      final bool isDisabled = !isPartialPay && widget.remainingAmount > 0;
+
+                      return ElevatedButton.icon(
+                        onPressed: isDisabled
+                            ? null // กำหนดเป็น null เพื่อให้ปุ่มเป็น disable
+                            : () {
+                                if (widget.remainingAmount <= 0 || (widget.isFromPreOrder && isPartialPay && widget.payments.isNotEmpty)) {
+                                  widget.onNextStep?.call();
+                                } else {
+                                  // แจ้งเตือนว่ายังชำระไม่ครบ
+                                  if (isPartialPay) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('กรุณาชำระเงินอย่างน้อย 1 รายการ')),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('กรุณาชำระเงินให้ครบจำนวน')),
+                                    );
+                                  }
+                                }
+                              },
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text('ตรวจสอบ'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],

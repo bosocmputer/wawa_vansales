@@ -10,6 +10,7 @@ import 'package:wawa_vansales/blocs/product_detail/product_detail_event.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
+import 'package:wawa_vansales/ui/screens/sale/payment_type_dialog.dart'; // เพิ่ม import
 import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
 import 'package:wawa_vansales/ui/widgets/number_pad_component.dart'; // เพิ่ม import
 import 'package:wawa_vansales/utils/global.dart';
@@ -60,9 +61,47 @@ class _SaleCartStepState extends State<SaleCartStep> {
   @override
   void dispose() {
     _barcodeScanController.dispose();
+    _qtyController.dispose();
     _barcodeScanFocusNode.dispose();
-    _qtyController.dispose(); // เพิ่มการ dispose controller
     super.dispose();
+  }
+
+  // แสดง dialog สำหรับเลือกประเภทการชำระเงินกรณีพรีออเดอร์
+  Future<void> _showPaymentTypeDialog(BuildContext context) async {
+    if (!widget.isFromPreOrder) {
+      // ถ้าไม่ใช่การขายจากพรีออเดอร์ ให้ไปที่ขั้นตอนถัดไปทันที
+      widget.onNextStep();
+      return;
+    }
+
+    // ถ้าเป็นการขายจากพรีออเดอร์ แสดง dialog เลือกรูปแบบการชำระเงิน
+    String? partialPayStatus = "";
+
+    // ปิด dialog สำหรับเลือกประเภทการชำระเงิน ลูกค้ายกเลิก
+    // partialPayStatus = await PaymentTypeDialog.show(context);
+    // if (partialPayStatus == null) {
+    //   // ผู้ใช้กดยกเลิก
+    //   return;
+    // }
+
+    partialPayStatus = "0";
+
+    // อัปเดตสถานะการชำระเงิน
+    context.read<CartBloc>().add(UpdatePartialPayStatus(partialPayStatus));
+
+    // แสดงข้อความแจ้งเตือนถ้าเป็นการชำระบางส่วน
+    if (partialPayStatus == '1') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('คุณเลือกชำระเงินบางส่วน สามารถชำระเงินเท่าใดก็ได้'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+
+    // ไปยังหน้าถัดไป
+    widget.onNextStep();
   }
 
   void _processBarcode(String barcode) {
@@ -795,7 +834,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
             ),
             const SizedBox(width: 8),
             ElevatedButton.icon(
-              onPressed: widget.cartItems.isNotEmpty ? widget.onNextStep : null,
+              onPressed: widget.cartItems.isNotEmpty ? () => _showPaymentTypeDialog(context) : null,
               icon: const Icon(Icons.payment, size: 20),
               label: const Text('ชำระเงิน'),
               style: ElevatedButton.styleFrom(

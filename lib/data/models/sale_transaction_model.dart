@@ -68,6 +68,9 @@ class SaleTransactionModel {
   @JsonKey(name: 'car_code')
   final String? carCode;
 
+  @JsonKey(name: 'partial_pay')
+  final String? partialPay;
+
   SaleTransactionModel({
     required this.custCode,
     required this.empCode,
@@ -89,6 +92,7 @@ class SaleTransactionModel {
     required this.balanceDetail,
     this.remark = '',
     this.carCode,
+    this.partialPay = '0', // เพิ่มค่าเริ่มต้นเป็น 0 (ชำระเต็มจำนวน)
   });
 
   factory SaleTransactionModel.fromJson(Map<String, dynamic> json) => _$SaleTransactionModelFromJson(json);

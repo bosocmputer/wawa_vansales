@@ -19,6 +19,7 @@ class PreOrderBloc extends Bloc<PreOrderEvent, PreOrderState> {
     on<FetchPreOrders>(_onFetchPreOrders);
     on<FetchPreOrderDetail>(_onFetchPreOrderDetail);
     on<ResetPreOrderState>(_onResetState);
+    on<FetchPreOrderByDocNo>(_onFetchPreOrderByDocNo);
   }
 
   // ดึงรายการพรีออเดอร์ตามลูกค้า
@@ -59,5 +60,25 @@ class PreOrderBloc extends Bloc<PreOrderEvent, PreOrderState> {
   // รีเซ็ตสถานะ
   void _onResetState(ResetPreOrderState event, Emitter<PreOrderState> emit) {
     emit(PreOrderInitial());
+  }
+
+  // ค้นหาพรีออเดอร์ตามเลขที่เอกสาร
+  Future<void> _onFetchPreOrderByDocNo(FetchPreOrderByDocNo event, Emitter<PreOrderState> emit) async {
+    try {
+      emit(PreOrderLoading());
+
+      final preOrder = await _preOrderRepository.getDocPreSale(
+        event.customerCode,
+        event.docNo,
+      );
+
+      emit(PreOrderSearchResult(
+        preOrder: preOrder,
+        searchQuery: event.docNo,
+      ));
+    } catch (e) {
+      _logger.e('Error searching pre-order by doc no: $e');
+      emit(PreOrderError('ไม่สามารถค้นหาพรีออเดอร์ได้: ${e.toString()}'));
+    }
   }
 }

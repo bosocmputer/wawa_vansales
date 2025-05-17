@@ -15,6 +15,7 @@ class CustomerModel {
   final String? website;
   @JsonKey(name: 'price_level')
   final String? priceLevel;
+  final String? password;
 
   CustomerModel({
     String? code,
@@ -25,6 +26,7 @@ class CustomerModel {
     String? arstatus,
     String? website,
     String? priceLevel,
+    String? password,
   })  : code = code ?? '',
         address = address ?? '',
         name = name ?? '',
@@ -32,7 +34,8 @@ class CustomerModel {
         taxId = taxId ?? '',
         arstatus = arstatus ?? '',
         website = website ?? '',
-        priceLevel = priceLevel ?? '0';
+        priceLevel = priceLevel ?? '0',
+        password = password ?? '';
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) => _$CustomerModelFromJson(json);
 

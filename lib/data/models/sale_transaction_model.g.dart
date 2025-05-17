@@ -35,6 +35,7 @@ SaleTransactionModel _$SaleTransactionModelFromJson(
           .toList(),
       remark: json['remark'] as String? ?? '',
       carCode: json['car_code'] as String?,
+      partialPay: json['partial_pay'] as String? ?? '0',
     );
 
 Map<String, dynamic> _$SaleTransactionModelToJson(
@@ -60,6 +61,7 @@ Map<String, dynamic> _$SaleTransactionModelToJson(
       'balance_detail': instance.balanceDetail,
       'remark': instance.remark,
       'car_code': instance.carCode,
+      'partial_pay': instance.partialPay,
     };
 
 SaleTransactionResponse _$SaleTransactionResponseFromJson(

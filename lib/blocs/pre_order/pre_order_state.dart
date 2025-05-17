@@ -24,6 +24,20 @@ class PreOrdersLoaded extends PreOrderState {
   List<Object?> get props => [preOrders];
 }
 
+// สถานะค้นหาพรีออเดอร์ด้วยเลขที่เอกสารสำเร็จ
+class PreOrderSearchResult extends PreOrderState {
+  final PreOrderModel? preOrder;
+  final String searchQuery;
+
+  const PreOrderSearchResult({
+    this.preOrder,
+    required this.searchQuery,
+  });
+
+  @override
+  List<Object?> get props => [preOrder, searchQuery];
+}
+
 // สถานะกำลังโหลดรายละเอียดพรีออเดอร์
 class PreOrderDetailLoading extends PreOrderState {}
 

@@ -58,7 +58,11 @@ class _PreOrderSearchScreenState extends State<PreOrderSearchScreen> {
         _hasSearched = true;
       });
 
-      context.read<PreOrderBloc>().add(FetchPreOrders(widget.customerCode));
+      // ใช้ API endpoint ใหม่ - getDocPreSale ด้วย doc_no
+      context.read<PreOrderBloc>().add(FetchPreOrderByDocNo(
+            customerCode: widget.customerCode,
+            docNo: _searchController.text.trim(),
+          ));
 
       // เพื่อให้มีการแสดง loading ก่อนที่จะแสดงผลลัพธ์
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -120,7 +124,7 @@ class _PreOrderSearchScreenState extends State<PreOrderSearchScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'กรุณาระบุเลขที่เอกสารพรีออเดอร์',
+              'ค้นหาพรีออเดอร์ตามเลขที่เอกสาร',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -221,14 +225,11 @@ class _PreOrderSearchScreenState extends State<PreOrderSearchScreen> {
           const SizedBox(height: 24),
           OutlinedButton.icon(
             onPressed: () {
-              context.read<PreOrderBloc>().add(FetchPreOrders(widget.customerCode));
-              setState(() {
-                _hasSearched = true;
-                _searchQuery = '';
-              });
+              _searchController.clear();
+              FocusScope.of(context).requestFocus(FocusNode());
             },
-            icon: const Icon(Icons.list),
-            label: const Text('แสดงรายการทั้งหมด'),
+            icon: const Icon(Icons.search),
+            label: const Text('เริ่มค้นหา'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
@@ -246,6 +247,18 @@ class _PreOrderSearchScreenState extends State<PreOrderSearchScreen> {
           return const Center(
             child: CircularProgressIndicator(),
           );
+        } else if (state is PreOrderSearchResult) {
+          // แสดงผลลัพธ์จากการค้นหาด้วยเลขที่เอกสาร
+          final preOrder = state.preOrder;
+          final searchQuery = state.searchQuery;
+
+          // กรณีไม่พบข้อมูล
+          if (preOrder == null) {
+            return _buildSearchNotFound(searchQuery);
+          }
+
+          // กรณีพบข้อมูล - แสดงเป็นการ์ดเดียว
+          return _buildSinglePreOrderResult(preOrder, currencyFormat);
         } else if (state is PreOrdersLoaded) {
           final preOrders = state.preOrders;
 
@@ -338,7 +351,12 @@ class _PreOrderSearchScreenState extends State<PreOrderSearchScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () {
-                    context.read<PreOrderBloc>().add(FetchPreOrders(widget.customerCode));
+                    context.read<PreOrderBloc>().add(ResetPreOrderState());
+                    setState(() {
+                      _hasSearched = false;
+                      _searchQuery = '';
+                      _searchController.clear();
+                    });
                   },
                   icon: const Icon(Icons.refresh),
                   label: const Text('ลองใหม่'),
@@ -366,6 +384,78 @@ class _PreOrderSearchScreenState extends State<PreOrderSearchScreen> {
           );
         }
       },
+    );
+  }
+
+  // ช่วยแสดงเมื่อไม่พบข้อมูลจากการค้นหา
+  Widget _buildSearchNotFound(String searchQuery) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'ไม่พบเอกสารหมายเลข $searchQuery',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'กรุณาตรวจสอบหมายเลขเอกสารและลองใหม่อีกครั้ง',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () {
+              _searchController.clear();
+              setState(() {
+                _searchQuery = '';
+              });
+              context.read<PreOrderBloc>().add(ResetPreOrderState());
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('ค้นหาใหม่'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // แสดงผลลัพธ์เมื่อพบพรีออเดอร์ 1 รายการ
+  Widget _buildSinglePreOrderResult(PreOrderModel preOrder, NumberFormat formatter) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // แสดงข้อความว่าพบเอกสาร
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Text(
+            'พบเอกสารหมายเลข "${preOrder.docNo}"',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(8.0),
+            children: [
+              _buildPreOrderCard(context, preOrder, formatter),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

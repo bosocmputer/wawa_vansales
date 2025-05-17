@@ -39,6 +39,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<UpdatePaymentDetails>(_onUpdatePaymentDetails);
     on<AddBalanceDetail>(_onAddBalanceDetail); // เพิ่มการจัดการ Event ใหม่
     on<UpdateBalanceDetails>(_onUpdateBalanceDetails); // เพิ่มการจัดการ Event ใหม่
+    on<UpdatePartialPayStatus>(_onUpdatePartialPayStatus); // เพิ่มการจัดการการชำระเงินบางส่วน
   }
 
   // เลือกลูกค้า
@@ -272,8 +273,15 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         return;
       }
 
-      if (!currentState.isFullyPaid) {
+      // ตรวจสอบการชำระเงิน: ถ้าไม่ใช่การชำระบางส่วน ต้องชำระให้ครบจำนวน
+      if (currentState.partialPay != '1' && !currentState.isFullyPaid) {
         emit(const CartError('กรุณาชำระเงินให้ครบจำนวน'));
+        return;
+      }
+
+      // ถ้าเป็นการชำระบางส่วน ต้องมีการชำระเงินอย่างน้อย 1 รายการ
+      if (currentState.partialPay == '1' && currentState.payments.isEmpty) {
+        emit(const CartError('กรุณาเพิ่มการชำระเงินอย่างน้อย 1 รายการ'));
         return;
       }
 
@@ -312,31 +320,77 @@ class CartBloc extends Bloc<CartEvent, CartState> {
               break;
           }
         }
-
+        
+        // คำนวณยอดที่ชำระทั้งหมด
+        final double totalAmountPay = cashAmount + transferAmount + cardAmount;
+        
         // ยอดรวมการลดหนี้ (จาก state ที่เพิ่มเข้ามาใหม่)
         final double balanceAmount = currentState.balanceAmount;
 
-        // เตรียมรายการลดหนี้
-        final List<BalanceDetailModel> balanceDetail = currentState.balanceDetail;
+        // เตรียมรายการลดหนี้ - สร้าง list ใหม่ที่แก้ไขได้
+        final List<BalanceDetailModel> balanceDetail = 
+            List<BalanceDetailModel>.from(currentState.balanceDetail);
 
-        // เพิ่มรายการ PreOrder ถ้าเป็น PreOrder และมีการใช้ลดหนี้
-        if (currentState.preOrderDocNo.isNotEmpty && balanceAmount > 0) {
-          // เพิ่มรายการ PreOrder เข้าไปใน balanceDetail
-          balanceDetail.add(BalanceDetailModel(
-            transFlag: '44', // รหัสสำหรับ PreOrder
-            docNo: currentState.preOrderDocNo, // เลขที่เอกสาร PreOrder
-            docDate: docDate,
-            amount: currentState.totalAmount.toString(),
-            balanceRef: currentState.totalAmount.toString(),
-          ));
+        // เพิ่มรายการ PreOrder ถ้าเป็น PreOrder และมีการใช้ลดหนี้ หรือชำระบางส่วน
+        if (currentState.preOrderDocNo.isNotEmpty && (balanceAmount > 0 || currentState.partialPay == '1')) {
+          // ถ้าเป็นการชำระบางส่วน และไม่มีลดหนี้ ให้เพิ่มรายการ balance_detail
+          if (currentState.partialPay == '1') {
+            // ใช้ totalAmountPay ซึ่งคือยอดรวมที่จ่ายจริงทั้งหมด
+            final double paidAmount = totalAmountPay;
+            // ยอดค้างชำระ = ยอดรวมทั้งหมดของบิล - ยอดที่ชำระแล้ว
+            final double balanceRef = currentState.totalAmount - paidAmount;
+            
+            _logger.i('กำลังเพิ่ม balance_detail สำหรับการชำระบางส่วน');
+            _logger.i('เอกสาร: ${currentState.preOrderDocNo}');
+            _logger.i('ยอดรวมบิล: ${currentState.totalAmount}');
+            _logger.i('ยอดชำระ: $paidAmount');
+            _logger.i('ยอดค้างชำระ: $balanceRef');
+            
+            // สร้างรายการ balance_detail สำหรับการชำระบางส่วน
+            final partialPayDetail = BalanceDetailModel(
+              transFlag: '44', // รหัสสำหรับ PreOrder
+              docNo: docNo, // ใช้เลขที่เอกสารปัจจุบัน
+              docDate: docDate,
+              amount: paidAmount.toString(), // ยอดที่ชำระ
+              balanceRef: balanceRef.toString(), // ยอดคงเหลือที่ยังไม่ชำระ
+            );
+            
+            // เพิ่มเข้าไปใน list
+            balanceDetail.add(partialPayDetail);
+          } else if (balanceAmount > 0) {
+            // สร้างรายการ PreOrder สำหรับกรณีมีการลดหนี้
+            final balanceDetail2 = BalanceDetailModel(
+              transFlag: '44', // รหัสสำหรับ PreOrder
+              docNo: currentState.preOrderDocNo, // เลขที่เอกสาร PreOrder
+              docDate: docDate,
+              amount: currentState.totalAmount.toString(),
+              balanceRef: currentState.totalAmount.toString(),
+            );
+            
+            // เพิ่มเข้าไปใน list
+            balanceDetail.add(balanceDetail2);
+          }
         }
 
         // ปรับยอดรวมหลังจากหักลดหนี้
         final double adjustedTotalAmount = currentState.totalAmount - balanceAmount;
-
-        // คำนวณยอดรวมสุทธิ (รวมค่าธรรมเนียมบัตรเครดิต)
-        final double totalNetAmount = adjustedTotalAmount + totalCreditCharge;
-        final double totalAmountPay = cashAmount + transferAmount + cardAmount;
+        
+        // กำหนดยอดรวมตามเงื่อนไขการชำระเงิน
+        double totalAmount;
+        double totalNetAmount;
+        
+        // ถ้าเป็นการชำระบางส่วน ให้ใช้จำนวนเงินที่จ่ายจริงเป็นยอดรวม
+        if (currentState.partialPay == '1') {
+          // ใช้ยอดเงินที่ชำระจริง
+          totalAmount = totalAmountPay;
+          // ยอดสุทธิ = ยอดที่จ่ายจริง + ค่าธรรมเนียมบัตรเครดิต
+          totalNetAmount = totalAmountPay + totalCreditCharge;
+          _logger.i('Partial Pay: Using paid amount as total_amount: $totalAmount');
+        } else {
+          // กรณีจ่ายเต็ม ใช้ยอดรวมหลังหักลดหนี้
+          totalAmount = adjustedTotalAmount;
+          totalNetAmount = adjustedTotalAmount + totalCreditCharge;
+        }
 
         // กรองรายการชำระเงินให้มีเฉพาะเงินโอน (pay_type 0) และบัตรเครดิต (pay_type 1)
         final List<PaymentModel> filteredPayments = currentState.payments
@@ -383,7 +437,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           creditAmount: '0',
           cashAmount: cashAmount.toString(),
           cardAmount: cardAmount.toString(),
-          totalAmount: adjustedTotalAmount.toString(), // ใช้ยอดที่หักลบกับยอดลดหนี้แล้ว
+          totalAmount: totalAmount.toString(), // ใช้ยอดรวมที่คำนวณตามสถานะการชำระเงิน
           totalValue: currentState.totalAmount.toString(), // totalValue ยังคงเก็บยอดรวมจริงก่อนหักลดหนี้
           totalCreditCharge: totalCreditCharge.toString(),
           totalNetAmount: totalNetAmount.toString(),
@@ -392,6 +446,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           balanceDetail: balanceDetail, // เพิ่มรายละเอียดการลดหนี้
           remark: event.remark,
           carCode: warehouseCode, // ใช้ warehouseCode จาก localStorage แทน Global.whCode ที่อาจจะเป็น NA
+          partialPay: currentState.partialPay, // เพิ่มสถานะการชำระเงินบางส่วน
         );
 
         _logger.i('Transaction to save:');
@@ -428,6 +483,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
             totalAmount: currentState.totalAmount,
             balanceAmount: balanceAmount, // เพิ่มยอดลดหนี้
             balanceDetail: balanceDetail, // เพิ่มรายละเอียดการลดหนี้
+            partialPay: currentState.partialPay, // เพิ่มสถานะการชำระเงินบางส่วน
           ));
           return; // เพิ่ม return เพื่อจบการทำงานทันที
         } else {
@@ -511,6 +567,19 @@ class CartBloc extends Bloc<CartEvent, CartState> {
       emit(currentState.copyWith(
         balanceDetail: event.balanceDetails,
         balanceAmount: event.totalBalanceAmount,
+      ));
+    }
+  }
+
+  // อัปเดตสถานะการชำระเงินบางส่วน
+  void _onUpdatePartialPayStatus(UpdatePartialPayStatus event, Emitter<CartState> emit) {
+    if (state is CartLoaded) {
+      final currentState = state as CartLoaded;
+
+      _logger.i('Updating partial pay status to: ${event.partialPayStatus}');
+
+      emit(currentState.copyWith(
+        partialPay: event.partialPayStatus,
       ));
     }
   }

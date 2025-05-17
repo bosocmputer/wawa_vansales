@@ -175,3 +175,13 @@ class UpdateBalanceDetails extends CartEvent {
   @override
   List<Object?> get props => [balanceDetails, totalBalanceAmount];
 }
+
+// Event สำหรับอัพเดตสถานะการชำระเงินบางส่วน
+class UpdatePartialPayStatus extends CartEvent {
+  final String partialPayStatus; // "0" = ชำระเต็มจำนวน, "1" = ชำระบางส่วน
+
+  const UpdatePartialPayStatus(this.partialPayStatus);
+
+  @override
+  List<Object?> get props => [partialPayStatus];
+}

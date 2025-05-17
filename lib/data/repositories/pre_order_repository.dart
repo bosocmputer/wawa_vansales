@@ -22,6 +22,28 @@ class PreOrderRepository {
     }
   }
 
+  // ดึงเอกสารพรีออเดอร์ตามเลขที่เอกสารและรหัสลูกค้า
+  Future<PreOrderModel?> getDocPreSale(String customerCode, String docNo) async {
+    try {
+      final response = await _apiService.get(
+        'getDocPreSale',
+        queryParameters: {
+          'cust_code': customerCode,
+          'doc_no': docNo,
+        },
+      );
+
+      final preOrderResponse = PreOrderResponse.fromJson(response.data);
+      if (preOrderResponse.data.isNotEmpty) {
+        return preOrderResponse.data.first;
+      }
+      return null;
+    } catch (e) {
+      // จัดการข้อผิดพลาด
+      rethrow;
+    }
+  }
+
   // ดึงรายละเอียดเอกสารพรีออเดอร์
   Future<List<PreOrderDetailModel>> getPreOrderDetail(String docNo) async {
     try {

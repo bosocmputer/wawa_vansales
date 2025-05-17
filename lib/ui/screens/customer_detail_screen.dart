@@ -128,6 +128,13 @@ class CustomerDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
+            // รหัสผ่าน
+            _buildDetailItem(
+              icon: Icons.lock,
+              label: 'รหัสผ่าน',
+              value: customer.password?.isNotEmpty ?? false ? customer.password! : 'ไม่มีข้อมูล',
+            ),
+            const Divider(height: 24),
             // ที่อยู่
             _buildDetailItem(
               icon: Icons.location_on,

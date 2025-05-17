@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
+import 'package:wawa_vansales/blocs/cart/cart_state.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/ui/screens/sale/receipt_preview_widget.dart';
 import 'package:wawa_vansales/utils/global.dart';
 import 'package:wawa_vansales/utils/local_storage.dart';
+import 'package:intl/intl.dart';
 
 class SaleSummaryStep extends StatefulWidget {
   final CustomerModel customer;
@@ -49,6 +51,7 @@ class SaleSummaryStep extends StatefulWidget {
 
 class _SaleSummaryStepState extends State<SaleSummaryStep> {
   String generatedDocNumber = '';
+  final NumberFormat _currencyFormat = NumberFormat('#,##0.00', 'th_TH');
   List<PaymentModel> updatedPayments = [];
 
   @override
@@ -148,6 +151,10 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
 
   @override
   Widget build(BuildContext context) {
+    // ตรวจสอบสถานะการชำระเงินบางส่วน
+    final cartState = context.read<CartBloc>().state;
+    final isPartialPay = cartState is CartLoaded && cartState.partialPay == '1';
+
     return Column(
       children: [
         Expanded(
@@ -156,6 +163,44 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // แสดงแบนเนอร์แจ้งเตือนถ้าเป็นการชำระบางส่วน
+                if (isPartialPay) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'ชำระเงินบางส่วน',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'ยอดค้างชำระ: ${_currencyFormat.format(widget.totalAmount - widget.payments.fold(0.0, (sum, payment) => sum + payment.payAmount))} บาท',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 // สถานะเครื่องพิมพ์
                 _buildPrinterStatus(context),
                 const SizedBox(height: 16),

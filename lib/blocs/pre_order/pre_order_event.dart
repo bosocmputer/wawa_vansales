@@ -30,6 +30,20 @@ class FetchPreOrderDetail extends PreOrderEvent {
 // Event สำหรับรีเซ็ตสถานะ
 class ResetPreOrderState extends PreOrderEvent {}
 
+// Event สำหรับดึงพรีออเดอร์ตามเลขที่เอกสารและรหัสลูกค้า
+class FetchPreOrderByDocNo extends PreOrderEvent {
+  final String customerCode;
+  final String docNo;
+
+  const FetchPreOrderByDocNo({
+    required this.customerCode,
+    required this.docNo,
+  });
+
+  @override
+  List<Object?> get props => [customerCode, docNo];
+}
+
 // Event สำหรับบันทึกการจ่ายเงินพรีออเดอร์
 class SubmitPreOrderPayment extends PreOrderEvent {
   final String docNo;

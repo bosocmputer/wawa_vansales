@@ -117,11 +117,31 @@ class _SaleScreenState extends State<SaleScreen> {
         );
         return;
       }
+      // ตรวจสอบการชำระเงินก่อนไปขั้นตอนที่ 3 โดยให้ยกเว้นกรณี PreOrder และ partial_pay=1
       if (step == 3 && !cartState.isFullyPaid) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('กรุณาชำระเงินให้ครบก่อน')),
-        );
-        return;
+        // ถ้าเป็น PreOrder และเป็นการชำระเงินบางส่วน ไม่ต้องตรวจสอบความครบถ้วนของเงิน
+        final bool isPartialPayPreOrder = widget.isFromPreOrder && cartState.partialPay == '1';
+        
+        // ถ้าไม่ใช่การชำระบางส่วนของ PreOrder ให้ตรวจสอบการชำระเงินตามปกติ
+        if (!isPartialPayPreOrder) {
+          // ถ้าเป็นการชำระบางส่วน ต้องมีการชำระเงินอย่างน้อย 1 รายการ
+          if (cartState.partialPay == '1' && cartState.payments.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('กรุณาชำระเงินอย่างน้อย 1 รายการ')),
+            );
+            return;
+          } else if (cartState.partialPay == '0') { // ถ้าต้องชำระเต็มจำนวน
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('กรุณาชำระเงินให้ครบก่อน')),
+            );
+            return;
+          }
+        } else if (cartState.payments.isEmpty) { // กรณี PreOrder ชำระบางส่วน ต้องมีการชำระเงินอย่างน้อย 1 รายการ
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('กรุณาชำระเงินอย่างน้อย 1 รายการ')),
+          );
+          return;
+        }
       }
     }
     context.read<CartBloc>().add(UpdateStep(step));

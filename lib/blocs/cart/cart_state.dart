@@ -26,6 +26,7 @@ class CartLoaded extends CartState {
   final String documentNumber; // เพิ่มฟิลด์สำหรับเก็บเลขที่เอกสาร
   final double balanceAmount; // เพิ่มฟิลด์สำหรับเก็บยอดลดหนี้
   final List<BalanceDetailModel> balanceDetail; // เพิ่มฟิลด์สำหรับเก็บรายละเอียดการลดหนี้
+  final String partialPay; // เพิ่มฟิลด์สำหรับระบุการชำระบางส่วน (0=ชำระเต็มจำนวน, 1=ชำระบางส่วน)
 
   const CartLoaded({
     this.selectedCustomer,
@@ -37,10 +38,11 @@ class CartLoaded extends CartState {
     this.documentNumber = '', // กำหนดค่าเริ่มต้นเป็นสตริงว่าง
     this.balanceAmount = 0, // กำหนดค่าเริ่มต้นเป็น 0
     this.balanceDetail = const [], // กำหนดค่าเริ่มต้นเป็น list ว่าง
+    this.partialPay = '0', // กำหนดค่าเริ่มต้นเป็น 0 (ชำระเต็มจำนวน)
   });
 
   @override
-  List<Object?> get props => [selectedCustomer, items, payments, totalAmount, currentStep, preOrderDocNo, documentNumber, balanceAmount, balanceDetail];
+  List<Object?> get props => [selectedCustomer, items, payments, totalAmount, currentStep, preOrderDocNo, documentNumber, balanceAmount, balanceDetail, partialPay];
 
   // สร้าง copyWith method
   CartLoaded copyWith({
@@ -53,6 +55,7 @@ class CartLoaded extends CartState {
     String? documentNumber,
     double? balanceAmount,
     List<BalanceDetailModel>? balanceDetail,
+    String? partialPay,
   }) {
     return CartLoaded(
       selectedCustomer: selectedCustomer ?? this.selectedCustomer,
@@ -64,6 +67,7 @@ class CartLoaded extends CartState {
       documentNumber: documentNumber ?? this.documentNumber,
       balanceAmount: balanceAmount ?? this.balanceAmount,
       balanceDetail: balanceDetail ?? this.balanceDetail,
+      partialPay: partialPay ?? this.partialPay,
     );
   }
 
@@ -95,6 +99,7 @@ class CartSubmitSuccess extends CartState {
   final double totalAmount;
   final double balanceAmount; // เพิ่มฟิลด์สำหรับเก็บยอดลดหนี้
   final List<BalanceDetailModel> balanceDetail; // เพิ่มฟิลด์สำหรับเก็บรายละเอียดการลดหนี้
+  final String partialPay; // เพิ่มฟิลด์สำหรับระบุการชำระบางส่วน (0=ชำระเต็มจำนวน, 1=ชำระบางส่วน)
 
   const CartSubmitSuccess({
     required this.documentNumber,
@@ -104,10 +109,11 @@ class CartSubmitSuccess extends CartState {
     required this.totalAmount,
     this.balanceAmount = 0,
     this.balanceDetail = const [],
+    this.partialPay = '0',
   });
 
   @override
-  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount, balanceAmount, balanceDetail];
+  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount, balanceAmount, balanceDetail, partialPay];
 }
 
 // เกิดข้อผิดพลาด

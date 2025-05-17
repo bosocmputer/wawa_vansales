@@ -25,6 +25,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
   final _addressController = TextEditingController();
   final _telephoneController = TextEditingController();
   final _websiteController = TextEditingController();
+  final _passwordController = TextEditingController(); // New password controller
 
   bool _isFormValid = false;
   bool _autoValidate = false;
@@ -54,6 +55,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
     _addressController.dispose();
     _telephoneController.dispose();
     _websiteController.dispose();
+    _passwordController.dispose(); // Dispose password controller
     super.dispose();
   }
 
@@ -96,6 +98,7 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
         arstatus: _selectedArStatus, // ใช้ค่าที่เลือก
         website: _websiteController.text.trim(),
         priceLevel: _selectedPriceLevel,
+        password: _passwordController.text.trim(), // Add password to the model
       );
 
       // เรียก event สร้างลูกค้าใหม่
@@ -206,6 +209,15 @@ class _CustomerFormScreenState extends State<CustomerFormScreen> {
                     }
                     return null;
                   },
+                ),
+                const SizedBox(height: 16),
+
+                // รหัสผ่าน (Password) - เพิ่มใหม่
+                _buildTextField(
+                  controller: _passwordController,
+                  label: 'รหัสผ่าน',
+                  hint: 'กรอกรหัสผ่าน',
+                  icon: Icons.lock,
                 ),
                 const SizedBox(height: 16),
 
