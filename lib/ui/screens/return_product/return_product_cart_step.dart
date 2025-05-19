@@ -641,36 +641,27 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                 onPressed: () {
                   double? qty = double.tryParse(qtyController.text);
                   if (qty != null && qty > 0) {
-                    context.read<ReturnProductBloc>().add(
-                          UpdateReturnItemQuantity(
-                            itemCode: item.itemCode,
-                            barcode: item.barcode,
-                            unitCode: item.unitCode,
-                            quantity: qty,
-                          ),
-                        );
-                    Navigator.of(context).pop();
                     // เช็คว่าจำนวนที่รับคืนไม่เกินจำนวนในบิลขาย
-                    // if (qty <= maxReturnQty) {
-                    //   context.read<ReturnProductBloc>().add(
-                    //         UpdateReturnItemQuantity(
-                    //           itemCode: item.itemCode,
-                    //           barcode: item.barcode,
-                    //           unitCode: item.unitCode,
-                    //           quantity: qty,
-                    //         ),
-                    //       );
-                    //   Navigator.of(context).pop();
-                    // } else {
-                    //   // แสดงข้อความเตือนเมื่อระบุจำนวนเกิน
-                    //   ScaffoldMessenger.of(context).showSnackBar(
-                    //     SnackBar(
-                    //       content: Text('ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${maxReturnQty.toStringAsFixed(0)})'),
-                    //       backgroundColor: AppTheme.errorColor,
-                    //       duration: const Duration(seconds: 2),
-                    //     ),
-                    // );
-                    // }
+                    if (qty <= maxReturnQty) {
+                      context.read<ReturnProductBloc>().add(
+                            UpdateReturnItemQuantity(
+                              itemCode: item.itemCode,
+                              barcode: item.barcode,
+                              unitCode: item.unitCode,
+                              quantity: qty,
+                            ),
+                          );
+                      Navigator.of(context).pop();
+                    } else {
+                      // แสดงข้อความเตือนเมื่อระบุจำนวนเกิน
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${maxReturnQty.toStringAsFixed(0)})'),
+                          backgroundColor: AppTheme.errorColor,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -857,15 +848,15 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         borderRadius: BorderRadius.circular(8),
         onTap: () {
           // เพิ่มสินค้าเข้าตะกร้าเมื่อกดที่การ์ด (เช็คก่อนว่าเลือกเกินหรือยัง)
-          // if (isMaxQuantity) {
-          //   ScaffoldMessenger.of(context).showSnackBar(
-          //     SnackBar(
-          //       content: Text('ไม่สามารถรับคืนเกินจำนวนในบิล (${qty.toInt()})'),
-          //       backgroundColor: AppTheme.errorColor,
-          //     ),
-          //   );
-          //   return;
-          // }
+          if (isMaxQuantity) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('ไม่สามารถรับคืนเกินจำนวนในบิล (${qty.toInt()})'),
+                backgroundColor: AppTheme.errorColor,
+              ),
+            );
+            return;
+          }
 
           final cartItem = CartItemModel(
             itemCode: item.itemCode,
@@ -907,15 +898,15 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                       color: isInReturnCart ? Colors.green : AppTheme.primaryColor,
                       onPressed: () {
                         // เพิ่มสินค้าเข้าตะกร้า (เช็คก่อนว่าเลือกเกินหรือยัง)
-                        // if (isMaxQuantity) {
-                        //   ScaffoldMessenger.of(context).showSnackBar(
-                        //     SnackBar(
-                        //       content: Text('ไม่สามารถรับคืนเกินจำนวนในบิล (${qty.toInt()})'),
-                        //       backgroundColor: AppTheme.errorColor,
-                        //     ),
-                        //   );
-                        //   return;
-                        // }
+                        if (isMaxQuantity) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('ไม่สามารถรับคืนเกินจำนวนในบิล (${qty.toInt()})'),
+                              backgroundColor: AppTheme.errorColor,
+                            ),
+                          );
+                          return;
+                        }
 
                         final cartItem = CartItemModel(
                           itemCode: item.itemCode,
@@ -1206,34 +1197,25 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                             ),
                           );
 
-                          context.read<ReturnProductBloc>().add(
-                                UpdateReturnItemQuantity(
-                                  itemCode: item.itemCode,
-                                  barcode: item.barcode,
-                                  unitCode: item.unitCode,
-                                  quantity: currentQty + 1,
-                                ),
-                              );
+                          final originalQty = double.tryParse(originalItem.qty) ?? 0;
 
-                          // final originalQty = double.tryParse(originalItem.qty) ?? 0;
-
-                          // if (currentQty < originalQty) {
-                          //   context.read<ReturnProductBloc>().add(
-                          //         UpdateReturnItemQuantity(
-                          //           itemCode: item.itemCode,
-                          //           barcode: item.barcode,
-                          //           unitCode: item.unitCode,
-                          //           quantity: currentQty + 1,
-                          //         ),
-                          //       );
-                          // } else {
-                          //   ScaffoldMessenger.of(context).showSnackBar(
-                          //     SnackBar(
-                          //       content: Text('ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${originalQty.toStringAsFixed(0)})'),
-                          //       backgroundColor: AppTheme.errorColor,
-                          //     ),
-                          //   );
-                          // }
+                          if (currentQty < originalQty) {
+                            context.read<ReturnProductBloc>().add(
+                                  UpdateReturnItemQuantity(
+                                    itemCode: item.itemCode,
+                                    barcode: item.barcode,
+                                    unitCode: item.unitCode,
+                                    quantity: currentQty + 1,
+                                  ),
+                                );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${originalQty.toStringAsFixed(0)})'),
+                                backgroundColor: AppTheme.errorColor,
+                              ),
+                            );
+                          }
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(6),

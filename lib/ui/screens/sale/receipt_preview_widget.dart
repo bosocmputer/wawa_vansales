@@ -303,6 +303,23 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
               const SizedBox(height: 4),
             ],
 
+            if (widget.balanceAmount > 0) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'ยอดลดหนี้',
+                    style: TextStyle(fontSize: 10),
+                  ),
+                  Text(
+                    "-${currencyFormat.format(widget.balanceAmount)}",
+                    style: const TextStyle(fontSize: 10),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+            ],
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -314,7 +331,7 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                   ),
                 ),
                 Text(
-                  currencyFormat.format(totalNetAmount),
+                  currencyFormat.format(totalNetAmount - widget.balanceAmount),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -332,22 +349,6 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                 style: TextStyle(fontSize: 10),
               ),
             ),
-            if (widget.balanceAmount > 0) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'ยอดลดหนี้',
-                    style: TextStyle(fontSize: 10),
-                  ),
-                  Text(
-                    currencyFormat.format(widget.balanceAmount),
-                    style: const TextStyle(fontSize: 10),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 4),
             ...widget.payments.map((payment) {
               final paymentType = PaymentModel.intToPaymentType(payment.payType);
               String paymentText = '';

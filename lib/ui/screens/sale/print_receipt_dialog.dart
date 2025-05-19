@@ -119,97 +119,97 @@ class _PrintReceiptDialogState extends State<PrintReceiptDialog> {
           const SizedBox(height: 16),
 
           // เลือกประเภทใบเสร็จ
-          const Text(
-            'เลือกประเภทใบเสร็จ:',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
+          // const Text(
+          //   'เลือกประเภทใบเสร็จ:',
+          //   style: TextStyle(
+          //     fontWeight: FontWeight.bold,
+          //     fontSize: 14,
+          //   ),
+          // ),
 
-          const SizedBox(height: 8),
+          // const SizedBox(height: 8),
 
           // ตัวเลือกแบบการ์ด
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade200),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                // ใบกำกับภาษี
-                InkWell(
-                  onTap: () {
-                    setState(() => _selectedReceiptType = 'taxReceipt');
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selectedReceiptType == 'taxReceipt' ? AppTheme.primaryColor : Colors.grey.shade400,
-                              width: 2,
-                            ),
-                            color: _selectedReceiptType == 'taxReceipt' ? AppTheme.primaryColor : Colors.white,
-                          ),
-                          child: _selectedReceiptType == 'taxReceipt' ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-                        ),
-                        const SizedBox(width: 12),
-                        const Row(
-                          children: [
-                            Icon(Icons.receipt_long, color: Colors.blue, size: 20),
-                            SizedBox(width: 8),
-                            Text('ใบกำกับภาษีอย่างย่อ', style: TextStyle(fontSize: 15)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Divider(height: 1, color: Colors.grey.shade200),
+          // Container(
+          //   decoration: BoxDecoration(
+          //     border: Border.all(color: Colors.grey.shade200),
+          //     borderRadius: BorderRadius.circular(12),
+          //   ),
+          //   child: Column(
+          //     children: [
+          //       // ใบกำกับภาษี
+          //       InkWell(
+          //         onTap: () {
+          //           setState(() => _selectedReceiptType = 'taxReceipt');
+          //         },
+          //         child: Padding(
+          //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          //           child: Row(
+          //             children: [
+          //               Container(
+          //                 width: 22,
+          //                 height: 22,
+          //                 decoration: BoxDecoration(
+          //                   shape: BoxShape.circle,
+          //                   border: Border.all(
+          //                     color: _selectedReceiptType == 'taxReceipt' ? AppTheme.primaryColor : Colors.grey.shade400,
+          //                     width: 2,
+          //                   ),
+          //                   color: _selectedReceiptType == 'taxReceipt' ? AppTheme.primaryColor : Colors.white,
+          //                 ),
+          //                 child: _selectedReceiptType == 'taxReceipt' ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+          //               ),
+          //               const SizedBox(width: 12),
+          //               const Row(
+          //                 children: [
+          //                   Icon(Icons.receipt_long, color: Colors.blue, size: 20),
+          //                   SizedBox(width: 8),
+          //                   Text('ใบกำกับภาษีอย่างย่อ', style: TextStyle(fontSize: 15)),
+          //                 ],
+          //               ),
+          //             ],
+          //           ),
+          //         ),
+          //       ),
+          //       Divider(height: 1, color: Colors.grey.shade200),
 
-                // บิลเงินสด
-                InkWell(
-                  onTap: () {
-                    setState(() => _selectedReceiptType = 'cashReceipt');
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _selectedReceiptType == 'cashReceipt' ? AppTheme.primaryColor : Colors.grey.shade400,
-                              width: 2,
-                            ),
-                            color: _selectedReceiptType == 'cashReceipt' ? AppTheme.primaryColor : Colors.white,
-                          ),
-                          child: _selectedReceiptType == 'cashReceipt' ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-                        ),
-                        const SizedBox(width: 12),
-                        const Row(
-                          children: [
-                            Icon(Icons.receipt, color: Colors.green, size: 20),
-                            SizedBox(width: 8),
-                            Text('บิลเงินสด', style: TextStyle(fontSize: 15)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          //       // บิลเงินสด
+          //       InkWell(
+          //         onTap: () {
+          //           setState(() => _selectedReceiptType = 'cashReceipt');
+          //         },
+          //         child: Padding(
+          //           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          //           child: Row(
+          //             children: [
+          //               Container(
+          //                 width: 22,
+          //                 height: 22,
+          //                 decoration: BoxDecoration(
+          //                   shape: BoxShape.circle,
+          //                   border: Border.all(
+          //                     color: _selectedReceiptType == 'cashReceipt' ? AppTheme.primaryColor : Colors.grey.shade400,
+          //                     width: 2,
+          //                   ),
+          //                   color: _selectedReceiptType == 'cashReceipt' ? AppTheme.primaryColor : Colors.white,
+          //                 ),
+          //                 child: _selectedReceiptType == 'cashReceipt' ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
+          //               ),
+          //               const SizedBox(width: 12),
+          //               const Row(
+          //                 children: [
+          //                   Icon(Icons.receipt, color: Colors.green, size: 20),
+          //                   SizedBox(width: 8),
+          //                   Text('บิลเงินสด', style: TextStyle(fontSize: 15)),
+          //                 ],
+          //               ),
+          //             ],
+          //           ),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
 
           const SizedBox(height: 20),
 

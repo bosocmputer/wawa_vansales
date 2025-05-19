@@ -208,7 +208,7 @@ class ReceiptPrinterService {
 
       // ส่วนหัว - แสดงตามประเภทใบเสร็จ
       if (isTaxReceipt) {
-        await _printer.printCustom("ใบกำกับภาษีอย่างย่อ", largeSize, 1);
+        await _printer.printCustom("ใบเสร็จรับเงิน", largeSize, 1);
       } else {
         await _printer.printCustom("บิลเงินสด", largeSize, 1);
       }
@@ -286,11 +286,11 @@ class ReceiptPrinterService {
       // แสดงยอดลดหนี้ (ถ้ามี)
       if (balanceAmount > 0) {
         // แสดงยอดลดหนี้
-        await _printer.printLeftRight("ยอดลดหนี้", currencyFormat.format(balanceAmount), smallSize);
+        await _printer.printLeftRight("ยอดลดหนี้", "-${currencyFormat.format(balanceAmount)}", smallSize);
       }
 
       // ยอดรวม
-      await _printer.printLeftRight("ยอดรวมสุทธิ", currencyFormat.format(totalAmount), mediumSize);
+      await _printer.printLeftRight("ยอดรวมสุทธิ", currencyFormat.format(totalAmount - balanceAmount), mediumSize);
 
       // แสดงการชำระเงิน
       await Future.delayed(const Duration(milliseconds: 50));

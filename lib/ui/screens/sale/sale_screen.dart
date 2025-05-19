@@ -121,7 +121,7 @@ class _SaleScreenState extends State<SaleScreen> {
       if (step == 3 && !cartState.isFullyPaid) {
         // ถ้าเป็น PreOrder และเป็นการชำระเงินบางส่วน ไม่ต้องตรวจสอบความครบถ้วนของเงิน
         final bool isPartialPayPreOrder = widget.isFromPreOrder && cartState.partialPay == '1';
-        
+
         // ถ้าไม่ใช่การชำระบางส่วนของ PreOrder ให้ตรวจสอบการชำระเงินตามปกติ
         if (!isPartialPayPreOrder) {
           // ถ้าเป็นการชำระบางส่วน ต้องมีการชำระเงินอย่างน้อย 1 รายการ
@@ -130,13 +130,15 @@ class _SaleScreenState extends State<SaleScreen> {
               const SnackBar(content: Text('กรุณาชำระเงินอย่างน้อย 1 รายการ')),
             );
             return;
-          } else if (cartState.partialPay == '0') { // ถ้าต้องชำระเต็มจำนวน
+          } else if (cartState.partialPay == '0') {
+            // ถ้าต้องชำระเต็มจำนวน
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('กรุณาชำระเงินให้ครบก่อน')),
             );
             return;
           }
-        } else if (cartState.payments.isEmpty) { // กรณี PreOrder ชำระบางส่วน ต้องมีการชำระเงินอย่างน้อย 1 รายการ
+        } else if (cartState.payments.isEmpty) {
+          // กรณี PreOrder ชำระบางส่วน ต้องมีการชำระเงินอย่างน้อย 1 รายการ
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('กรุณาชำระเงินอย่างน้อย 1 รายการ')),
           );
@@ -250,6 +252,7 @@ class _SaleScreenState extends State<SaleScreen> {
         receiptType: receiptType,
         changeAmount: changeAmount, // เพิ่มการส่งค่าเงินทอน
         isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
+        balanceAmount: state.balanceAmount, // ส่งค่า balanceAmount ถ้ามี
       );
 
       // ปิด dialog
@@ -290,6 +293,7 @@ class _SaleScreenState extends State<SaleScreen> {
             receiptType: receiptType,
             isCopy: true, // ระบุว่าเป็นสำเนา
             isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปด้วย
+            balanceAmount: state.balanceAmount, // ส่งค่า balanceAmount ถ้ามี
           );
         }
       } else {
