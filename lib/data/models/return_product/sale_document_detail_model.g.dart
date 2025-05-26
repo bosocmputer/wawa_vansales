@@ -19,7 +19,9 @@ SaleDocumentDetailModel _$SaleDocumentDetailModelFromJson(
       standValue: json['stand_value'] as String,
       divideValue: json['divide_value'] as String,
       ratio: json['ratio'] as String,
-      refRow: json['ref_row'] as String,
+      refRow: json['ref_row'] as String? ?? '',
+      balanceQty: json['balance_qty'] as String? ?? '0',
+      returnQty: json['return_qty'] as String? ?? '0',
     );
 
 Map<String, dynamic> _$SaleDocumentDetailModelToJson(
@@ -36,4 +38,6 @@ Map<String, dynamic> _$SaleDocumentDetailModelToJson(
       'divide_value': instance.divideValue,
       'ratio': instance.ratio,
       'ref_row': instance.refRow,
+      'balance_qty': instance.balanceQty,
+      'return_qty': instance.returnQty,
     };

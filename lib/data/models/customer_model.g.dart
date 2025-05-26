@@ -6,7 +6,8 @@ part of 'customer_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) => CustomerModel(
+CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) =>
+    CustomerModel(
       code: json['code'] as String?,
       address: json['address'] as String?,
       name: json['name'] as String?,
@@ -18,7 +19,8 @@ CustomerModel _$CustomerModelFromJson(Map<String, dynamic> json) => CustomerMode
       password: json['password'] as String?,
     );
 
-Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) => <String, dynamic>{
+Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) =>
+    <String, dynamic>{
       'code': instance.code,
       'address': instance.address,
       'name': instance.name,
@@ -30,22 +32,28 @@ Map<String, dynamic> _$CustomerModelToJson(CustomerModel instance) => <String, d
       'password': instance.password,
     };
 
-CustomerResponse _$CustomerResponseFromJson(Map<String, dynamic> json) => CustomerResponse(
+CustomerResponse _$CustomerResponseFromJson(Map<String, dynamic> json) =>
+    CustomerResponse(
       success: json['success'] as bool,
-      data: (json['data'] as List<dynamic>).map((e) => CustomerModel.fromJson(e as Map<String, dynamic>)).toList(),
+      data: (json['data'] as List<dynamic>)
+          .map((e) => CustomerModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
-Map<String, dynamic> _$CustomerResponseToJson(CustomerResponse instance) => <String, dynamic>{
+Map<String, dynamic> _$CustomerResponseToJson(CustomerResponse instance) =>
+    <String, dynamic>{
       'success': instance.success,
       'data': instance.data,
     };
 
-CreateResponse _$CreateResponseFromJson(Map<String, dynamic> json) => CreateResponse(
+CreateResponse _$CreateResponseFromJson(Map<String, dynamic> json) =>
+    CreateResponse(
       success: json['success'] as bool,
       message: json['message'] as String,
     );
 
-Map<String, dynamic> _$CreateResponseToJson(CreateResponse instance) => <String, dynamic>{
+Map<String, dynamic> _$CreateResponseToJson(CreateResponse instance) =>
+    <String, dynamic>{
       'success': instance.success,
       'message': instance.message,
     };

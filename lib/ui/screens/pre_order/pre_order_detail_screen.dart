@@ -54,6 +54,7 @@ class _PreOrderDetailScreenState extends State<PreOrderDetailScreen> {
               standValue: item.standValue,
               divideValue: item.divideValue,
               qty: item.qty,
+              refRow: "0",
             ))
         .toList();
   }

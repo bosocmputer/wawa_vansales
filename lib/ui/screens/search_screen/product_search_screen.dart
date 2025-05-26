@@ -110,6 +110,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
         standValue: _selectedProduct!.standValue,
         divideValue: _selectedProduct!.divideValue,
         qty: '1',
+        refRow: '0',
       );
 
       // ป้องกันการส่งข้อมูลกลับซ้ำหลายครั้ง

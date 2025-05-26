@@ -45,7 +45,7 @@ class PrintReceiptDialog extends StatefulWidget {
 
 class _PrintReceiptDialogState extends State<PrintReceiptDialog> {
   // ตัวแปรเก็บค่าเลือกประเภทใบเสร็จ
-  String _selectedReceiptType = 'taxReceipt'; // default
+  final String _selectedReceiptType = 'taxReceipt'; // default
 
   @override
   Widget build(BuildContext context) {

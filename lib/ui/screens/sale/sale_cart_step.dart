@@ -10,7 +10,6 @@ import 'package:wawa_vansales/blocs/product_detail/product_detail_event.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
-import 'package:wawa_vansales/ui/screens/sale/payment_type_dialog.dart'; // เพิ่ม import
 import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
 import 'package:wawa_vansales/ui/widgets/number_pad_component.dart'; // เพิ่ม import
 import 'package:wawa_vansales/utils/global.dart';
@@ -186,6 +185,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
               standValue: result.standValue,
               divideValue: result.divideValue,
               qty: qty.toString(),
+              refRow: result.refRow,
             );
             context.read<CartBloc>().add(AddItemToCart(updatedItem));
           } else {
@@ -460,6 +460,7 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 standValue: state.product.standValue,
                 divideValue: state.product.divideValue,
                 qty: quantity.toString(), // กำหนดจำนวนตามที่ระบุ
+                refRow: '0',
               );
 
               if (kDebugMode) {

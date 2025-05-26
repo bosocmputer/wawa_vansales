@@ -48,7 +48,7 @@ class ReturnProductRepository {
   }) async {
     try {
       final response = await _apiService.get(
-        '/getDocSaleSuccessDetail',
+        '/getDetailForReturn',
         queryParameters: {
           'doc_no': docNo,
         },

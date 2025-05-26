@@ -35,8 +35,14 @@ class SaleDocumentDetailModel {
   @JsonKey(name: 'ratio')
   final String ratio;
 
-  @JsonKey(name: 'ref_row')
+  @JsonKey(name: 'ref_row', defaultValue: '')
   final String refRow;
+
+  @JsonKey(name: 'balance_qty', defaultValue: '0')
+  final String balanceQty;
+
+  @JsonKey(name: 'return_qty', defaultValue: '0')
+  final String returnQty;
 
   SaleDocumentDetailModel({
     required this.itemCode,
@@ -50,6 +56,8 @@ class SaleDocumentDetailModel {
     required this.divideValue,
     required this.ratio,
     required this.refRow,
+    required this.balanceQty,
+    required this.returnQty,
   });
 
   factory SaleDocumentDetailModel.fromJson(Map<String, dynamic> json) => _$SaleDocumentDetailModelFromJson(json);
@@ -59,4 +67,6 @@ class SaleDocumentDetailModel {
   double get priceAsDouble => double.tryParse(price) ?? 0.0;
   double get qtyAsDouble => double.tryParse(qty) ?? 0.0;
   double get totalAmount => priceAsDouble * qtyAsDouble;
+  double get balanceQtyAsDouble => double.tryParse(balanceQty) ?? 0.0;
+  double get returnQtyAsDouble => double.tryParse(returnQty) ?? 0.0;
 }

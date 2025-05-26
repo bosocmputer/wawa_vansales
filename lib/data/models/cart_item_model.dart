@@ -54,7 +54,7 @@ class CartItemModel {
     required this.standValue,
     required this.divideValue,
     this.qty = '1',
-    this.refRow = '',
+    this.refRow = '0',
   });
 
   factory CartItemModel.fromJson(Map<String, dynamic> json) => _$CartItemModelFromJson(json);

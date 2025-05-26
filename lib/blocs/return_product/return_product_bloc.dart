@@ -118,26 +118,33 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
       final currentState = state as ReturnProductLoaded;
       final List<CartItemModel> updatedItems = List.from(currentState.returnItems);
 
-      // เช็คว่าสินค้านี้มีในเอกสารขายหรือไม่
-      final existsInDoc = currentState.documentDetails.any((detail) => detail.itemCode == event.item.itemCode);
+      // Add additional debugging to check for duplicate logic
+      _logger.i('DUPLICATE CHECK: Adding item ${event.item.itemCode} with unit ${event.item.unitCode}');
+      _logger.i('DUPLICATE CHECK: Current returnItems count: ${currentState.returnItems.length}');
+      for (int i = 0; i < currentState.returnItems.length; i++) {
+        _logger.i('DUPLICATE CHECK: Item $i: ${currentState.returnItems[i].itemCode}, unit: ${currentState.returnItems[i].unitCode}');
+      }
+
+      // เช็คว่าสินค้านี้มีในเอกสารขายหรือไม่ โดยตรวจสอบทั้ง itemCode และ unitCode
+      final existsInDoc = currentState.documentDetails.any((detail) => detail.itemCode == event.item.itemCode && detail.unitCode == event.item.unitCode);
 
       if (!existsInDoc) {
         // ไม่ emit ReturnProductError เพื่อป้องกัน SnackBar ซ้ำซ้อน
         // การตรวจสอบและแสดงข้อความเตือนนี้จะทำที่ UI layer แทน
-        _logger.i('Item not in original sale document: ${event.item.itemCode}');
+        _logger.i('Item not in original sale document: ${event.item.itemCode} with unit ${event.item.unitCode}');
         return;
       }
 
-      _logger.i('Adding item to return cart: ${event.item.itemCode}');
+      _logger.i('Adding item to return cart: ${event.item.itemCode} with unit ${event.item.unitCode}');
 
-      // หา refRow จากรายการสินค้าในเอกสารขาย
-      final originalDetail = currentState.documentDetails.firstWhere(
-        (detail) => detail.itemCode == event.item.itemCode,
-      );
+      // หา refRow จากรายการสินค้าในเอกสารขาย โดยตรวจสอบทั้ง itemCode และ unitCode
+      // final originalDetail = currentState.documentDetails.firstWhere(
+      //   (detail) => detail.itemCode == event.item.itemCode && detail.unitCode == event.item.unitCode,
+      // );
 
       // กำหนดค่า refRow จากเอกสารขายเดิม
       String refRow = "0";
-      refRow = originalDetail.refRow;
+      // refRow = originalDetail.refRow;
 
       // เช็คว่ามีในตะกร้าแล้วหรือยัง
       final existingIndex = updatedItems.indexWhere(
@@ -161,7 +168,9 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
         );
 
         _logger.i('Updated existing item quantity: ${newQty.toString()}');
+        _logger.i('DUPLICATE CHECK: Found existing item ${event.item.itemCode} with unit ${event.item.unitCode}');
       } else {
+        _logger.i('DUPLICATE CHECK: Item ${event.item.itemCode} with unit ${event.item.unitCode} is not in cart yet');
         // เพิ่มรายการใหม่
         final warehouse = await _localStorage.getWarehouse();
         final location = await _localStorage.getLocation();

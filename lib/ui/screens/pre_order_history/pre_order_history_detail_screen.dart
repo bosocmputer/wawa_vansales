@@ -174,6 +174,7 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
         standValue: item.standValue,
         divideValue: item.divideValue,
         qty: item.qty,
+        refRow: "0",
       );
     }).toList();
 

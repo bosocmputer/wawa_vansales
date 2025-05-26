@@ -187,6 +187,7 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
               standValue: '',
               divideValue: '',
               qty: item.qty,
+              refRow: "0",
             ))
         .toList();
 

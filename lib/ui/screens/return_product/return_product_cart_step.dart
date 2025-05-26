@@ -13,7 +13,6 @@ import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/return_product/sale_document_detail_model.dart';
 import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
 import 'package:wawa_vansales/ui/widgets/number_pad_component.dart';
-import 'package:wawa_vansales/utils/global.dart'; // เพิ่ม import Global
 import 'package:intl/intl.dart';
 
 class ReturnProductCartStep extends StatefulWidget {
@@ -120,7 +119,6 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
       );
       return;
     }
-
     final result = await Navigator.of(context).push<CartItemModel?>(
       MaterialPageRoute(
         builder: (_) => ProductSearchScreen(
@@ -134,16 +132,16 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         _isProcessingItem = true;
       });
 
-      // เช็คว่าสินค้านี้มีในเอกสารขายเดิมหรือไม่
-      final existsInDoc = widget.documentDetails.any((detail) => detail.itemCode == result.itemCode);
+      // เช็คว่าสินค้านี้มีในเอกสารขายเดิมหรือไม่ โดยตรวจสอบทั้ง itemCode และ unitCode
+      final existsInDoc = widget.documentDetails.any((detail) => detail.itemCode == result.itemCode && detail.unitCode == result.unitCode);
 
       if (!existsInDoc) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('รหัสสินค้า ${result.itemCode} ไม่มีในบิลขายเดิม ไม่สามารถรับคืนได้'),
-            backgroundColor: AppTheme.errorColor,
-          ),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(
+        //     content: Text('รหัสสินค้า ${result.itemCode} หน่วย ${result.unitCode} ไม่มีในบิลขายเดิม ไม่สามารถรับคืนได้'),
+        //     backgroundColor: AppTheme.errorColor,
+        //   ),
+        // );
 
         // Reset flag หลังจาก delay
         Future.delayed(const Duration(milliseconds: 500), () {
@@ -157,8 +155,97 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         return; // ออกจากฟังก์ชันเลย ไม่ส่ง event
       }
 
-      // ส่ง event เฉพาะเมื่อสินค้ามีในบิลขายเดิม
-      context.read<ReturnProductBloc>().add(AddItemToReturnCart(result));
+      // ค้นหาข้อมูลสินค้าจาก documentDetails ที่มี itemCode และ unitCode ตรงกัน
+      final originalItem = widget.documentDetails.firstWhere(
+        (detail) => detail.itemCode == result.itemCode && detail.unitCode == result.unitCode,
+        orElse: () => SaleDocumentDetailModel(
+          itemCode: '',
+          itemName: '',
+          unitCode: '',
+          price: '0',
+          qty: '0',
+          whCode: '',
+          shelfCode: '',
+          standValue: '0',
+          divideValue: '0',
+          ratio: '0',
+          refRow: '0',
+          balanceQty: '0',
+          returnQty: '0',
+        ),
+      );
+
+      // ตรวจสอบ balanceQty เพื่อดูว่ามีสินค้าให้รับคืนได้หรือไม่
+      final balanceQty = double.tryParse(originalItem.balanceQty) ?? 0;
+
+      if (balanceQty <= 0) {
+        // Reset flag หลังจาก delay
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            setState(() {
+              _isProcessingItem = false;
+            });
+          }
+        });
+
+        return;
+      }
+
+      // เพิ่ม debug log แสดงข้อมูล balanceQty และ originalQty
+      if (kDebugMode) {
+        final originalQty = double.tryParse(originalItem.qty) ?? 0;
+        print('[DEBUG] ${result.itemCode} (${result.unitCode}) - balanceQty: $balanceQty, originalQty: $originalQty');
+        print('[DEBUG] Original item: ${originalItem.itemCode}, unit: ${originalItem.unitCode}');
+        print('[DEBUG] Result item: ${result.itemCode}, unit: ${result.unitCode}');
+      }
+
+      // ใช้จำนวนเริ่มต้นเป็น 1
+      var qty = 1.0;
+
+      // ตรวจสอบว่าจำนวนที่จะเพิ่มไม่เกิน balanceQty
+      if (qty > balanceQty) {
+        qty = balanceQty;
+      }
+
+      // สร้าง CartItemModel ใหม่โดยใช้ข้อมูลจาก result โดยตรง
+      final cartItem = CartItemModel(
+        itemCode: result.itemCode,
+        itemName: result.itemName,
+        barcode: result.barcode,
+        price: result.price,
+        sumAmount: result.price,
+        unitCode: result.unitCode,
+        whCode: originalItem.whCode, // ยังใช้ warehouse และ location จาก originalItem
+        shelfCode: originalItem.shelfCode,
+        ratio: result.ratio,
+        standValue: result.standValue,
+        divideValue: result.divideValue,
+        qty: qty.toString(), // ใช้จำนวน 1 หรือตามที่กำหนด แต่ไม่เกิน balanceQty
+        refRow: originalItem.refRow, // เพิ่ม refRow จาก originalItem ในบิลขายเดิม
+      );
+
+      // เพิ่ม debug print เมื่อ balanceQty น้อยกว่า qty ในเอกสารขายเดิม
+      if (kDebugMode) {
+        final docQty = double.tryParse(originalItem.qty) ?? 0;
+        if (balanceQty < docQty) {
+          print('[DEBUG] สินค้า ${result.itemCode} มี balanceQty ($balanceQty) < originalQty ($docQty)');
+        }
+      }
+
+      // ตรวจสอบว่าสินค้านี้มีในตะกร้าแล้วหรือไม่
+      final existingItemIndex = widget.returnItems.indexWhere((item) => item.itemCode == result.itemCode && item.unitCode == result.unitCode);
+
+      if (existingItemIndex != -1) {
+        // Reset flag
+        setState(() {
+          _isProcessingItem = false;
+        });
+
+        return;
+      }
+
+      // ส่ง event เฉพาะเมื่อสินค้ามีในบิลขายเดิม, มี balanceQty มากกว่า 0 และยังไม่มีในตะกร้า
+      context.read<ReturnProductBloc>().add(AddItemToReturnCart(cartItem));
 
       // Reset flag หลังจาก delay
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -189,15 +276,15 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
             if (state is ProductDetailLoaded) {
               final product = state.product;
 
-              // เช็คว่าสินค้านี้มีในเอกสารขายเดิมหรือไม่
-              final existsInDoc = widget.documentDetails.any((detail) => detail.itemCode == product.itemCode);
+              // เช็คว่าสินค้านี้มีในเอกสารขายเดิมหรือไม่ โดยตรวจสอบทั้ง itemCode และ unitCode
+              final existsInDoc = widget.documentDetails.any((detail) => detail.itemCode == product.itemCode && detail.unitCode == product.unitCode);
 
               if (!existsInDoc) {
                 // แสดง SnackBar เพียงครั้งเดียว
                 ScaffoldMessenger.of(context).hideCurrentSnackBar(); // ปิด SnackBar ที่แสดงอยู่ก่อน (ถ้ามี)
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('รหัสสินค้า ${product.itemCode} ไม่มีในบิลขายเดิม ไม่สามารถรับคืนได้'),
+                    content: Text('รหัสสินค้า ${product.itemCode} หน่วย ${product.unitCode} ไม่มีในบิลขายเดิม ไม่สามารถรับคืนได้'),
                     backgroundColor: AppTheme.errorColor,
                   ),
                 );
@@ -222,7 +309,68 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                 return;
               }
 
-              // เพิ่มสินค้าเข้าตะกร้า
+              // ค้นหาข้อมูลสินค้าจาก documentDetails ที่มี itemCode และ unitCode ตรงกัน
+              final originalItem = widget.documentDetails.firstWhere(
+                (detail) => detail.itemCode == product.itemCode && detail.unitCode == product.unitCode,
+                orElse: () => SaleDocumentDetailModel(
+                  itemCode: '',
+                  itemName: '',
+                  unitCode: '',
+                  price: '0',
+                  qty: '0',
+                  whCode: '',
+                  shelfCode: '',
+                  standValue: '0',
+                  divideValue: '0',
+                  ratio: '0',
+                  refRow: '0',
+                  balanceQty: '0',
+                  returnQty: '0',
+                ),
+              );
+
+              // ตรวจสอบ balanceQty เพื่อดูว่ามีสินค้าให้รับคืนได้หรือไม่
+              final balanceQty = double.tryParse(originalItem.balanceQty) ?? 0;
+
+              if (balanceQty <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('สินค้า ${product.itemName} ไม่สามารถรับคืนได้เนื่องจากมียอดคงเหลือเป็น 0'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+
+                // รีเซ็ต ProductDetailState เพื่อให้ CircularProgressIndicator หายไป
+                if (context.mounted) {
+                  context.read<ProductDetailBloc>().add(ResetProductDetail());
+                }
+
+                // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
+                setState(() {
+                  _isProcessingItem = false;
+                });
+
+                return;
+              }
+
+              // ใช้จำนวนที่ผู้ใช้ป้อน (ไม่แปลงหน่วย)
+              double qty = double.tryParse(_qtyController.text) ?? 1.0;
+
+              // ตรวจสอบว่าจำนวนที่จะเพิ่มไม่เกิน balanceQty
+              if (qty > balanceQty) {
+                qty = balanceQty;
+
+                // แจ้งเตือนว่าจำนวนถูกปรับลดลงเพื่อให้ไม่เกิน balanceQty
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('จำนวนถูกปรับให้เป็น ${balanceQty.toStringAsFixed(0)} ตามยอดคงเหลือที่รับคืนได้'),
+                    backgroundColor: Colors.orange[700],
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              }
+
+              // เพิ่มสินค้าเข้าตะกร้า โดยใช้ข้อมูลจาก product โดยตรง
               final cartItem = CartItemModel(
                 itemCode: product.itemCode,
                 itemName: product.itemName,
@@ -230,20 +378,42 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                 price: product.price,
                 sumAmount: product.price,
                 unitCode: product.unitCode,
-                whCode: Global.whCode, // ใช้ค่า whCode จาก Global
-                shelfCode: Global.shiftCode, // ใช้ค่า shiftCode จาก Global
+                whCode: originalItem.whCode, // ยังใช้ warehouse และ location จาก originalItem
+                shelfCode: originalItem.shelfCode,
                 ratio: product.ratio,
                 standValue: product.standValue,
                 divideValue: product.divideValue,
-                qty: '1',
+                qty: qty.toString(),
+                refRow: '0', // เพิ่ม refRow จาก originalItem ในบิลขายเดิม
               );
 
-              // เพิ่ม debug print เพื่อตรวจสอบการส่ง event (เฉพาะใน debug mode)
-              if (kDebugMode) {
-                print('[DEBUG] Adding item to return cart: ${product.itemCode}');
+              // ตรวจสอบว่าสินค้านี้มีในตะกร้าแล้วหรือไม่
+              final existingItemIndex = widget.returnItems.indexWhere((item) => item.itemCode == product.itemCode && item.unitCode == product.unitCode);
+
+              if (existingItemIndex != -1) {
+                // ถ้ามีสินค้านี้ในตะกร้าแล้ว ให้แจ้งเตือน
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('สินค้า ${product.itemName} มีในรายการรับคืนแล้ว กรุณาปรับจำนวนในรายการแทน'),
+                    backgroundColor: Colors.orange[700],
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+
+                // รีเซ็ต ProductDetailState เพื่อให้ CircularProgressIndicator หายไป
+                if (context.mounted) {
+                  context.read<ProductDetailBloc>().add(ResetProductDetail());
+                }
+
+                // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
+                setState(() {
+                  _isProcessingItem = false;
+                });
+
+                return;
               }
 
-              // ส่ง event เพื่อเพิ่มสินค้า
+              // ส่ง event เพื่อเพิ่มสินค้า เฉพาะเมื่อสินค้ายังไม่มีในตะกร้า
               context.read<ReturnProductBloc>().add(AddItemToReturnCart(cartItem));
 
               // เรียก ResetProductDetail หลังเพิ่มสินค้าเข้าตะกร้า
@@ -311,6 +481,14 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
               setState(() {
                 _isProcessingItem = false;
               });
+
+              // เพิ่ม debug print เพื่อตรวจสอบการอัพเดทของ state
+              if (kDebugMode) {
+                print('[DEBUG] STATE UPDATED: ReturnItems count: ${state.returnItems.length}');
+                for (int i = 0; i < state.returnItems.length; i++) {
+                  print('[DEBUG] STATE ReturnItem $i: ${state.returnItems[i].itemCode}, unit: ${state.returnItems[i].unitCode}');
+                }
+              }
 
               // ตั้งโฟกัสกลับไปที่ช่องสแกนบาร์โค้ด
               Future.delayed(const Duration(milliseconds: 100), () {
@@ -580,10 +758,13 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         divideValue: '0',
         ratio: '0',
         refRow: '0',
+        balanceQty: '0',
+        returnQty: '0',
       ),
     );
 
     final maxReturnQty = double.tryParse(originalItem.qty) ?? 0;
+    final balanceQty = double.tryParse(originalItem.balanceQty) ?? 0;
 
     // แสดง dialog
     showDialog(
@@ -609,6 +790,21 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                     color: Colors.blue[700],
                   ),
                 ),
+                if (balanceQty > 0 && balanceQty < maxReturnQty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text(
+                        'จำนวนที่สามารถรับคืนได้: ${balanceQty.toStringAsFixed(0)} ${item.unitCode}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: qtyController,
@@ -641,8 +837,11 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                 onPressed: () {
                   double? qty = double.tryParse(qtyController.text);
                   if (qty != null && qty > 0) {
-                    // เช็คว่าจำนวนที่รับคืนไม่เกินจำนวนในบิลขาย
-                    if (qty <= maxReturnQty) {
+                    // ใช้ค่าที่น้อยกว่าระหว่าง qty และ balanceQty
+                    final maxAllowedQty = balanceQty > 0 ? (balanceQty < maxReturnQty ? balanceQty : maxReturnQty) : maxReturnQty;
+
+                    // เช็คว่าจำนวนที่รับคืนไม่เกินจำนวนที่อนุญาต
+                    if (qty <= maxAllowedQty) {
                       context.read<ReturnProductBloc>().add(
                             UpdateReturnItemQuantity(
                               itemCode: item.itemCode,
@@ -654,9 +853,17 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                       Navigator.of(context).pop();
                     } else {
                       // แสดงข้อความเตือนเมื่อระบุจำนวนเกิน
+                      String errorMessage = '';
+
+                      if (balanceQty > 0 && balanceQty < maxReturnQty) {
+                        errorMessage = 'ไม่สามารถรับคืนเกินจำนวนคงเหลือ (${balanceQty.toStringAsFixed(0)})';
+                      } else {
+                        errorMessage = 'ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${maxReturnQty.toStringAsFixed(0)})';
+                      }
+
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${maxReturnQty.toStringAsFixed(0)})'),
+                          content: Text(errorMessage),
                           backgroundColor: AppTheme.errorColor,
                           duration: const Duration(seconds: 2),
                         ),
@@ -677,72 +884,6 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
             ],
           );
         });
-  }
-
-  // TabBar (ปรับปรุง)
-  Widget _buildTabBar() {
-    return Container(
-      height: 46,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
-        ),
-      ),
-      child: TabBar(
-        labelColor: AppTheme.primaryColor,
-        unselectedLabelColor: Colors.grey[600],
-        indicatorColor: AppTheme.primaryColor,
-        indicatorWeight: 3,
-        dividerHeight: 0,
-        tabs: [
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.receipt_long, size: 16),
-                const SizedBox(width: 6),
-                const Text('สินค้าในบิล', style: TextStyle(fontSize: 13)),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${widget.documentDetails.length}',
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.shopping_cart, size: 16),
-                const SizedBox(width: 6),
-                const Text('รับคืน', style: TextStyle(fontSize: 13)),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${widget.returnItems.length}',
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildEmptyReturnCart() {
@@ -778,17 +919,6 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
     );
   }
 
-  Widget _buildSaleDocumentItemsList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: widget.documentDetails.length,
-      itemBuilder: (context, index) {
-        final item = widget.documentDetails[index];
-        return _buildSaleDocumentItemCard(item);
-      },
-    );
-  }
-
   Widget _buildReturnItemsList() {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -797,256 +927,6 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         final item = widget.returnItems[index];
         return _buildReturnItemCard(item);
       },
-    );
-  }
-
-  // สินค้าในบิลขาย (ปรับปรุงการแสดงผล)
-  Widget _buildSaleDocumentItemCard(SaleDocumentDetailModel item) {
-    final price = double.tryParse(item.price) ?? 0;
-    final qty = double.tryParse(item.qty) ?? 0;
-
-    // เช็คว่าสินค้านี้ถูกเลือกอยู่ในรายการรับคืนหรือไม่ (เช็คทั้งรหัสสินค้าและหน่วยนับ)
-    bool isInReturnCart = widget.returnItems.any((returnItem) => returnItem.itemCode == item.itemCode && returnItem.unitCode == item.unitCode);
-
-    // จำนวนที่เลือกไปแล้ว
-    int selectedQty = 0;
-    if (isInReturnCart) {
-      final selectedItem = widget.returnItems.firstWhere(
-        (returnItem) => returnItem.itemCode == item.itemCode && returnItem.unitCode == item.unitCode,
-        orElse: () => CartItemModel(
-          itemCode: '',
-          itemName: '',
-          barcode: '',
-          price: '',
-          sumAmount: '',
-          unitCode: '',
-          whCode: '',
-          shelfCode: '',
-          ratio: '',
-          standValue: '',
-          divideValue: '',
-          qty: '0',
-        ),
-      );
-      selectedQty = (double.tryParse(selectedItem.qty) ?? 0).toInt();
-    }
-
-    // เช็คว่าเลือกครบจำนวนในบิลแล้วหรือยัง
-    bool isMaxQuantity = selectedQty >= qty.toInt();
-
-    return Card(
-      margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-      elevation: 1,
-      // เปลี่ยนสีขอบการ์ดถ้าถูกเลือกแล้ว
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: isInReturnCart ? BorderSide(color: Colors.green.shade300, width: 1.5) : BorderSide.none,
-      ),
-      // เพิ่มสีพื้นหลังอ่อนๆ ถ้าถูกเลือกแล้ว
-      color: isInReturnCart ? Colors.green.shade50 : Colors.white,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () {
-          // เพิ่มสินค้าเข้าตะกร้าเมื่อกดที่การ์ด (เช็คก่อนว่าเลือกเกินหรือยัง)
-          if (isMaxQuantity) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('ไม่สามารถรับคืนเกินจำนวนในบิล (${qty.toInt()})'),
-                backgroundColor: AppTheme.errorColor,
-              ),
-            );
-            return;
-          }
-
-          final cartItem = CartItemModel(
-            itemCode: item.itemCode,
-            itemName: item.itemName,
-            barcode: '', // ไม่มีบาร์โค้ดในข้อมูลเอกสารขาย
-            price: item.price,
-            sumAmount: item.price,
-            unitCode: item.unitCode,
-            whCode: Global.whCode, // ใช้ค่า whCode จาก Global
-            shelfCode: Global.shiftCode, // ใช้ค่า shiftCode จาก Global
-            ratio: item.ratio,
-            standValue: item.standValue,
-            divideValue: item.divideValue,
-            qty: '1',
-          );
-
-          context.read<ReturnProductBloc>().add(AddItemToReturnCart(cartItem));
-        },
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ส่วนซ้าย: ปุ่มเพิ่ม (เปลี่ยนไอคอนถ้าถูกเลือกแล้ว)
-                  Container(
-                    height: 32,
-                    width: 32,
-                    decoration: BoxDecoration(
-                      color: isInReturnCart ? Colors.green.withOpacity(0.2) : AppTheme.primaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        isInReturnCart ? Icons.add_shopping_cart : Icons.add,
-                        size: 16,
-                      ),
-                      color: isInReturnCart ? Colors.green : AppTheme.primaryColor,
-                      onPressed: () {
-                        // เพิ่มสินค้าเข้าตะกร้า (เช็คก่อนว่าเลือกเกินหรือยัง)
-                        if (isMaxQuantity) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('ไม่สามารถรับคืนเกินจำนวนในบิล (${qty.toInt()})'),
-                              backgroundColor: AppTheme.errorColor,
-                            ),
-                          );
-                          return;
-                        }
-
-                        final cartItem = CartItemModel(
-                          itemCode: item.itemCode,
-                          itemName: item.itemName,
-                          barcode: '', // ไม่มีบาร์โค้ดในข้อมูลเอกสารขาย
-                          price: item.price,
-                          sumAmount: item.price,
-                          unitCode: item.unitCode,
-                          whCode: Global.whCode, // ใช้ค่า whCode จาก Global
-                          shelfCode: Global.shiftCode, // ใช้ค่า shiftCode จาก Global
-                          ratio: item.ratio,
-                          standValue: item.standValue,
-                          divideValue: item.divideValue,
-                          qty: '1',
-                        );
-
-                        context.read<ReturnProductBloc>().add(AddItemToReturnCart(cartItem));
-                      },
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // ส่วนกลาง: รายละเอียดสินค้า
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            // รหัสสินค้า
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: Text(
-                                item.itemCode,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ),
-                            const Spacer(),
-                            // ยอดรวม
-                            Text(
-                              '฿${_currencyFormat.format(item.totalAmount)}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-
-                        // ชื่อสินค้า
-                        Text(
-                          item.itemName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
-                            // เปลี่ยนสีข้อความถ้าถูกเลือกแล้ว
-                            color: isInReturnCart ? Colors.green.shade700 : Colors.black,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-
-                        // ราคาและจำนวน
-                        Row(
-                          children: [
-                            // ราคาต่อหน่วย
-                            Text(
-                              '฿${_currencyFormat.format(price)}/${item.unitCode}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const Spacer(),
-                            // จำนวน
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.blue.shade100, width: 1),
-                              ),
-                              child: Text(
-                                'จำนวน: ${qty.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.blue.shade700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // แสดงจำนวนที่เลือกไปแล้วที่มุมขวาบน
-            if (isInReturnCart)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isMaxQuantity ? Colors.red : Colors.green,
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(8),
-                      bottomLeft: Radius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'เลือกแล้ว $selectedQty/${qty.toInt()}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -1179,7 +1059,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                         onTap: () {
                           final currentQty = double.tryParse(item.qty) ?? 0;
 
-                          // ตรวจสอบว่าจำนวนที่เพิ่มไม่เกินจำนวนที่มีในบิลขาย
+                          // ตรวจสอบว่าจำนวนที่เพิ่มไม่เกินจำนวนที่มีในบิลขาย และไม่เกิน balanceQty
                           final originalItem = widget.documentDetails.firstWhere(
                             (detail) => detail.itemCode == item.itemCode && detail.unitCode == item.unitCode,
                             orElse: () => SaleDocumentDetailModel(
@@ -1194,12 +1074,18 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                               divideValue: '0',
                               ratio: '0',
                               refRow: '0',
+                              balanceQty: '0',
+                              returnQty: '0',
                             ),
                           );
 
                           final originalQty = double.tryParse(originalItem.qty) ?? 0;
+                          final balanceQty = double.tryParse(originalItem.balanceQty) ?? 0;
 
-                          if (currentQty < originalQty) {
+                          // ใช้ค่าที่น้อยกว่าระหว่าง qty และ balanceQty
+                          final maxAllowedQty = balanceQty > 0 ? (balanceQty < originalQty ? balanceQty : originalQty) : originalQty;
+
+                          if (currentQty < maxAllowedQty) {
                             context.read<ReturnProductBloc>().add(
                                   UpdateReturnItemQuantity(
                                     itemCode: item.itemCode,
@@ -1209,9 +1095,18 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                                   ),
                                 );
                           } else {
+                            // แสดงข้อความเตือนเมื่อระบุจำนวนเกิน
+                            String errorMessage = '';
+
+                            if (balanceQty > 0 && balanceQty < originalQty) {
+                              errorMessage = 'ไม่สามารถรับคืนเกินจำนวนคงเหลือ (${balanceQty.toStringAsFixed(0)})';
+                            } else {
+                              errorMessage = 'ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${originalQty.toStringAsFixed(0)})';
+                            }
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('ไม่สามารถรับคืนเกินจำนวนในบิลขาย (${originalQty.toStringAsFixed(0)})'),
+                                content: Text(errorMessage),
                                 backgroundColor: AppTheme.errorColor,
                               ),
                             );
