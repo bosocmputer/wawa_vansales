@@ -11,6 +11,7 @@ PaymentModel _$PaymentModelFromJson(Map<String, dynamic> json) => PaymentModel(
       transNumber: json['trans_number'] as String,
       payAmount: (json['pay_amount'] as num).toDouble(),
       charge: (json['charge'] as num?)?.toDouble() ?? 0.0,
+      noApproved: json['no_approved'] as String? ?? "",
     );
 
 Map<String, dynamic> _$PaymentModelToJson(PaymentModel instance) =>
@@ -19,4 +20,5 @@ Map<String, dynamic> _$PaymentModelToJson(PaymentModel instance) =>
       'trans_number': instance.transNumber,
       'pay_amount': instance.payAmount,
       'charge': instance.charge,
+      'no_approved': instance.noApproved,
     };

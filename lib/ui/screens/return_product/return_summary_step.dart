@@ -60,14 +60,14 @@ class _ReturnSummaryStepState extends State<ReturnSummaryStep> {
   }
 
   Future<void> _generateDocNumber() async {
-    /// MCNyyyymmddhhii-random4
+    /// CNVyyyymmddhhii-random4
 
     final now = DateTime.now();
     final dateFormat = DateFormat('yyyyMMddHHmm');
     final formattedDate = dateFormat.format(now);
     final random = Random();
     final randomNumber = random.nextInt(10000).toString().padLeft(4, '0');
-    final docNo = 'MCN$formattedDate-$randomNumber';
+    final docNo = 'CNV$formattedDate-$randomNumber';
 
     setState(() {
       generatedDocNumber = docNo;

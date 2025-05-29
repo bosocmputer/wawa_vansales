@@ -1,6 +1,7 @@
 // lib/ui/screens/sale/sale_screen.dart
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
@@ -384,6 +385,8 @@ class _SaleScreenState extends State<SaleScreen> {
       },
       child: SafeArea(
         child: Scaffold(
+          // เพิ่มชื่อ route เพื่อให้สามารถอ้างอิงได้ใน Navigator.popUntil
+          restorationId: 'SaleScreen',
           appBar: AppBar(
             title: const Text('ขายสินค้า'),
             leading: BlocBuilder<CartBloc, CartState>(
@@ -468,10 +471,36 @@ class _SaleScreenState extends State<SaleScreen> {
                   ),
                 );
               } else if (state is CartSubmitSuccess && !_isTransactionCompleted) {
+                if (kDebugMode) {
+                  print("SaleScreen: ได้รับ CartSubmitSuccess state - กำลังแสดง PrintReceiptDialog");
+                }
+
                 // ตั้งค่า flag เพื่อป้องกันการทำงานซ้ำซ้อน
                 setState(() {
                   _isTransactionCompleted = true;
                 });
+
+                // ปิดทุก dialog ที่อาจค้างอยู่จากการชำระเงินด้วย QR Code
+                // เป็นไปได้ว่า QrPaymentDialog หรือ processing dialog ยังคงแสดงอยู่
+
+                // พยายามปิด QR dialogs ที่อาจยังค้างอยู่
+                try {
+                  if (kDebugMode) {
+                    print("SaleScreen: ปิด dialogs ที่ค้างอยู่");
+                  }
+
+                  // ปิด dialog ทั้งหมดที่เป็น dialog จากการชำระเงินด้วย QR
+                  Navigator.of(context).popUntil((route) {
+                    final name = route.settings.name;
+                    final isQRDialog = name == 'QrPaymentDialog' || name == 'QrProcessingDialog';
+                    // ถ้าเป็น QR dialog ให้ปิด, แต่ถ้าไม่ใช่ ให้หยุดที่นั่น
+                    return !isQRDialog;
+                  });
+                } catch (e) {
+                  if (kDebugMode) {
+                    print("SaleScreen: เกิดข้อผิดพลาดในการปิด dialogs: $e");
+                  }
+                }
 
                 // แจ้งเตือนว่าบันทึกสำเร็จ
                 ScaffoldMessenger.of(context).showSnackBar(

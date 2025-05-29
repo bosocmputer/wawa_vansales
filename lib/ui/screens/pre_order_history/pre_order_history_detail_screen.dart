@@ -67,6 +67,7 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
     final double cashAmount = double.tryParse(widget.orderHistory.cashAmount) ?? 0;
     final double transferAmount = double.tryParse(widget.orderHistory.tranferAmount) ?? 0;
     final double cardAmount = double.tryParse(widget.orderHistory.cardAmount) ?? 0;
+    final double walletAmount = double.tryParse(widget.orderHistory.walletAmount) ?? 0;
 
     // คำนวณเงินทอน (กรณีจ่ายเงินสดมากกว่ายอดรวม)
     double? changeAmount;
@@ -207,6 +208,14 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
         payAmount: cardAmount,
         transNumber: '', // เพิ่มการสร้างเลขอ้างอิงจากเลขที่เอกสาร
         charge: creditCardCharge, // ใช้ค่าธรรมเนียมบัตรเครดิตจาก API
+      ));
+    }
+
+    if (walletAmount > 0) {
+      payments.add(PaymentModel(
+        payType: PaymentModel.paymentTypeToInt(PaymentType.qrCode), // QR Code (21)
+        payAmount: walletAmount,
+        transNumber: '',
       ));
     }
 
@@ -615,6 +624,10 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
     final double cardAmount = double.tryParse(widget.orderHistory.cardAmount) ?? 0;
     final bool hasCardPayment = cardAmount > 0;
 
+    // ตรวจสอบค่า QR Code ว่ามีการใช้จ่ายหรือไม่
+    final double walletAmount = double.tryParse(widget.orderHistory.walletAmount) ?? 0;
+    final bool hasWalletPayment = walletAmount > 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -632,65 +645,106 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // แสดงรายละเอียดค่าธรรมเนียมบัตรเครดิตและยอดสุทธิ เฉพาะเมื่อมีการใช้บัตรเครดิต
-            if (hasCardPayment && hasCharge) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'ยอดรวมสินค้า',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  Text(
-                    '฿${_currencyFormat.format(totalAmount)}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+            // แสดงรายละเอียดการชำระเงิน
+            if (hasCardPayment || hasWalletPayment || hasCharge) ...[
+              // แสดงรายละเอียดการชำระเงินด้วย QR Code
+              if (hasWalletPayment) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(
-                        Icons.credit_card,
-                        size: 16,
-                        color: Colors.grey,
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.qr_code,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'ชำระผ่าน QR Code',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
                       Text(
-                        'ค่าธรรมเนียมบัตรเครดิต (1.5%)',
+                        '฿${_currencyFormat.format(walletAmount)}',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 16,
                           fontWeight: FontWeight.w500,
                           color: Colors.grey.shade700,
                         ),
                       ),
                     ],
                   ),
-                  Text(
-                    '฿${_currencyFormat.format(creditCharge)}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey.shade700,
+                ),
+              ],
+
+              // แสดงรายละเอียดค่าธรรมเนียมบัตรเครดิตและยอดสุทธิ เฉพาะเมื่อมีการใช้บัตรเครดิต
+              if (hasCardPayment && hasCharge) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'ยอดรวมสินค้า',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Divider(color: Colors.grey.shade300, height: 1),
-              ),
+                    Text(
+                      '฿${_currencyFormat.format(totalAmount)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.credit_card,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'ค่าธรรมเนียมบัตรเครดิต (1.5%)',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '฿${_currencyFormat.format(creditCharge)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Divider(color: Colors.grey.shade300, height: 1),
+                ),
+              ],
             ],
 
             Row(

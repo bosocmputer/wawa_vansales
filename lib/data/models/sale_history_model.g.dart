@@ -20,6 +20,7 @@ SaleHistoryModel _$SaleHistoryModelFromJson(Map<String, dynamic> json) =>
       totalCreditCharge: json['total_credit_charge'] as String?,
       totalNetAmount: json['total_net_amount'] as String?,
       totalAmountPay: json['total_amount_pay'] as String?,
+      walletAmount: json['wallet_amount'] as String?,
     );
 
 Map<String, dynamic> _$SaleHistoryModelToJson(SaleHistoryModel instance) =>
@@ -36,6 +37,7 @@ Map<String, dynamic> _$SaleHistoryModelToJson(SaleHistoryModel instance) =>
       'total_credit_charge': instance.totalCreditCharge,
       'total_net_amount': instance.totalNetAmount,
       'total_amount_pay': instance.totalAmountPay,
+      'wallet_amount': instance.walletAmount,
     };
 
 SaleHistoryResponse _$SaleHistoryResponseFromJson(Map<String, dynamic> json) =>

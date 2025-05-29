@@ -34,6 +34,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     try {
       final products = await _productRepository.getProducts(
         search: event.searchQuery,
+        whCode: event.whCode,
+        shelfCode: event.shelfCode,
       );
 
       _products = products;
@@ -94,6 +96,6 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     _searchQuery = event.query;
 
     // เรียก fetch products ด้วยคำค้นหาใหม่
-    add(FetchProducts(searchQuery: event.query));
+    add(FetchProducts(searchQuery: event.query, whCode: event.whCode, shelfCode: event.shelfCode));
   }
 }

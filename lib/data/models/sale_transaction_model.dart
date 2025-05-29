@@ -40,6 +40,9 @@ class SaleTransactionModel {
   @JsonKey(name: 'card_amount')
   final String cardAmount;
 
+  @JsonKey(name: 'wallet_amount')
+  final String walletAmount;
+
   @JsonKey(name: 'total_amount')
   final String totalAmount;
 
@@ -83,6 +86,7 @@ class SaleTransactionModel {
     required this.creditAmount,
     required this.cashAmount,
     required this.cardAmount,
+    required this.walletAmount,
     required this.totalAmount,
     required this.totalValue,
     required this.totalCreditCharge,

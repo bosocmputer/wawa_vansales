@@ -7,6 +7,7 @@ enum PaymentType {
   cash,
   transfer,
   creditCard,
+  qrCode,
 }
 
 @JsonSerializable()
@@ -23,11 +24,15 @@ class PaymentModel {
   @JsonKey(name: 'charge')
   final double charge;
 
+  @JsonKey(name: 'no_approved')
+  final String noApproved;
+
   PaymentModel({
     required this.payType,
     required this.transNumber,
     required this.payAmount,
     this.charge = 0.0,
+    this.noApproved = "",
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) => _$PaymentModelFromJson(json);
@@ -43,6 +48,8 @@ class PaymentModel {
         return 1;
       case PaymentType.creditCard:
         return 2;
+      case PaymentType.qrCode:
+        return 21; // ตาม spec กำหนดให้ QR Code ใช้ pay_type = 21
     }
   }
 
@@ -55,6 +62,8 @@ class PaymentModel {
         return PaymentType.transfer;
       case 2:
         return PaymentType.creditCard;
+      case 21: // QR Code payment type
+        return PaymentType.qrCode;
       default:
         return PaymentType.cash;
     }

@@ -304,6 +304,7 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
                 cashAmount: sale.cashAmount,
                 tranferAmount: sale.tranferAmount,
                 cardAmount: sale.cardAmount,
+                walletAmount: sale.walletAmount, // เพิ่ม wallet_amount สำหรับ QR Code
                 totalCreditCharge: sale.totalCreditCharge,
                 totalNetAmount: sale.totalNetAmount,
                 totalAmountPay: sale.totalAmountPay,
@@ -441,9 +442,10 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
     final double cashAmount = double.tryParse(sale.cashAmount ?? '0') ?? 0;
     final double transferAmount = double.tryParse(sale.tranferAmount ?? '0') ?? 0;
     final double cardAmount = double.tryParse(sale.cardAmount ?? '0') ?? 0;
+    final double walletAmount = double.tryParse(sale.walletAmount ?? '0') ?? 0; // เพิ่มการรองรับ QR Code
 
     // ถ้าไม่มีการชำระเงินที่ระบุประเภท ให้แสดงข้อความ
-    if (cashAmount == 0 && transferAmount == 0 && cardAmount == 0) {
+    if (cashAmount == 0 && transferAmount == 0 && cardAmount == 0 && walletAmount == 0) {
       return const Row(
         children: [
           Icon(
@@ -519,6 +521,28 @@ class _SaleHistoryListScreenState extends State<SaleHistoryListScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'บัตรเครดิต: ฿${_currencyFormat.format(cardAmount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // เพิ่มการแสดง QR Code
+        if (walletAmount > 0)
+          Padding(
+            padding: EdgeInsets.only(top: (cashAmount > 0 || transferAmount > 0 || cardAmount > 0) ? 4 : 0),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.qr_code,
+                  size: 18,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'QR Code: ฿${_currencyFormat.format(walletAmount)}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

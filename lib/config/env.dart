@@ -9,4 +9,9 @@ class Env {
     _logger.i('Using API URL: $url');
     return url;
   }
+
+  static String? get qrApiKey {
+    String? key = dotenv.env['QR_API_KEY'];
+    return key;
+  }
 }

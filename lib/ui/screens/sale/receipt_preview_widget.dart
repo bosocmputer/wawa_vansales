@@ -363,6 +363,9 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                 case PaymentType.creditCard:
                   paymentText = 'บัตรเครดิต';
                   break;
+                case PaymentType.qrCode:
+                  paymentText = 'QR Code';
+                  break;
               }
 
               return Column(
@@ -380,14 +383,14 @@ class _ReceiptPreviewWidgetState extends State<ReceiptPreviewWidget> {
                       ),
                     ],
                   ),
-                  if (payment.transNumber.isNotEmpty)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'อ้างอิง: ${payment.transNumber}',
-                        style: const TextStyle(fontSize: 8),
-                      ),
-                    ),
+                  // if (payment.transNumber.isNotEmpty)
+                  //   Align(
+                  //     alignment: Alignment.centerLeft,
+                  //     child: Text(
+                  //       'อ้างอิง: ${payment.transNumber}',
+                  //       style: const TextStyle(fontSize: 8),
+                  //     ),
+                  //   ),
                   // แสดงค่าธรรมเนียมบัตรเครดิต ถ้าเป็นการจ่ายด้วยบัตรและมีค่าธรรมเนียม
                   if (paymentType == PaymentType.creditCard && payment.charge > 0) ...[
                     Row(

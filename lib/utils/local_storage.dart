@@ -93,6 +93,12 @@ class LocalStorage {
     return null;
   }
 
+  // ดึงเฉพาะรหัสโลเคชั่นที่เลือก
+  Future<String> getLocationCode() async {
+    final location = await getLocation();
+    return location?.code ?? 'NA';
+  }
+
   // บันทึกสถานะการเลือกคลังและโลเคชั่น
   Future<void> setWarehouseSelected(bool value) async {
     await _prefs.setBool(_isWarehouseSelectedKey, value);

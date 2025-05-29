@@ -469,14 +469,15 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
     final double cashAmount = double.tryParse(preOrder.cashAmount) ?? 0;
     final double transferAmount = double.tryParse(preOrder.tranferAmount) ?? 0;
     final double cardAmount = double.tryParse(preOrder.cardAmount) ?? 0;
+    final double walletAmount = double.tryParse(preOrder.walletAmount) ?? 0;
 
     // Log เพื่อตรวจสอบข้อมูล
     if (kDebugMode) {
-      print("PreOrder Payment - Cash: ${preOrder.cashAmount}, Transfer: ${preOrder.tranferAmount}, Card: ${preOrder.cardAmount}");
+      print("PreOrder Payment - Cash: ${preOrder.cashAmount}, Transfer: ${preOrder.tranferAmount}, Card: ${preOrder.cardAmount}, QR: ${preOrder.walletAmount}");
     }
 
     // ถ้าไม่มีการชำระเงินที่ระบุประเภท ให้แสดงข้อความ
-    if (cashAmount == 0 && transferAmount == 0 && cardAmount == 0) {
+    if (cashAmount == 0 && transferAmount == 0 && cardAmount == 0 && walletAmount == 0) {
       return Row(
         children: [
           Icon(
@@ -552,6 +553,27 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'บัตรเครดิต: ฿${currencyFormat.format(cardAmount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (walletAmount > 0)
+          Padding(
+            padding: EdgeInsets.only(top: (cashAmount > 0 || transferAmount > 0 || cardAmount > 0) ? 4 : 0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.qr_code,
+                  size: 18,
+                  color: _screenColor,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'QR Code: ฿${currencyFormat.format(walletAmount)}',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

@@ -309,6 +309,9 @@ class ReceiptPrinterService {
           case PaymentType.creditCard:
             paymentText = 'บัตรเครดิต';
             break;
+          case PaymentType.qrCode:
+            paymentText = 'QR Code';
+            break;
         }
 
         await _printer.printLeftRight(paymentText, currencyFormat.format(payment.payAmount), smallSize);

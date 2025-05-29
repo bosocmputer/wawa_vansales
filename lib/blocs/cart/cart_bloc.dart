@@ -304,6 +304,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         double cashAmount = 0;
         double transferAmount = 0;
         double cardAmount = 0;
+        double walletAmount = 0; // เพิ่มสำหรับการชำระด้วย QR Code
         double totalCreditCharge = 0;
 
         for (var payment in currentState.payments) {
@@ -318,11 +319,14 @@ class CartBloc extends Bloc<CartEvent, CartState> {
               cardAmount += payment.payAmount;
               totalCreditCharge += payment.charge;
               break;
+            case PaymentType.qrCode:
+              walletAmount += payment.payAmount;
+              break;
           }
         }
 
         // คำนวณยอดที่ชำระทั้งหมด
-        final double totalAmountPay = cashAmount + transferAmount + cardAmount;
+        final double totalAmountPay = cashAmount + transferAmount + cardAmount + walletAmount;
 
         // ยอดรวมการลดหนี้ (จาก state ที่เพิ่มเข้ามาใหม่)
         final double balanceAmount = currentState.balanceAmount;
@@ -391,21 +395,30 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           totalNetAmount = adjustedTotalAmount + totalCreditCharge;
         }
 
-        // กรองรายการชำระเงินให้มีเฉพาะเงินโอน (pay_type 0) และบัตรเครดิต (pay_type 1)
+        // กรองรายการชำระเงินให้มีเฉพาะเงินโอน (pay_type 0), บัตรเครดิต (pay_type 1) และ QR Code (pay_type 21)
         final List<PaymentModel> filteredPayments = currentState.payments
-            .where((payment) => PaymentModel.intToPaymentType(payment.payType) == PaymentType.transfer || PaymentModel.intToPaymentType(payment.payType) == PaymentType.creditCard)
+            .where((payment) =>
+                PaymentModel.intToPaymentType(payment.payType) == PaymentType.transfer ||
+                PaymentModel.intToPaymentType(payment.payType) == PaymentType.creditCard ||
+                PaymentModel.intToPaymentType(payment.payType) == PaymentType.qrCode)
             .toList();
 
-        // ปรับ payType ให้เป็น 0 สำหรับเงินโอน, 1 สำหรับบัตรเครดิต ตามที่กำหนดใหม่
+        // ปรับ payType ให้เป็น 0 สำหรับเงินโอน, 1 สำหรับบัตรเครดิต, 21 สำหรับ QR Code ตามที่กำหนดใหม่
         final List<PaymentModel> adjustedPayments = filteredPayments.map((payment) {
+          final payType = PaymentModel.intToPaymentType(payment.payType);
           int newPayType;
-          if (PaymentModel.intToPaymentType(payment.payType) == PaymentType.transfer) {
+
+          if (payType == PaymentType.transfer) {
             newPayType = 0; // เงินโอน
-          } else {
+          } else if (payType == PaymentType.creditCard) {
             newPayType = 1; // บัตรเครดิต
+          } else if (payType == PaymentType.qrCode) {
+            newPayType = 21; // QR Code
+          } else {
+            newPayType = payment.payType; // ใช้ค่าเดิมถ้าไม่ตรงเงื่อนไข
           }
 
-          return PaymentModel(payType: newPayType, transNumber: payment.transNumber, payAmount: payment.payAmount, charge: payment.charge);
+          return PaymentModel(payType: newPayType, transNumber: payment.transNumber, payAmount: payment.payAmount, charge: payment.charge, noApproved: payment.noApproved);
         }).toList();
 
         // สร้าง transaction model
@@ -437,6 +450,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           creditAmount: '0',
           cashAmount: cashAmount.toString(),
           cardAmount: cardAmount.toString(),
+          walletAmount: walletAmount.toString(),
           totalAmount: totalAmount.toString(), // ใช้ยอดรวมที่คำนวณตามสถานะการชำระเงิน
           totalValue: currentState.totalAmount.toString(), // totalValue ยังคงเก็บยอดรวมจริงก่อนหักลดหนี้
           totalCreditCharge: totalCreditCharge.toString(),

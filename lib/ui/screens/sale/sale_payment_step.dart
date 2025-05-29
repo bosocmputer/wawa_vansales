@@ -1,4 +1,8 @@
 // lib/ui/screens/sale/sale_payment_step.dart
+// ignore_for_file: use_build_context_synchronously
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
@@ -9,6 +13,7 @@ import 'package:wawa_vansales/data/models/balance_detail_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
 import 'package:wawa_vansales/ui/screens/sale/balance_detail_screen.dart';
+import 'package:wawa_vansales/ui/screens/sale/qr_payment_dialog.dart';
 import 'package:intl/intl.dart';
 
 class SalePaymentStep extends StatefulWidget {
@@ -272,6 +277,8 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
         return 'เงินโอน';
       case PaymentType.creditCard:
         return 'บัตรเครดิต';
+      case PaymentType.qrCode:
+        return 'QR Code';
     }
   }
 
@@ -283,6 +290,8 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
         return Icons.account_balance;
       case PaymentType.creditCard:
         return Icons.credit_card;
+      case PaymentType.qrCode:
+        return Icons.qr_code;
     }
   }
 
@@ -294,6 +303,8 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
         return Colors.blue;
       case PaymentType.creditCard:
         return Colors.orange;
+      case PaymentType.qrCode:
+        return Colors.indigo;
     }
   }
 
@@ -480,34 +491,49 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
                 ),
                 const SizedBox(height: 12),
 
-                // ปุ่มชำระเงิน - แถวเดียว
-                Row(
+                // ปุ่มชำระเงิน - สองแถว
+                Column(
                   children: [
-                    Expanded(
-                      child: _buildPaymentOptionButton(
-                        PaymentType.cash,
-                        'เงินสด',
-                        Icons.payments,
-                        Colors.green,
-                      ),
+                    // แถวที่ 1
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildPaymentOptionButton(
+                            PaymentType.cash,
+                            'เงินสด',
+                            Icons.payments,
+                            Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildPaymentOptionButton(
+                            PaymentType.transfer,
+                            'โอนเงิน',
+                            Icons.account_balance,
+                            Colors.blue,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildPaymentOptionButton(
-                        PaymentType.transfer,
-                        'โอนเงิน',
-                        Icons.account_balance,
-                        Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildPaymentOptionButton(
-                        PaymentType.creditCard,
-                        'บัตรเครดิต',
-                        Icons.credit_card,
-                        Colors.orange,
-                      ),
+                    // ช่องว่างระหว่างแถว
+                    const SizedBox(height: 12),
+                    // แถวที่ 2
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildPaymentOptionButton(
+                            PaymentType.creditCard,
+                            'บัตรเครดิต',
+                            Icons.credit_card,
+                            Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildQrPaymentButton(),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -873,5 +899,152 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
         ),
       ),
     );
+  }
+
+  Widget _buildQrPaymentButton() {
+    return InkWell(
+      onTap: _showQrPaymentDialog,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.indigo.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.indigo.withOpacity(0.3)),
+        ),
+        child: const Column(
+          children: [
+            Icon(Icons.qr_code, color: Colors.indigo, size: 28),
+            SizedBox(height: 8),
+            Text(
+              'QR Code',
+              style: TextStyle(
+                color: Colors.indigo,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showQrPaymentDialog() async {
+    // ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isEmpty || result[0].rawAddress.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง')),
+        );
+        return;
+      }
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง')),
+      );
+      return;
+    }
+
+    // ถ้าไม่มียอดค้างชำระ แจ้งเตือนว่าชำระครบแล้ว
+    if (widget.remainingAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ชำระเงินครบแล้ว')),
+      );
+      return;
+    }
+
+    // ตรวจสอบว่ายอดเงินอยู่ในช่วงที่ถูกต้องสำหรับ QR Code (สมมติว่าขั้นต่ำ 1 บาท และสูงสุด 500,000 บาท)
+    if (widget.totalAmount < 1 || widget.totalAmount > 500000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ยอดเงินสำหรับการชำระผ่าน QR Code ต้องอยู่ระหว่าง 1 - 500,000 บาท')),
+      );
+      return;
+    }
+
+    // QR Code เป็นการชำระเต็มจำนวนเท่านั้น ต้องเช็คว่ามีการชำระเงินรูปแบบอื่นอยู่แล้วหรือไม่
+    if (widget.payments.isNotEmpty) {
+      // ต้องล้างรายการชำระเงินเดิมก่อน
+      final shouldClear = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('ยืนยันการชำระด้วย QR Code'),
+          content: const Text(
+              'การชำระเงินด้วย QR Code ไม่สามารถใช้ร่วมกับวิธีการชำระเงินอื่นได้ และต้องชำระเต็มจำนวนเท่านั้น\n\nคุณต้องการล้างวิธีการชำระเงินอื่นและชำระด้วย QR Code ทั้งหมดหรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('ยืนยัน'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldClear != true) return;
+
+      // ล้างรายการชำระเงินทั้งหมด
+      for (var payment in [...widget.payments]) {
+        context.read<CartBloc>().add(
+              RemovePayment(PaymentModel.intToPaymentType(payment.payType)),
+            );
+      }
+
+      // รอให้ CartBloc ประมวลผลการลบรายการชำระเงิน
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    try {
+      // แสดง QR Payment Dialog พร้อมกำหนด timeout
+      final result = await QrPaymentDialog.show(
+        context,
+        amount: widget.remainingAmount, // ใช้ยอดที่คำนวณใหม่
+        docNumber: context.read<CartBloc>().state is CartLoaded ? (context.read<CartBloc>().state as CartLoaded).documentNumber : null,
+        timeoutSeconds: 180, // กำหนด timeout 3 นาที
+      ).timeout(
+        const Duration(seconds: 180),
+        onTimeout: () {
+          // ปิด dialog ที่อาจจะยังแสดงอยู่
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+          // แสดงข้อความแจ้งเตือน timeout
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('หมดเวลาการชำระเงิน กรุณาลองใหม่อีกครั้ง')),
+          );
+          // คืนค่า null เพื่อแสดงว่าเกิด timeout
+          return null;
+        },
+      );
+
+      // ตรวจสอบผลลัพธ์จากการชำระเงิน
+      if (result == null) {
+        // กรณี cancel หรือ timeout
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('การชำระเงินถูกยกเลิกหรือหมดเวลา')),
+        );
+        // ignore: unrelated_type_equality_checks
+      } else if (result == false) {
+        // กรณีชำระเงินไม่สำเร็จ
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('การชำระเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')),
+        );
+      }
+      // กรณีชำระเงินสำเร็จ QrPaymentDialog จะจัดการเพิ่ม payment และดำเนินการต่อเอง
+    } catch (e) {
+      // ปิด dialog ที่อาจจะยังแสดงอยู่
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      // จัดการกรณีเกิดข้อผิดพลาดอื่นๆ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
+      );
+    }
   }
 }

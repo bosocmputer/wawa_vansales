@@ -26,6 +26,7 @@ class SaleHistoryDetailScreen extends StatefulWidget {
   final String? cashAmount;
   final String? tranferAmount;
   final String? cardAmount;
+  final String? walletAmount; // เพิ่มฟิลด์สำหรับ QR Code
   final String? totalCreditCharge;
   final String? totalNetAmount;
   final String? totalAmountPay;
@@ -38,6 +39,7 @@ class SaleHistoryDetailScreen extends StatefulWidget {
     this.cashAmount,
     this.tranferAmount,
     this.cardAmount,
+    this.walletAmount, // เพิ่ม parameter สำหรับ QR Code
     this.totalCreditCharge,
     this.totalNetAmount,
     this.totalAmountPay,
@@ -84,6 +86,7 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
     final double cashAmount = double.tryParse(widget.cashAmount ?? '0') ?? 0;
     final double transferAmount = double.tryParse(widget.tranferAmount ?? '0') ?? 0;
     final double cardAmount = double.tryParse(widget.cardAmount ?? '0') ?? 0;
+    final double walletAmount = double.tryParse(widget.walletAmount ?? '0') ?? 0; // เพิ่มจำนวนเงิน QR Code
 
     // คำนวณเงินทอน (กรณีจ่ายเงินสดมากกว่ายอดรวม)
     if (cashAmount > totalAmount) {
@@ -220,6 +223,15 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
         payAmount: cardAmount,
         transNumber: '', // เพิ่มการสร้างเลขอ้างอิงจากเลขที่เอกสาร
         charge: creditCardCharge, // ใช้ค่าธรรมเนียมบัตรเครดิตจาก API
+      ));
+    }
+
+    // เพิ่มการชำระเงินด้วย QR Code (Wallet)
+    if (walletAmount > 0) {
+      payments.add(PaymentModel(
+        payType: PaymentModel.paymentTypeToInt(PaymentType.qrCode), // QR Code
+        payAmount: walletAmount,
+        transNumber: '', // เลขอ้างอิงเป็นค่าว่าง
       ));
     }
 
@@ -630,6 +642,12 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
     final double creditCharge = double.tryParse(widget.totalCreditCharge ?? '0') ?? 0;
     final bool hasCharge = creditCharge > 0;
 
+    // ดึงข้อมูลจำนวนเงินจากแต่ละประเภทการชำระเงิน เพื่อแสดงในหน้ารายละเอียด
+    final double cashAmount = double.tryParse(widget.cashAmount ?? '0') ?? 0;
+    final double transferAmount = double.tryParse(widget.tranferAmount ?? '0') ?? 0;
+    final double cardAmount = double.tryParse(widget.cardAmount ?? '0') ?? 0;
+    final double walletAmount = double.tryParse(widget.walletAmount ?? '0') ?? 0; // เพิ่ม wallet_amount สำหรับ QR Code
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -651,6 +669,133 @@ class _SaleHistoryDetailScreenState extends State<SaleHistoryDetailScreen> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Column(
                 children: [
+                  // แสดงรายละเอียดการชำระเงิน (เฉพาะวิธีที่มีการชำระ)
+                  if (cashAmount > 0 || transferAmount > 0 || cardAmount > 0 || walletAmount > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'วิธีการชำระเงิน',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // เงินสด
+                          if (cashAmount > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.payments_outlined, size: 18, color: Colors.green),
+                                      SizedBox(width: 8),
+                                      Text('เงินสด:', style: TextStyle(fontSize: 14)),
+                                    ],
+                                  ),
+                                  Text(
+                                    '฿${_currencyFormat.format(cashAmount)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // โอนเงิน
+                          if (transferAmount > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.account_balance_outlined, size: 18, color: Colors.blue),
+                                      SizedBox(width: 8),
+                                      Text('โอนเงิน:', style: TextStyle(fontSize: 14)),
+                                    ],
+                                  ),
+                                  Text(
+                                    '฿${_currencyFormat.format(transferAmount)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // บัตรเครดิต
+                          if (cardAmount > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.credit_card_outlined, size: 18, color: Colors.orange),
+                                      SizedBox(width: 8),
+                                      Text('บัตรเครดิต:', style: TextStyle(fontSize: 14)),
+                                    ],
+                                  ),
+                                  Text(
+                                    '฿${_currencyFormat.format(cardAmount)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // QR Code
+                          if (walletAmount > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.qr_code, size: 18, color: AppTheme.primaryColor),
+                                      SizedBox(width: 8),
+                                      Text('QR Code:', style: TextStyle(fontSize: 14)),
+                                    ],
+                                  ),
+                                  Text(
+                                    '฿${_currencyFormat.format(walletAmount)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                  // Divider before total amount
+                  if (cashAmount > 0 || transferAmount > 0 || cardAmount > 0 || walletAmount > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Divider(color: Colors.grey.shade300, height: 1),
+                    ),
+
                   // ยอดรวมสินค้า (แสดงเสมอ)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

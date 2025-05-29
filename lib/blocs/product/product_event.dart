@@ -11,8 +11,14 @@ abstract class ProductEvent extends Equatable {
 // ดึงรายการสินค้า
 class FetchProducts extends ProductEvent {
   final String searchQuery;
+  final String whCode;
+  final String shelfCode;
 
-  const FetchProducts({this.searchQuery = ''});
+  const FetchProducts({
+    this.searchQuery = '',
+    required this.whCode,
+    required this.shelfCode,
+  });
 
   @override
   List<Object?> get props => [searchQuery];
@@ -37,8 +43,10 @@ class ResetProductState extends ProductEvent {}
 // กำหนดคำค้นหา
 class SetProductSearchQuery extends ProductEvent {
   final String query;
+  final String whCode;
+  final String shelfCode;
 
-  const SetProductSearchQuery(this.query);
+  const SetProductSearchQuery(this.query, this.whCode, this.shelfCode);
 
   @override
   List<Object?> get props => [query];

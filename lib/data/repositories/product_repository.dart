@@ -12,7 +12,11 @@ class ProductRepository {
   }) : _apiService = apiService;
 
   // ดึงรายการสินค้าตามคำค้นหา
-  Future<List<ProductModel>> getProducts({String search = ''}) async {
+  Future<List<ProductModel>> getProducts({
+    String search = '',
+    String whCode = '',
+    String shelfCode = '',
+  }) async {
     try {
       _logger.i('Fetching products with search: $search');
 
@@ -20,6 +24,8 @@ class ProductRepository {
         '/getBarcodeList',
         queryParameters: {
           'search': search,
+          'wh_code': whCode,
+          'shelf_code': shelfCode,
         },
       );
 

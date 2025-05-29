@@ -32,6 +32,9 @@ class PreOrderHistoryModel {
   @JsonKey(name: 'card_amount', defaultValue: '0')
   final String cardAmount;
 
+  @JsonKey(name: 'wallet_amount', defaultValue: '0')
+  final String walletAmount;
+
   @JsonKey(name: 'total_credit_charge', defaultValue: '0')
   final String? totalCreditCharge;
 
@@ -54,6 +57,7 @@ class PreOrderHistoryModel {
     this.cashAmount = '0',
     this.tranferAmount = '0',
     this.cardAmount = '0',
+    this.walletAmount = '0',
     this.totalCreditCharge,
     this.totalNetAmount,
     this.totalAmountPay,
@@ -62,6 +66,9 @@ class PreOrderHistoryModel {
 
   // คำนวณยอดรวมในรูปแบบ double
   double get amount => totalAmount;
+
+  // คำนวณยอด wallet payment ในรูปแบบ double
+  double get walletAmountValue => double.tryParse(walletAmount) ?? 0.0;
 
   factory PreOrderHistoryModel.fromJson(Map<String, dynamic> json) => _$PreOrderHistoryModelFromJson(json);
 

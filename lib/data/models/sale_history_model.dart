@@ -40,6 +40,9 @@ class SaleHistoryModel {
   @JsonKey(name: 'total_amount_pay')
   final String? totalAmountPay;
 
+  @JsonKey(name: 'wallet_amount')
+  final String? walletAmount;
+
   SaleHistoryModel({
     required this.custCode,
     required this.totalAmount,
@@ -53,6 +56,7 @@ class SaleHistoryModel {
     this.totalCreditCharge,
     this.totalNetAmount,
     this.totalAmountPay,
+    this.walletAmount,
   });
 
   factory SaleHistoryModel.fromJson(Map<String, dynamic> json) => _$SaleHistoryModelFromJson(json);
@@ -70,6 +74,9 @@ class SaleHistoryModel {
 
   // Get total amount pay as double
   double get totalAmountPayValue => double.tryParse(totalAmountPay ?? totalAmount) ?? totalAmountValue;
+
+  // Get wallet amount as double (QR Code)
+  double get walletAmountValue => double.tryParse(walletAmount ?? '0') ?? 0.0;
 }
 
 @JsonSerializable()
