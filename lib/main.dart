@@ -17,6 +17,7 @@ import 'package:wawa_vansales/blocs/product_balance/product_balance_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product_history/return_product_history_bloc.dart';
+import 'package:wawa_vansales/blocs/return_product_search/product_return_search_bloc.dart';
 import 'package:wawa_vansales/blocs/sale_history/sale_history_bloc.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
@@ -27,6 +28,7 @@ import 'package:wawa_vansales/data/repositories/auth_repository.dart';
 import 'package:wawa_vansales/data/repositories/customer_repository.dart';
 import 'package:wawa_vansales/data/repositories/pre_order_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/product_repository.dart';
+import 'package:wawa_vansales/data/repositories/product_return_search_repository.dart';
 import 'package:wawa_vansales/data/repositories/return_product_history_repository.dart';
 import 'package:wawa_vansales/data/repositories/return_product_repository.dart';
 import 'package:wawa_vansales/data/repositories/sale_history_repository.dart';
@@ -157,6 +159,10 @@ class MyApp extends StatelessWidget {
       apiService: apiService,
     ); // เพิ่ม ArBalanceRepository
 
+    final productReturnSearchRepository = ProductReturnSearchRepository(
+      productRepository: productRepository,
+    );
+
     return MultiBlocProvider(
       providers: [
         // เพิ่ม Provider สำหรับ LocalStorage
@@ -251,6 +257,11 @@ class MyApp extends StatelessWidget {
             productRepository: productRepository,
           ),
         ),
+        BlocProvider<ProductReturnSearchBloc>(
+          create: (context) => ProductReturnSearchBloc(
+            productRepository: productReturnSearchRepository,
+          ),
+        ), // เพิ่ม ProductReturnSearchBloc
       ],
       child: MaterialApp(
         title: 'WAWA Van Sales',

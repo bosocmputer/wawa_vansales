@@ -11,7 +11,7 @@ import 'package:wawa_vansales/blocs/return_product/return_product_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/return_product/sale_document_detail_model.dart';
-import 'package:wawa_vansales/ui/screens/search_screen/product_search_screen.dart';
+import 'package:wawa_vansales/ui/screens/return_product/product_return_search_screen.dart';
 import 'package:wawa_vansales/ui/widgets/number_pad_component.dart';
 import 'package:intl/intl.dart';
 
@@ -121,7 +121,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
     }
     final result = await Navigator.of(context).push<CartItemModel?>(
       MaterialPageRoute(
-        builder: (_) => ProductSearchScreen(
+        builder: (_) => ProductReturnSearchScreen(
           customerCode: widget.customerCode,
         ),
       ),
@@ -131,6 +131,28 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
       setState(() {
         _isProcessingItem = true;
       });
+
+      // เช็คว่าสินค้านี้มีในเอกสารขายเดิมหรือไม่ โดยตรวจสอบทั้ง itemCode และ unitCode
+      final existsInDoc = widget.documentDetails.any((detail) => detail.itemCode == result.itemCode && detail.unitCode == result.unitCode);
+
+      if (!existsInDoc) {
+        // แสดง SnackBar เพียงครั้งเดียว
+        ScaffoldMessenger.of(context).hideCurrentSnackBar(); // ปิด SnackBar ที่แสดงอยู่ก่อน (ถ้ามี)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('รหัสสินค้า ${result.itemCode} หน่วย ${result.unitCode} ไม่มีในบิลขายเดิม ไม่สามารถรับคืนได้'),
+            backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        // รีเซ็ต _isProcessingItem เพื่อให้สามารถเลือกสินค้าใหม่ได้
+        setState(() {
+          _isProcessingItem = false;
+        });
+
+        return;
+      }
 
       // ค้นหาข้อมูลสินค้าจาก documentDetails
       final originalItem = widget.documentDetails.firstWhere(
@@ -156,6 +178,15 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
       final balanceQty = double.tryParse(originalItem.balanceQty) ?? 0;
 
       if (balanceQty <= 0) {
+        // แสดง SnackBar แจ้งเตือน
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('สินค้า ${result.itemName} ไม่สามารถรับคืนได้เนื่องจากมียอดคงเหลือเป็น 0'),
+            backgroundColor: AppTheme.errorColor,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
         // Reset flag หลังจาก delay
         Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) {
@@ -182,6 +213,15 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
       // ตรวจสอบว่าจำนวนที่จะเพิ่มไม่เกิน balanceQty
       if (qty > balanceQty) {
         qty = balanceQty;
+
+        // แจ้งเตือนว่าจำนวนถูกปรับลดลงเพื่อให้ไม่เกิน balanceQty
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('จำนวนถูกปรับให้เป็น ${balanceQty.toStringAsFixed(0)} ตามยอดคงเหลือที่รับคืนได้'),
+            backgroundColor: Colors.orange[700],
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
 
       // สร้าง CartItemModel ใหม่โดยใช้ข้อมูลจาก result โดยตรง แต่ใช้ราคาจากเอกสารเดิม
@@ -213,6 +253,15 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
       final existingItemIndex = widget.returnItems.indexWhere((item) => item.itemCode == result.itemCode && item.unitCode == result.unitCode);
 
       if (existingItemIndex != -1) {
+        // ถ้ามีสินค้านี้ในตะกร้าแล้ว ให้แจ้งเตือน
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('สินค้า ${result.itemName} มีในรายการรับคืนแล้ว กรุณาปรับจำนวนในรายการแทน'),
+            backgroundColor: Colors.orange[700],
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
         // Reset flag
         setState(() {
           _isProcessingItem = false;
