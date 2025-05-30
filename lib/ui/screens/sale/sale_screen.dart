@@ -503,12 +503,12 @@ class _SaleScreenState extends State<SaleScreen> {
                 }
 
                 // แจ้งเตือนว่าบันทึกสำเร็จ
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('บันทึกการขายเรียบร้อยแล้ว'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                // ScaffoldMessenger.of(context).showSnackBar(
+                //   const SnackBar(
+                //     content: Text('บันทึกการขายเรียบร้อยแล้ว'),
+                //     backgroundColor: Colors.green,
+                //   ),
+                // );
 
                 // รีเฟรชข้อมูลยอดขายวันนี้
                 context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());

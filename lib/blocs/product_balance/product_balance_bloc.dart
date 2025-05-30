@@ -2,7 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logger/logger.dart';
 import 'package:wawa_vansales/blocs/product_balance/product_balance_event.dart';
 import 'package:wawa_vansales/blocs/product_balance/product_balance_state.dart';
-import 'package:wawa_vansales/data/models/product_balance_model.dart';
 import 'package:wawa_vansales/data/repositories/product_repository.dart';
 
 class ProductBalanceBloc extends Bloc<ProductBalanceEvent, ProductBalanceState> {

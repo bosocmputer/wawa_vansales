@@ -2,9 +2,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
-import 'package:wawa_vansales/blocs/product_detail/product_detail_event.dart';
-import 'package:wawa_vansales/blocs/product_detail/product_detail_state.dart';
+import 'package:wawa_vansales/blocs/product/product_bloc.dart';
+import 'package:wawa_vansales/blocs/product/product_event.dart';
+import 'package:wawa_vansales/blocs/product/product_state.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_event.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_state.dart';
@@ -91,11 +91,11 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
     // ใช้ค่า quantity ที่ได้
     _qtyController.text = quantity.toString();
 
-    // ส่ง event ไปยัง ProductDetailBloc เพื่อค้นหาสินค้า
-    context.read<ProductDetailBloc>().add(
-          FetchProductByBarcode(
-            barcode: processedBarcode,
-            customerCode: widget.customerCode,
+    // ส่ง event ไปยัง ProductBloc เพื่อค้นหาสินค้า
+    context.read<ProductBloc>().add(
+          FetchProductReturns(
+            searchQuery: processedBarcode,
+            custCode: widget.customerCode,
           ),
         );
 
@@ -132,30 +132,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         _isProcessingItem = true;
       });
 
-      // เช็คว่าสินค้านี้มีในเอกสารขายเดิมหรือไม่ โดยตรวจสอบทั้ง itemCode และ unitCode
-      final existsInDoc = widget.documentDetails.any((detail) => detail.itemCode == result.itemCode && detail.unitCode == result.unitCode);
-
-      if (!existsInDoc) {
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   SnackBar(
-        //     content: Text('รหัสสินค้า ${result.itemCode} หน่วย ${result.unitCode} ไม่มีในบิลขายเดิม ไม่สามารถรับคืนได้'),
-        //     backgroundColor: AppTheme.errorColor,
-        //   ),
-        // );
-
-        // Reset flag หลังจาก delay
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            setState(() {
-              _isProcessingItem = false;
-            });
-          }
-        });
-
-        return; // ออกจากฟังก์ชันเลย ไม่ส่ง event
-      }
-
-      // ค้นหาข้อมูลสินค้าจาก documentDetails ที่มี itemCode และ unitCode ตรงกัน
+      // ค้นหาข้อมูลสินค้าจาก documentDetails
       final originalItem = widget.documentDetails.firstWhere(
         (detail) => detail.itemCode == result.itemCode && detail.unitCode == result.unitCode,
         orElse: () => SaleDocumentDetailModel(
@@ -207,21 +184,21 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
         qty = balanceQty;
       }
 
-      // สร้าง CartItemModel ใหม่โดยใช้ข้อมูลจาก result โดยตรง
+      // สร้าง CartItemModel ใหม่โดยใช้ข้อมูลจาก result โดยตรง แต่ใช้ราคาจากเอกสารเดิม
       final cartItem = CartItemModel(
         itemCode: result.itemCode,
         itemName: result.itemName,
         barcode: result.barcode,
-        price: result.price,
-        sumAmount: result.price,
+        price: originalItem.price, // ใช้ราคาจากเอกสารเดิม
+        sumAmount: originalItem.price, // ใช้ราคาจากเอกสารเดิม
         unitCode: result.unitCode,
-        whCode: originalItem.whCode, // ยังใช้ warehouse และ location จาก originalItem
+        whCode: originalItem.whCode,
         shelfCode: originalItem.shelfCode,
         ratio: result.ratio,
         standValue: result.standValue,
         divideValue: result.divideValue,
-        qty: qty.toString(), // ใช้จำนวน 1 หรือตามที่กำหนด แต่ไม่เกิน balanceQty
-        refRow: originalItem.refRow, // เพิ่ม refRow จาก originalItem ในบิลขายเดิม
+        qty: qty.toString(),
+        refRow: originalItem.refRow,
       );
 
       // เพิ่ม debug print เมื่อ balanceQty น้อยกว่า qty ในเอกสารขายเดิม
@@ -262,19 +239,43 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
   Widget build(BuildContext context) {
     return MultiBlocListener(
       listeners: [
-        // BlocListener สำหรับ ProductDetailBloc
-        BlocListener<ProductDetailBloc, ProductDetailState>(
+        // BlocListener สำหรับ ProductBloc
+        BlocListener<ProductBloc, ProductState>(
           listenWhen: (previous, current) {
             // เพิ่ม debug logs เพื่อตรวจสอบว่า listenWhen ถูกเรียกหรือไม่
             if (kDebugMode) {
-              print('[DEBUG] ProductDetailBloc listener - previous: ${previous.runtimeType}, current: ${current.runtimeType}');
+              print('[DEBUG] ProductBloc listener - previous: ${previous.runtimeType}, current: ${current.runtimeType}');
             }
-            // ให้ทำงานกับทั้ง ProductDetailLoaded, ProductDetailNotFound และ ProductDetailError
-            return current is ProductDetailLoaded || current is ProductDetailNotFound || current is ProductDetailError;
+            return current is ProductsLoaded || current is ProductsError;
           },
           listener: (context, state) {
-            if (state is ProductDetailLoaded) {
-              final product = state.product;
+            if (state is ProductsLoaded) {
+              // เมื่อได้ผลลัพธ์จากการค้นหาสินค้า
+              if (state.products.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('ไม่พบสินค้าที่มีบาร์โค้ด: ${_barcodeScanController.text}'),
+                    backgroundColor: AppTheme.errorColor,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+
+                // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
+                setState(() {
+                  _isProcessingItem = false;
+                });
+
+                // Set focus กลับไปที่ช่อง scan barcode
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    _barcodeScanFocusNode.requestFocus();
+                  }
+                });
+                return;
+              }
+
+              // นำสินค้าแรกจากผลลัพธ์มาใช้
+              final product = state.products.first;
 
               // เช็คว่าสินค้านี้มีในเอกสารขายเดิมหรือไม่ โดยตรวจสอบทั้ง itemCode และ unitCode
               final existsInDoc = widget.documentDetails.any((detail) => detail.itemCode == product.itemCode && detail.unitCode == product.unitCode);
@@ -295,11 +296,6 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                     _barcodeScanFocusNode.requestFocus();
                   }
                 });
-
-                // รีเซ็ต ProductDetailState เพื่อให้ CircularProgressIndicator หายไป
-                if (context.mounted) {
-                  context.read<ProductDetailBloc>().add(ResetProductDetail());
-                }
 
                 // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
                 setState(() {
@@ -340,14 +336,16 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                   ),
                 );
 
-                // รีเซ็ต ProductDetailState เพื่อให้ CircularProgressIndicator หายไป
-                if (context.mounted) {
-                  context.read<ProductDetailBloc>().add(ResetProductDetail());
-                }
-
                 // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
                 setState(() {
                   _isProcessingItem = false;
+                });
+
+                // Set focus กลับไปที่ช่อง scan barcode
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    _barcodeScanFocusNode.requestFocus();
+                  }
                 });
 
                 return;
@@ -370,21 +368,21 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                 );
               }
 
-              // เพิ่มสินค้าเข้าตะกร้า โดยใช้ข้อมูลจาก product โดยตรง
+              // สร้าง CartItemModel จากข้อมูลสินค้า แต่ใช้ราคาจากเอกสารเดิม
               final cartItem = CartItemModel(
                 itemCode: product.itemCode,
                 itemName: product.itemName,
                 barcode: product.barcode,
-                price: product.price,
-                sumAmount: product.price,
+                price: originalItem.price, // ใช้ราคาจากเอกสารเดิม
+                sumAmount: originalItem.price, // ใช้ราคาจากเอกสารเดิม
                 unitCode: product.unitCode,
-                whCode: originalItem.whCode, // ยังใช้ warehouse และ location จาก originalItem
+                whCode: originalItem.whCode,
                 shelfCode: originalItem.shelfCode,
                 ratio: product.ratio,
                 standValue: product.standValue,
                 divideValue: product.divideValue,
                 qty: qty.toString(),
-                refRow: '0', // เพิ่ม refRow จาก originalItem ในบิลขายเดิม
+                refRow: originalItem.refRow,
               );
 
               // ตรวจสอบว่าสินค้านี้มีในตะกร้าแล้วหรือไม่
@@ -400,14 +398,16 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                   ),
                 );
 
-                // รีเซ็ต ProductDetailState เพื่อให้ CircularProgressIndicator หายไป
-                if (context.mounted) {
-                  context.read<ProductDetailBloc>().add(ResetProductDetail());
-                }
-
                 // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
                 setState(() {
                   _isProcessingItem = false;
+                });
+
+                // Set focus กลับไปที่ช่อง scan barcode
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    _barcodeScanFocusNode.requestFocus();
+                  }
                 });
 
                 return;
@@ -415,34 +415,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
 
               // ส่ง event เพื่อเพิ่มสินค้า เฉพาะเมื่อสินค้ายังไม่มีในตะกร้า
               context.read<ReturnProductBloc>().add(AddItemToReturnCart(cartItem));
-
-              // เรียก ResetProductDetail หลังเพิ่มสินค้าเข้าตะกร้า
-              Future.delayed(const Duration(milliseconds: 100), () {
-                if (context.mounted) {
-                  context.read<ProductDetailBloc>().add(ResetProductDetail());
-                }
-              });
-            } else if (state is ProductDetailNotFound) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('ไม่พบสินค้าที่มีบาร์โค้ด: ${state.barcode}'),
-                  backgroundColor: AppTheme.errorColor,
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-
-              // รีเซ็ต _isProcessingItem เพื่อให้สามารถสแกนใหม่ได้
-              setState(() {
-                _isProcessingItem = false;
-              });
-
-              // Set focus กลับไปที่ช่อง scan barcode เมื่อไม่พบสินค้า
-              Future.delayed(const Duration(milliseconds: 300), () {
-                if (mounted) {
-                  _barcodeScanFocusNode.requestFocus();
-                }
-              });
-            } else if (state is ProductDetailError) {
+            } else if (state is ProductsError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('เกิดข้อผิดพลาด: ${state.message}'),
@@ -456,7 +429,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
                 _isProcessingItem = false;
               });
 
-              // Set focus กลับไปที่ช่อง scan barcode เมื่อเกิดข้อผิดพลาด
+              // Set focus กลับไปที่ช่อง scan barcode
               Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted) {
                   _barcodeScanFocusNode.requestFocus();
@@ -466,7 +439,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
           },
         ),
 
-        // BlocListener สำหรับ ReturnProductBloc เพื่อติดตามการเปลี่ยนแปลงของรายการสินค้า
+        // BlocListener สำหรับ ReturnProductBloc
         BlocListener<ReturnProductBloc, ReturnProductState>(
           listenWhen: (previous, current) {
             // ตรวจสอบเมื่อเป็น ReturnProductLoaded ทั้งคู่ และมีการเปลี่ยนแปลงจำนวนไอเทมหรือยอดรวม
@@ -510,15 +483,6 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
           // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า
           _buildSearchBar(),
 
-          // แสดงสถานะการค้นหา
-          BlocBuilder<ProductDetailBloc, ProductDetailState>(
-            builder: (context, state) {
-              if (state is ProductDetailLoading) {
-                return const LinearProgressIndicator(minHeight: 2);
-              }
-              return const SizedBox.shrink();
-            },
-          ),
           // แสดง debug แบบง่ายๆ เพื่อตรวจสอบ state ของ ReturnProductBloc เฉพาะใน debug mode
           if (kDebugMode)
             BlocBuilder<ReturnProductBloc, ReturnProductState>(
@@ -549,7 +513,7 @@ class _ReturnProductCartStepState extends State<ReturnProductCartStep> {
     );
   }
 
-  // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า (ปรับปรุง)
+  // แถบค้นหาบาร์โค้ดและปุ่มเลือกสินค้า
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),

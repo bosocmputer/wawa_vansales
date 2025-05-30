@@ -99,18 +99,8 @@ class SaleCustomerStep extends StatelessWidget {
           // ส่วนข้อมูลหลักของลูกค้า
           _buildCustomerHeader(context, customer),
 
-          const SizedBox(height: 12),
-
           // ส่วนรายละเอียดลูกค้า
           _buildCustomerInfoCard(customer),
-
-          const SizedBox(height: 12),
-
-          // ส่วนปุ่มดำเนินการ
-          _buildActionButtons(context, customer),
-
-          // เพิ่มพื้นที่ด้านล่างเพื่อให้เลื่อนได้เต็มที่
-          const SizedBox(height: 40),
         ],
       ),
     );
@@ -123,49 +113,100 @@ class SaleCustomerStep extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           children: [
-            CircleAvatar(
-              backgroundColor: AppTheme.primaryColorLight.withOpacity(0.3),
-              radius: 28,
-              child: Text(
-                customer.name!.isNotEmpty ? customer.name![0].toUpperCase() : 'C',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    customer.name!,
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppTheme.primaryColorLight.withOpacity(0.3),
+                  radius: 28,
+                  child: Text(
+                    customer.name!.isNotEmpty ? customer.name![0].toUpperCase() : 'C',
                     style: const TextStyle(
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
-                  if (customer.code != null)
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'รหัส: ${customer.code}',
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        customer.name!,
                         style: const TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (customer.code != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'รหัส: ${customer.code}',
+                            style: const TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        context.read<CartBloc>().add(ClearCart());
+                      },
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('เลือกใหม่', style: TextStyle(fontSize: 13)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // เปิดหน้าจอค้นหาพรีออเดอร์ของลูกค้า
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PreOrderSearchScreen(
+                              customerCode: customer.code ?? '',
+                              customerName: customer.name!,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.receipt_long, size: 16),
+                      label: const Text('พรีออเดอร์', style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -235,61 +276,6 @@ class SaleCustomerStep extends StatelessWidget {
               icon: Icons.account_balance,
               label: 'ประเภทลูกค้า',
               value: customer.arstatus == '0' ? 'บุคคลธรรมดา' : 'นิติบุคคล (บริษัท)',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-// ส่วนปุ่มดำเนินการ
-  Widget _buildActionButtons(BuildContext context, CustomerModel customer) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  context.read<CartBloc>().add(ClearCart());
-                },
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('เลือกใหม่', style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  // เปิดหน้าจอค้นหาพรีออเดอร์ของลูกค้า
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => PreOrderSearchScreen(
-                        customerCode: customer.code ?? '',
-                        customerName: customer.name!,
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.receipt_long, size: 16),
-                label: const Text('พรีออเดอร์', style: TextStyle(fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
             ),
           ],
         ),

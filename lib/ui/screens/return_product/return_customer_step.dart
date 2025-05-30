@@ -96,18 +96,13 @@ class ReturnCustomerStep extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Column(
         children: [
-          // ส่วนข้อมูลหลักของลูกค้า
+          // ส่วนข้อมูลหลักของลูกค้าและปุ่มเลือกใหม่
           _buildCustomerHeader(context, customer),
 
           const SizedBox(height: 12),
 
           // ส่วนรายละเอียดลูกค้า
           _buildCustomerInfoCard(customer),
-
-          const SizedBox(height: 12),
-
-          // ส่วนปุ่มดำเนินการ
-          _buildActionButton(context),
 
           // เพิ่มพื้นที่ด้านล่างเพื่อให้เลื่อนได้เต็มที่
           const SizedBox(height: 40),
@@ -116,57 +111,84 @@ class ReturnCustomerStep extends StatelessWidget {
     );
   }
 
-  // ส่วนแสดงข้อมูลหลักของลูกค้า
+  // ส่วนแสดงข้อมูลหลักของลูกค้าและปุ่มเลือกใหม่
   Widget _buildCustomerHeader(BuildContext context, CustomerModel customer) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           children: [
-            CircleAvatar(
-              backgroundColor: AppTheme.primaryColorLight.withOpacity(0.3),
-              radius: 28,
-              child: Text(
-                customer.name!.isNotEmpty ? customer.name![0].toUpperCase() : 'C',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    customer.name!,
+            // ข้อมูลลูกค้าหลัก
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppTheme.primaryColorLight.withOpacity(0.3),
+                  radius: 28,
+                  child: Text(
+                    customer.name!.isNotEmpty ? customer.name![0].toUpperCase() : 'C',
                     style: const TextStyle(
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
-                  if (customer.code != null)
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'รหัส: ${customer.code}',
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        customer.name!,
                         style: const TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
-                    ),
-                ],
+                      if (customer.code != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'รหัส: ${customer.code}',
+                            style: const TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // เพิ่มเส้นคั่นระหว่างข้อมูลลูกค้าและปุ่ม
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1),
+            ),
+
+            // ปุ่มเลือกลูกค้าใหม่
+            OutlinedButton.icon(
+              onPressed: () {
+                context.read<ReturnProductBloc>().add(ClearReturnCart());
+                _selectCustomer(context);
+              },
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('เลือกลูกค้าใหม่'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 36),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
@@ -237,49 +259,6 @@ class ReturnCustomerStep extends StatelessWidget {
               value: customer.arstatus == '0' ? 'บุคคลธรรมดา' : 'นิติบุคคล (บริษัท)',
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  // ส่วนปุ่มดำเนินการ
-  Widget _buildActionButton(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: ListTile(
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.refresh,
-              color: Colors.blue,
-              size: 24,
-            ),
-          ),
-          title: const Text(
-            'เลือกลูกค้าใหม่',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          subtitle: const Text(
-            'เริ่มต้นกระบวนการใหม่โดยเลือกลูกค้าอื่น',
-            style: TextStyle(
-              fontSize: 12,
-            ),
-          ),
-          onTap: () {
-            context.read<ReturnProductBloc>().add(ClearReturnCart());
-            _selectCustomer(context);
-          },
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         ),
       ),
     );

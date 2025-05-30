@@ -17,6 +17,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       : _productRepository = productRepository,
         super(ProductInitial()) {
     on<FetchProducts>(_onFetchProducts);
+    on<FetchProductReturns>(_onFetchProductReturns);
     on<SelectProduct>(_onSelectProduct);
     on<ResetSelectedProduct>(_onResetSelectedProduct);
     on<SetProductSearchQuery>(_onSetProductSearchQuery);
@@ -36,6 +37,34 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         search: event.searchQuery,
         whCode: event.whCode,
         shelfCode: event.shelfCode,
+      );
+
+      _products = products;
+      _searchQuery = event.searchQuery;
+
+      _logger.i('Fetched ${products.length} products');
+      emit(ProductsLoaded(
+        products: products,
+        searchQuery: event.searchQuery,
+      ));
+    } catch (e) {
+      _logger.e('Error fetching products: $e');
+      emit(ProductsError(e.toString()));
+    }
+  }
+
+  // ดึงรายการสินค้ารับคืน
+  Future<void> _onFetchProductReturns(
+    FetchProductReturns event,
+    Emitter<ProductState> emit,
+  ) async {
+    _logger.i('Fetching products with search: ${event.searchQuery}');
+    emit(ProductsLoading());
+
+    try {
+      final products = await _productRepository.getProductsReturn(
+        search: event.searchQuery,
+        custCode: event.custCode,
       );
 
       _products = products;

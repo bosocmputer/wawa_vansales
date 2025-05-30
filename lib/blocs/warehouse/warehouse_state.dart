@@ -127,3 +127,13 @@ class WarehouseSelectionComplete extends WarehouseState {
   @override
   List<Object?> get props => [warehouse, location];
 }
+
+/// WarehouseError
+class WarehouseError extends WarehouseState {
+  final String message;
+
+  const WarehouseError(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

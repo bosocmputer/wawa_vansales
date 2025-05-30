@@ -76,6 +76,67 @@ class ProductRepository {
     }
   }
 
+  Future<List<ProductModel>> getProductsReturn({
+    String search = '',
+    String custCode = '',
+  }) async {
+    try {
+      _logger.i('Fetching products with search: $search');
+
+      final response = await _apiService.get(
+        '/getReturnItemsList',
+        queryParameters: {
+          'search': search,
+          'cust_code': custCode,
+        },
+      );
+
+      _logger.i('Get products response: ${response.statusCode}: ${response.data}');
+
+      if (response.statusCode == 404) {
+        _logger.e('API endpoint not found (404)');
+        return _getMockProducts();
+      }
+
+      try {
+        if (response.data == null) {
+          throw Exception('ไม่มีข้อมูลตอบกลับจาก API');
+        }
+
+        // Log response data format
+        _logger.i('Response data type: ${response.data.runtimeType}');
+
+        // ใช้ข้อมูลจริงถ้ามีรูปแบบที่ถูกต้อง หรือใช้ mock ถ้าไม่ใช่
+        Map<String, dynamic> validResponse;
+
+        if (response.data is Map && response.data.containsKey('data') && response.data.containsKey('success')) {
+          validResponse = response.data;
+        } else {
+          _logger.w('Invalid response format, using mock data');
+          return _getMockProducts();
+        }
+
+        final productResponse = ProductResponse.fromJson(validResponse);
+
+        if (!productResponse.success || productResponse.data.isEmpty) {
+          if (search.isNotEmpty) {
+            // ถ้ามีการค้นหา แต่ไม่พบข้อมูล ให้ return empty list
+            return [];
+          }
+          throw Exception('ไม่พบข้อมูลสินค้า');
+        }
+
+        return productResponse.data;
+      } catch (parseError) {
+        _logger.e('Error parsing response: $parseError');
+        return _getMockProducts();
+      }
+    } catch (e) {
+      _logger.e('Get products error: $e');
+      return _getMockProducts();
+    }
+  }
+
   Future<ProductDetailModel?> getProductByBarcode(String barcode, String customerCode) async {
     try {
       _logger.i('Fetching product detail with barcode: $barcode for customer: $customerCode');

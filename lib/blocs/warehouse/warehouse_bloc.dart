@@ -144,7 +144,7 @@ class WarehouseBloc extends Bloc<WarehouseEvent, WarehouseState> {
       }
     } catch (e) {
       _logger.e('Error checking warehouse selection: $e');
-      emit(WarehouseSelectionRequired());
+      emit(WarehouseError(e.toString()));
     }
   }
 

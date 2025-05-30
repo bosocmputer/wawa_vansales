@@ -11,9 +11,9 @@ import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/customer/customer_bloc.dart';
 import 'package:wawa_vansales/blocs/network/network_bloc.dart'; // เพิ่ม import NetworkBloc
-import 'package:wawa_vansales/blocs/product_balance/product_balance_bloc.dart';
 import 'package:wawa_vansales/blocs/pre_order_history/pre_order_history_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
+import 'package:wawa_vansales/blocs/product_balance/product_balance_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product_history/return_product_history_bloc.dart';
@@ -84,7 +84,7 @@ void main() async {
 
   // ขอสิทธิ์การใช้งานบลูทูธและพยายามเชื่อมต่อเครื่องพิมพ์อัตโนมัติ
   await printerService.requestBluetoothPermissions();
-  await printerService.autoConnect(); // ภายในนี้มีการเรียก checkConnection อยู่แล้ว
+  // await printerService.autoConnect(); // ภายในนี้มีการเรียก checkConnection อยู่แล้ว
 
   await Global.initialize(localStorage);
 
@@ -245,11 +245,12 @@ class MyApp extends StatelessWidget {
             arBalanceRepository: arBalanceRepository,
           ),
         ), // เพิ่ม ArBalanceBloc
+        /// produuct balance
         BlocProvider<ProductBalanceBloc>(
           create: (context) => ProductBalanceBloc(
             productRepository: productRepository,
           ),
-        ), // เพิ่ม ProductBalanceBloc
+        ),
       ],
       child: MaterialApp(
         title: 'WAWA Van Sales',

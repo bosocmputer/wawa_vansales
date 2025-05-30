@@ -293,8 +293,19 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         final warehouse = await _localStorage.getWarehouse();
         final warehouseCode = warehouse?.code ?? 'NA';
 
-        // ใช้เลขที่เอกสารที่ถูกตั้งค่าไว้แล้ว หรือสร้างใหม่ถ้ายังไม่มี
-        final docNo = currentState.documentNumber.isNotEmpty ? currentState.documentNumber : Global.generateDocumentNumber(warehouseCode);
+        // ปรับปรุงการจัดการเลขที่เอกสาร
+        String docNo;
+
+        // ถ้าเป็นการชำระเงินจากพรีออเดอร์ และไม่ได้กำหนด documentNumber ไว้
+        // ให้ใช้เลขที่เอกสารพรีออเดอร์เป็นเลขที่เอกสารการขาย
+        if (currentState.preOrderDocNo.isNotEmpty && currentState.documentNumber.isEmpty) {
+          docNo = currentState.preOrderDocNo;
+          _logger.i('Using pre-order document number as sale document: $docNo');
+        } else {
+          // กรณีอื่นๆ ใช้ตามที่กำหนดไว้ หรือสร้างใหม่
+          docNo = currentState.documentNumber.isNotEmpty ? currentState.documentNumber : Global.generateDocumentNumber(warehouseCode);
+          _logger.i('Using document number for transaction: $docNo');
+        }
 
         final now = DateTime.now();
         final docDate = DateFormat('yyyy-MM-dd').format(now);

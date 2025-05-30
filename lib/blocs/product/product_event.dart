@@ -21,7 +21,21 @@ class FetchProducts extends ProductEvent {
   });
 
   @override
-  List<Object?> get props => [searchQuery];
+  List<Object?> get props => [searchQuery, whCode, shelfCode];
+}
+
+// ดึงรายการสินค้า รับคืน
+class FetchProductReturns extends ProductEvent {
+  final String searchQuery;
+  final String custCode;
+
+  const FetchProductReturns({
+    this.searchQuery = '',
+    required this.custCode,
+  });
+
+  @override
+  List<Object?> get props => [searchQuery, custCode];
 }
 
 // เลือกสินค้า

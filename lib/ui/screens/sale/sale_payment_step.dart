@@ -1022,19 +1022,27 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
       );
 
       // ตรวจสอบผลลัพธ์จากการชำระเงิน
-      if (result == null) {
-        // กรณี cancel หรือ timeout
+      if (result == null && Navigator.of(context).canPop() == false) {
+        // กรณี cancel หรือ timeout - เช็คเพิ่มว่า dialog ปิดไปแล้ว
+        // เพื่อป้องกันการแสดงข้อความเมื่อชำระเงินสำเร็จ
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('การชำระเงินถูกยกเลิกหรือหมดเวลา')),
         );
-        // ignore: unrelated_type_equality_checks
       } else if (result == false) {
         // กรณีชำระเงินไม่สำเร็จ
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('การชำระเงินไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')),
         );
+      } else if (result == true) {
+        // กรณีชำระเงินสำเร็จ แสดงข้อความยืนยัน
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('การชำระเงินด้วย QR Code สำเร็จแล้ว'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
-      // กรณีชำระเงินสำเร็จ QrPaymentDialog จะจัดการเพิ่ม payment และดำเนินการต่อเอง
+      // กรณีชำระเงินสำเร็จแต่ QrPaymentDialog จัดการเพิ่ม payment และดำเนินการต่อเอง
     } catch (e) {
       // ปิด dialog ที่อาจจะยังแสดงอยู่
       if (Navigator.of(context).canPop()) {

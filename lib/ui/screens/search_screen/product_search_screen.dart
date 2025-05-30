@@ -78,7 +78,7 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
   // Search with debounce to reduce API calls
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
+    _debounce = Timer(const Duration(milliseconds: 1000), () {
       if (_searchQuery != _searchController.text) {
         setState(() {
           _searchQuery = _searchController.text;

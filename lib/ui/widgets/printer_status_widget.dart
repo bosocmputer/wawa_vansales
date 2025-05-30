@@ -75,12 +75,14 @@ class PrinterStatusWidget extends StatelessWidget {
   void _showConnectDialog(BuildContext context, PrinterStatusProvider printerStatus) async {
     // แสดง dialog กำลังเชื่อมต่อ
     if (context.mounted) {
+      bool wasCancelled = false;
+
       showDialog(
         context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          title: Text('กำลังเชื่อมต่อเครื่องพิมพ์'),
-          content: Column(
+        barrierDismissible: true, // Allow dismissing by clicking outside
+        builder: (context) => AlertDialog(
+          title: const Text('กำลังเชื่อมต่อเครื่องพิมพ์'),
+          content: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(),
@@ -94,17 +96,35 @@ class PrinterStatusWidget extends StatelessWidget {
               ),
             ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                wasCancelled = true;
+                Navigator.of(context).pop();
+              },
+              child: const Text('ยกเลิก'),
+            ),
+          ],
         ),
-      );
+      ).then((_) {
+        // If dialog is dismissed by tapping outside
+        wasCancelled = true;
+      });
 
       // พยายามเชื่อมต่อ
       final connected = await printerStatus.connectPrinter();
 
-      // ปิด dialog
-      if (context.mounted) Navigator.of(context).pop();
+      // ปิด dialog ถ้ายังแสดงอยู่
+      if (context.mounted && !wasCancelled) {
+        try {
+          Navigator.of(context).pop();
+        } catch (e) {
+          // Dialog already closed
+        }
+      }
 
-      // แสดงผลการเชื่อมต่อ
-      if (context.mounted) {
+      // แสดงผลการเชื่อมต่อ เฉพาะเมื่อไม่ได้ถูกยกเลิก
+      if (context.mounted && !wasCancelled) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(connected ? 'เชื่อมต่อเครื่องพิมพ์สำเร็จ' : 'ไม่สามารถเชื่อมต่อเครื่องพิมพ์ได้'),
