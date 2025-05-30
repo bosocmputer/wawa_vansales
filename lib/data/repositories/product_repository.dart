@@ -1,4 +1,5 @@
 import 'package:logger/logger.dart';
+import 'package:wawa_vansales/data/models/product_balance_model.dart';
 import 'package:wawa_vansales/data/models/product_detail_model.dart';
 import 'package:wawa_vansales/data/models/product_model.dart';
 import 'package:wawa_vansales/data/services/api_service.dart';
@@ -126,6 +127,68 @@ class ProductRepository {
     } catch (e) {
       _logger.e('Get product detail error: $e');
       return null;
+    }
+  }
+
+  // ดึงข้อมูลยอดสินค้าคงเหลือจากคลัง
+  Future<List<ProductBalanceModel>> getBalanceWarehouse({
+    String search = '',
+    required String whCode,
+    required String shelfCode,
+  }) async {
+    try {
+      _logger.i('Fetching product balance with search: $search, whCode: $whCode, shelfCode: $shelfCode');
+
+      final response = await _apiService.get(
+        '/getBalanceWarehouse',
+        queryParameters: {
+          'search': search,
+          'wh_code': whCode,
+          'shelf_code': shelfCode,
+        },
+      );
+
+      _logger.i('Get product balance response: ${response.statusCode}: ${response.data}');
+
+      if (response.statusCode == 404) {
+        _logger.e('API endpoint not found (404)');
+        return [];
+      }
+
+      try {
+        if (response.data == null) {
+          throw Exception('ไม่มีข้อมูลตอบกลับจาก API');
+        }
+
+        _logger.i('Response data type: ${response.data.runtimeType}');
+
+        Map<String, dynamic> validResponse;
+
+        if (response.data is Map && response.data.containsKey('data') && response.data.containsKey('success')) {
+          validResponse = response.data;
+        } else {
+          _logger.w('Invalid response format');
+          return [];
+        }
+
+        final balanceResponse = ProductBalanceResponse.fromJson(validResponse);
+
+        if (!balanceResponse.success || balanceResponse.data.isEmpty) {
+          if (search.isNotEmpty) {
+            // ถ้ามีการค้นหา แต่ไม่พบข้อมูล ให้ return empty list
+            return [];
+          }
+          throw Exception('ไม่พบข้อมูลสินค้าคงเหลือ');
+        }
+
+        return balanceResponse.data;
+      } catch (parseError) {
+        _logger.e('Error parsing response: $parseError');
+        return [];
+      }
+    } catch (e) {
+      _logger.e('Get product balance error: $e');
+      return [];
     }
   }
 

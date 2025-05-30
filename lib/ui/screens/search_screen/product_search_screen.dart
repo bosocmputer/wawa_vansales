@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider/provider.dart';
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
 import 'package:wawa_vansales/blocs/product/product_event.dart';
 import 'package:wawa_vansales/blocs/product/product_state.dart';
@@ -63,8 +62,8 @@ class _ProductSearchScreenState extends State<ProductSearchScreen> {
       _locationCode = locationCode;
       _isLoadingStorage = false;
     });
-
     // Load products after getting storage data
+    // ignore: use_build_context_synchronously
     context.read<ProductBloc>().add(FetchProducts(whCode: _warehouseCode, shelfCode: _locationCode, searchQuery: _searchQuery));
   }
 
