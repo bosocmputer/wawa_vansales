@@ -77,7 +77,6 @@ class Global {
     _shiftCode = null;
   }
 
-// Generate a document number for sales transactions
   static String generateDocumentNumber(String warehouseCode) {
     // Use warehouse code, current date, time, and random number to create a unique document number
     final now = DateTime.now();
@@ -89,7 +88,14 @@ class Global {
     // Generate random 3-digit number
     final random = (100 + Random().nextInt(900)).toString();
 
-    return 'MINV$warehouseCode$dateStr$timeStr$random';
+    String docNumber = 'MINV$warehouseCode$dateStr$timeStr$random';
+
+    // Check and limit to maximum 25 characters
+    if (docNumber.length > 25) {
+      docNumber = docNumber.substring(0, 25);
+    }
+
+    return docNumber;
   }
 
   static String getPriceLevelText(String priceLevel) {

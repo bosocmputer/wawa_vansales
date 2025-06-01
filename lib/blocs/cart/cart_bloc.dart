@@ -56,7 +56,15 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   // รีเซ็ตสถานะทั้งหมดของ Cart
   void _onResetState(ResetCartState event, Emitter<CartState> emit) {
     _logger.i('Resetting cart state to initial');
+
+    // เพิ่มการทำ log เพื่อติดตามการรีเซ็ต state
+    _logger.i('Current state before reset: ${state.runtimeType}');
+
+    // Reset to a completely fresh state with default values
     emit(const CartLoaded()); // รีเซ็ตกลับไปเป็น state เริ่มต้น
+
+    // ยืนยันว่า state ถูกรีเซ็ตแล้ว
+    _logger.i('Cart state has been reset to CartLoaded');
   }
 
   // อัปเดต step ปัจจุบัน
@@ -512,14 +520,16 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           ));
           return; // เพิ่ม return เพื่อจบการทำงานทันที
         } else {
-          // กรณีไม่สำเร็จ emit CartError เพียงอย่างเดียว
-          emit(const CartError('ไม่สามารถบันทึกการขายได้'));
+          // กรณีไม่สำเร็จ สร้าง JSON ของ transaction เพื่อแสดงในข้อความ error
+
+          // ส่ง CartError พร้อมข้อมูล transaction
+          emit(CartError('ไม่สามารถบันทึกการขายได้', transaction: transaction));
           // ไม่ต้อง emit กลับเป็น CartLoaded อีก
         }
       } catch (e) {
         _logger.e('Submit sale error: $e');
-        emit(const CartError('เกิดข้อผิดพลาด: ไม่สามารถบันทึกข้อมูลได้'));
-        // ไม่ต้อง emit กลับเป็น CartLoaded อีก
+
+        emit(CartError('เกิดข้อผิดพลาด: $e'));
       }
     }
   }

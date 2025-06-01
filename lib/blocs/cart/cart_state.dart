@@ -4,6 +4,7 @@ import 'package:wawa_vansales/data/models/balance_detail_model.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
+import 'package:wawa_vansales/data/models/sale_transaction_model.dart';
 
 abstract class CartState extends Equatable {
   const CartState();
@@ -119,9 +120,10 @@ class CartSubmitSuccess extends CartState {
 // เกิดข้อผิดพลาด
 class CartError extends CartState {
   final String message;
+  final SaleTransactionModel? transaction; // เพิ่มข้อมูล transaction สำหรับการแสดงผล
 
-  const CartError(this.message);
+  const CartError(this.message, {this.transaction});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, transaction];
 }

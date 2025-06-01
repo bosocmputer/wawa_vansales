@@ -1,8 +1,6 @@
 // lib/data/services/qr_payment_service.dart
-import 'dart:convert';
 import 'dart:math';
-// ignore: depend_on_referenced_packages
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 import 'package:wawa_vansales/config/env.dart';
 
@@ -53,10 +51,34 @@ class QrPaymentStatusResponse {
 
 class QrPaymentService {
   final Logger _logger = Logger();
-  final String _createQrUrl = 'https://kapiqr.smlsoft.com/qrapi/create-promptpay-qrcode';
-  final String _checkStatusUrl = 'https://kapiqr.smlsoft.com/qrapi/payment-status';
-
+  final String _baseUrl = 'https://kapiqr.smlsoft.com/qrapi';
   final String apiKey = Env.qrApiKey ?? '';
+
+  // สร้าง instance ของ Dio พร้อมกำหนดค่าตั้งต้น
+  late final Dio _dio;
+
+  QrPaymentService() {
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+    ));
+
+    // เพิ่ม interceptor สำหรับ logging
+    _dio.interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,
+      responseHeader: true,
+      responseBody: true,
+      error: true,
+      logPrint: (object) => _logger.d(object),
+    ));
+  }
 
   // สร้าง reference id แบบสุ่ม
   String _generateRandomReference() {
@@ -72,23 +94,19 @@ class QrPaymentService {
       final ref3 = _generateRandomReference();
       final ref4 = _generateRandomReference();
 
-      final response = await http.post(
-        Uri.parse(_createQrUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        },
-        body: jsonEncode({
+      final response = await _dio.post(
+        '/create-promptpay-qrcode',
+        data: {
           'amount': amount,
           'ref1': ref1,
           'ref2': ref2,
           'ref3': ref3,
           'ref4': ref4,
-        }),
+        },
       );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
+        final responseData = response.data;
         _logger.i('QR Code created successfully: $responseData');
 
         // ตรวจสอบว่า response มี format เป็นอย่างไร เพราะอาจจะเป็น Base64 หรือ String QR ธรรมดา
@@ -107,7 +125,7 @@ class QrPaymentService {
           message: responseData['message'],
         );
       } else {
-        _logger.e('Failed to create QR Code: ${response.statusCode} - ${response.body}');
+        _logger.e('Failed to create QR Code: ${response.statusCode} - ${response.data}');
         return QrPaymentResponse(
           qrCode: '',
           txnUid: '',
@@ -115,6 +133,14 @@ class QrPaymentService {
           message: 'Failed to create QR Code: ${response.statusCode}',
         );
       }
+    } on DioException catch (e) {
+      _logger.e('Dio exception creating QR Code: ${e.message}');
+      return QrPaymentResponse(
+        qrCode: '',
+        txnUid: '',
+        status: 'ERROR',
+        message: 'Dio Exception: ${e.message}',
+      );
     } catch (e) {
       _logger.e('Exception creating QR Code: $e');
       return QrPaymentResponse(
@@ -129,19 +155,15 @@ class QrPaymentService {
   // ตรวจสอบสถานะการชำระเงิน
   Future<QrPaymentStatusResponse> checkPaymentStatus(String txnUid) async {
     try {
-      final response = await http.post(
-        Uri.parse(_checkStatusUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-        },
-        body: jsonEncode({
+      final response = await _dio.post(
+        '/payment-status',
+        data: {
           'txnUid': txnUid,
-        }),
+        },
       );
 
       if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
+        final responseData = response.data;
         _logger.i('Payment status checked: $responseData');
 
         // ตรวจสอบว่า response มี format เป็นอย่างไร
@@ -166,12 +188,18 @@ class QrPaymentService {
           message: responseData['message'],
         );
       } else {
-        _logger.e('Failed to check payment status: ${response.statusCode} - ${response.body}');
+        _logger.e('Failed to check payment status: ${response.statusCode} - ${response.data}');
         return QrPaymentStatusResponse(
           txnStatus: 'ERROR',
           message: 'Failed to check payment status: ${response.statusCode}',
         );
       }
+    } on DioException catch (e) {
+      _logger.e('Dio exception checking payment status: ${e.message}');
+      return QrPaymentStatusResponse(
+        txnStatus: 'ERROR',
+        message: 'Dio Exception: ${e.message}',
+      );
     } catch (e) {
       _logger.e('Exception checking payment status: $e');
       return QrPaymentStatusResponse(

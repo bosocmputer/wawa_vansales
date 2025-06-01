@@ -1,15 +1,20 @@
 // lib/ui/screens/sale/qr_payment_dialog.dart
 import 'dart:async';
+import 'dart:convert'; // เพิ่มเพื่อใช้ JsonEncoder
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // เพิ่มเพื่อใช้ Clipboard
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/blocs/cart/cart_state.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
+import 'package:wawa_vansales/data/models/sale_transaction_model.dart';
 import 'package:wawa_vansales/data/services/qr_payment_service.dart';
+import 'package:wawa_vansales/ui/screens/home_screen.dart';
 
 class QrPaymentDialog extends StatefulWidget {
   final double amount;
@@ -122,18 +127,47 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
         _txnUid = response.txnUid;
       });
 
-      // เริ่มตรวจสอบสถานะการชำระเงินทุก 5 วินาที
+      // เริ่มตรวจสอบสถานะการชำระเงินทุก 10 วินาที
       _startCheckingStatus();
     } catch (e) {
+      if (kDebugMode) {
+        print('เกิดข้อผิดพลาดในการสร้าง QR Code: $e');
+      }
+
+      String errorMsg = 'เกิดข้อผิดพลาด';
+
+      if (e is DioException) {
+        final dioError = e;
+        errorMsg = 'เกิดข้อผิดพลาดในการเชื่อมต่อ: ${dioError.message}\n';
+
+        // เพิ่มรายละเอียด error จาก Dio
+        if (dioError.response != null) {
+          try {
+            final errorData = dioError.response?.data;
+            if (errorData != null) {
+              errorMsg += 'รายละเอียด: ${jsonEncode(errorData)}';
+            } else {
+              errorMsg += 'รหัสข้อผิดพลาด: ${dioError.response?.statusCode}';
+            }
+          } catch (jsonError) {
+            errorMsg += 'ข้อผิดพลาดจาก API: ${dioError.response?.statusCode} - ${dioError.response?.statusMessage}';
+          }
+        } else if (dioError.error != null) {
+          errorMsg += 'รายละเอียด: ${dioError.error}';
+        }
+      } else {
+        errorMsg = 'เกิดข้อผิดพลาด: $e';
+      }
+
       setState(() {
         _isLoading = false;
-        _errorMessage = 'เกิดข้อผิดพลาด: $e';
+        _errorMessage = errorMsg;
       });
     }
   }
 
   void _startCheckingStatus() {
-    _statusCheckTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    _statusCheckTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       _checkPaymentStatus();
     });
   }
@@ -152,6 +186,17 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
       if (response.isPaid) {
         // หยุดการตรวจสอบสถานะ
         _statusCheckTimer?.cancel();
+        _timeoutTimer?.cancel(); // หยุดการนับเวลาถอยหลังด้วยเมื่อชำระเงินสำเร็จ
+
+        if (response.txnNo == null || response.txnNo!.isEmpty) {
+          // กรณีไม่มีเลขที่รายการ
+          _showErrorDialog("ข้อมูลการชำระเงินไม่สมบูรณ์", "ไม่พบข้อมูลเลขที่รายการ (Transaction Number)\n\nTransaction ID: $_txnUid");
+
+          setState(() {
+            _isCheckingStatus = false;
+          });
+          return;
+        }
 
         setState(() {
           _paymentSuccess = true;
@@ -159,16 +204,31 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
           _txnNo = response.txnNo;
         });
 
-        // สร้าง PaymentModel และปิดไดอะล็อก
+        // บันทึกข้อมูลลงใน log เพื่อการตรวจสอบ
+        if (kDebugMode) {
+          print("การชำระเงินด้วย QR Code สำเร็จ: TxnUID=$_txnUid, TxnNo=$_txnNo, Amount=${widget.amount}");
+        }
+
+        // ให้เพิ่มวิธีการชำระเงิน แต่ยังไม่บันทึกรายการขาย รอให้ user กดปุ่มเอง
         if (mounted) {
           _finishPayment();
         }
       } else {
+        // กรณียังไม่มีการชำระเงิน
+        if (kDebugMode) {
+          print("ยังไม่มีการชำระเงิน สถานะ: ${response.txnStatus}");
+        }
+
         setState(() {
           _isCheckingStatus = false;
         });
       }
     } catch (e) {
+      // กรณีเกิด error ในการเรียก API
+      if (kDebugMode) {
+        print("เกิดข้อผิดพลาดในการตรวจสอบสถานะการชำระเงิน: $e");
+      }
+
       setState(() {
         _isCheckingStatus = false;
       });
@@ -179,44 +239,203 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
     // เมื่อชำระเงินเสร็จสิ้น ให้รอสักครู่แล้วดำเนินการต่อ
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) {
-        // สร้าง PaymentModel สำหรับ QR Code
+        // ตรวจสอบข้อมูลที่จำเป็นก่อนทำการบันทึก
+        if (_txnUid == null || _txnUid!.isEmpty) {
+          _showErrorDialog("ไม่พบข้อมูลรหัสอ้างอิงธุรกรรม (Transaction UID)", "กรุณาลองทำรายการใหม่อีกครั้ง");
+          return;
+        }
+
+        if (_txnNo == null || _txnNo!.isEmpty) {
+          _showErrorDialog("ไม่พบเลขที่การทำรายการ (Transaction Number)", "กรุณาลองทำรายการใหม่อีกครั้ง");
+          return;
+        }
+
+        // สร้าง PaymentModel สำหรับ QR Code โดยกำหนดค่าทุกฟิลด์ให้ครบถ้วน
         final payment = PaymentModel(
           payType: PaymentModel.paymentTypeToInt(PaymentType.qrCode),
-          transNumber: _txnUid ?? '', // เก็บ txnUid ใน transNumber
+          transNumber: _txnUid!, // เก็บ txnUid ใน transNumber
           payAmount: widget.amount,
-          noApproved: _txnNo ?? '', // เก็บ txnNo ใน noApproved (transaction number)
+          noApproved: _txnNo!, // เก็บ txnNo ใน noApproved (transaction number)
+          charge: 0.0, // ค่าธรรมเนียม (ถ้ามี)
         );
 
-        // แสดงข้อความรอสักครู่ก่อนบันทึกการขาย
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          // เพิ่มการตั้งชื่อ route เพื่อให้สามารถอ้างอิงได้ใน Navigator.popUntil
-          routeSettings: const RouteSettings(name: 'QrProcessingDialog'),
-          builder: (dialogContext) => const AlertDialog(
-            title: Text('กำลังดำเนินการ'),
-            content: Column(
+        try {
+          // เพิ่มวิธีการชำระเงินเท่านั้น แต่ไม่ submit sale อัตโนมัติ
+          context.read<CartBloc>().add(AddPayment(payment));
+
+          // แสดง SnackBar เพื่อบอกให้ผู้ใช้กดปุ่มบันทึกรายการขาย
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('การชำระเงินสำเร็จแล้ว กรุณากดปุ่ม "บันทึกรายการขาย"'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 4),
+            ),
+          );
+
+          // ไม่ต้องเรียก SubmitSale อัตโนมัติ เพื่อให้ผู้ใช้กดปุ่มเอง
+        } catch (e) {
+          _showErrorDialog("error", e.toString());
+        }
+      }
+    });
+  }
+
+  // แสดง Dialog สำหรับข้อผิดพลาดที่ให้สามารถ copy ข้อความได้
+  void _showErrorDialog(String title, String errorMessage) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // สร้าง JSON ที่จะแสดงในรูปแบบ Map
+        final Map<String, dynamic> errorData = {
+          'timestamp': DateTime.now().toIso8601String(),
+          'transaction': {
+            'txnUid': _txnUid ?? 'N/A',
+            'txnNo': _txnNo ?? 'N/A',
+            'amount': widget.amount,
+            'docNumber': widget.docNumber ?? 'N/A',
+          },
+          'error': {
+            'title': title,
+            'message': errorMessage,
+          },
+          'deviceInfo': {
+            'platform': kIsWeb ? 'web' : Theme.of(context).platform.toString(),
+            'appVersion': '1.0.0', // ควรอัพเดทเป็นเวอร์ชันจริงของแอพ
+          }
+        };
+
+        // แปลง Map เป็น JSON string และจัดรูปแบบให้อ่านง่าย
+        final String prettyJson = _getPrettyJsonString(errorData);
+
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite, // ทำให้กว้างสุด
+            child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('กำลังบันทึกการขาย กรุณารอสักครู่...'),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'รายละเอียดข้อผิดพลาด:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[400]!),
+                          ),
+                          child: SelectableText(
+                            prettyJson,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'กดที่ข้อความค้างไว้เพื่อคัดลอก หรือกดปุ่ม "คัดลอกข้อมูล"',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // ล้าง state ของ cart ก่อนที่จะนำทางกลับไปหน้าหลัก
+                context.read<CartBloc>().add(ResetCartState());
+
+                // ปิด dialog
+                Navigator.of(context).pop();
+
+                // ปิด QR Payment Dialog
+                Navigator.of(context).pop();
+
+                // กลับไปยังหน้า home เพื่อเริ่มการขายใหม่
+                Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const HomeScreen()), (Route<dynamic> route) => false);
+              },
+              child: const Text('ตกลง'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // คัดลอกข้อความลงคลิปบอร์ด (ต้องใช้ package: flutter/services.dart)
+                try {
+                  // import 'package:flutter/services.dart'; ต้องเพิ่มบรรทัดนี้ที่บนสุดของไฟล์
+                  Clipboard.setData(ClipboardData(text: prettyJson));
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('คัดลอกข้อมูลแล้ว สามารถส่งให้ผู้พัฒนาได้'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('ไม่สามารถคัดลอกข้อมูลได้: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+
+                // ล้าง state ของ cart ก่อนที่จะนำทางกลับไปหน้าหลัก
+                context.read<CartBloc>().add(ResetCartState());
+
+                // ปิด dialog
+                Navigator.of(context).pop();
+
+                // ปิด QR Payment Dialog
+                Navigator.of(context).pop();
+
+                // กลับไปยังหน้า home เพื่อเริ่มการขายใหม่
+                Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const HomeScreen()), (Route<dynamic> route) => false);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+              ),
+              child: const Text('คัดลอกข้อมูล'),
+            ),
+          ],
         );
+      },
+    );
+  }
 
-        // เพิ่มวิธีการชำระเงินก่อน
-        context.read<CartBloc>().add(AddPayment(payment));
-
-        // บันทึกการขายทันที - ไม่จำเป็นต้องใช้ Future.delayed เพราะ addPayment
-        // เป็น synchronous operation ใน bloc
-        context.read<CartBloc>().add(const SubmitSale());
-
-        // หมายเหตุ: BlocListener จะจัดการกับการปิด dialogs และแสดง PrintReceiptDialog
-        // เมื่อได้รับ CartSubmitSuccess state
-      }
-    });
+  // ฟังก์ชันสำหรับจัดรูปแบบ JSON String ให้อ่านง่าย
+  String _getPrettyJsonString(Map<String, dynamic> json) {
+    String result = '';
+    try {
+      const JsonEncoder encoder = JsonEncoder.withIndent('  ');
+      result = encoder.convert(json);
+    } catch (e) {
+      result = json.toString();
+    }
+    return result;
   }
 
   void _cancelPayment() {
@@ -245,35 +464,173 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
     }
   }
 
+  void _showErrorDialogWithTransaction(String title, String errorMessage, SaleTransactionModel transactionData) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // ไม่ให้กดพื้นที่นอก dialog ปิด
+      builder: (BuildContext context) {
+        // แปลง Map เป็น JSON string และจัดรูปแบบให้อ่านง่าย
+        final String prettyJson = _getPrettyJsonString(transactionData.toJson());
+
+        // คำนวณความสูงของ dialog ตามขนาดหน้าจอ
+        final double screenHeight = MediaQuery.of(context).size.height;
+        final double dialogMaxHeight = screenHeight * 0.7; // ใช้ 70% ของความสูงหน้าจอ
+        final double jsonContainerHeight = dialogMaxHeight * 0.6; // 60% ของความสูง dialog
+
+        return AlertDialog(
+          title: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red),
+              const SizedBox(width: 8),
+              Expanded(child: Text(title, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
+          content: Container(
+            width: double.maxFinite,
+            constraints: BoxConstraints(
+              maxHeight: dialogMaxHeight,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // แสดงข้อความ error
+                Text(
+                  errorMessage,
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+
+                // หัวข้อข้อมูลการทำรายการ
+                const Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                    SizedBox(width: 4),
+                    Text(
+                      'ข้อมูลการทำรายการ:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const Divider(height: 16),
+
+                // สร้าง container สำหรับ JSON ที่สามารถเลื่อนได้
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade400),
+                    ),
+                    height: jsonContainerHeight,
+                    child: SingleChildScrollView(
+                      child: SelectableText(
+                        prettyJson,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ข้อความแนะนำการคัดลอก
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
+                  child: Text(
+                    'กดที่ข้อความค้างไว้เพื่อคัดลอก หรือกดปุ่ม "คัดลอก"',
+                    style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            // จัดให้ปุ่มอยู่ในแถวเดียวกัน
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, // กระจายปุ่มไปทางซ้าย-ขวา
+              children: [
+                // ปุ่มคัดลอกอยู่ซ้าย
+                TextButton.icon(
+                  icon: const Icon(Icons.copy, size: 18),
+                  label: const Text('คัดลอก'),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: prettyJson));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('คัดลอกข้อมูลแล้ว'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                ),
+
+                // ปุ่มตกลงอยู่ขวา
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    // ล้าง state ของ cart ก่อนที่จะนำทางกลับไปหน้าหลัก
+                    context.read<CartBloc>().add(ResetCartState());
+
+                    // ปิด dialog
+                    Navigator.of(context).pop();
+
+                    // ปิด QR Payment Dialog
+                    Navigator.of(context).pop();
+
+                    // กลับไปยังหน้า home เพื่อเริ่มการขายใหม่
+                    // ใช้ Navigator.of(context).pushAndRemoveUntil เพื่อล้าง stack ก่อนหน้า
+                    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => const HomeScreen()), (Route<dynamic> route) => false // ล้างทุก routes ก่อนหน้า
+                        );
+                  },
+                  child: const Text('ตกลง'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<CartBloc, CartState>(
-      listenWhen: (previous, current) => current is CartSubmitSuccess || current is CartError,
+      listenWhen: (previous, current) => current is CartSubmitSuccess || current is CartError || current is CartSubmitting,
       listener: (context, state) {
-        // ถ้าบันทึกการขายเสร็จสิ้น ให้ปิด dialog
-        if (state is CartSubmitSuccess) {
-          // ข้อผิดพลาดอาจเกิดจากการที่เราปิด dialog มากเกินไปหรือน้อยเกินไป
-          // แทนที่จะเรียก pop() หลายครั้ง เราใช้ Navigator.of(context).popUntil
-          // เพื่อปิดเฉพาะ dialogs ที่เราสร้าง แต่ไม่ปิด SaleScreen
-
+        // ถ้ากำลังบันทึกข้อมูล ไม่ต้องทำอะไร รอให้ state เปลี่ยนเป็น CartSubmitSuccess หรือ CartError
+        if (state is CartSubmitting) {
+          if (kDebugMode) {
+            print("QrPaymentDialog: กำลังประมวลผลการบันทึกรายการ...");
+          }
+        }
+        // ถ้าบันทึกการขายเสร็จสิ้น
+        else if (state is CartSubmitSuccess) {
           // หมายเหตุ: เราต้องการปิด QR dialog และ processing dialog แต่ไม่ต้องการปิด SaleScreen
           // ที่ถูกต้องแล้วคือ ไม่ต้องปิด dialog ที่นี่เลย ให้ SaleScreen จัดการเอง
 
           if (kDebugMode) {
-            print("QrPaymentDialog: ได้รับ CartSubmitSuccess state - จะรอให้ SaleScreen จัดการ");
+            print("QrPaymentDialog: บันทึกรายการสำเร็จ เลขที่เอกสาร: ${state.documentNumber}");
           }
-          // ไม่ปิด dialog ใดๆ ที่นี่ เพราะ SaleScreen จะจัดการเอง
-        } else if (state is CartError) {
-          // ถ้าเกิดข้อผิดพลาด ให้ยกเลิก loading dialog
-          Navigator.of(context).popUntil((route) => route == ModalRoute.of(context));
+        }
+        // กรณีเกิดข้อผิดพลาด
+        else if (state is CartError) {
+          // หยุดการทำงานของทุก timer
+          _statusCheckTimer?.cancel();
+          _timeoutTimer?.cancel();
 
-          // แสดงข้อความแจ้งเตือนข้อผิดพลาด
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('เกิดข้อผิดพลาด: ${state.message}'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          setState(() {
+            _isCheckingStatus = false;
+            _isLoading = false;
+          });
+
+          if (state.transaction != null) {
+            _showErrorDialogWithTransaction("error", state.message, state.transaction!);
+          } else {
+            _showErrorDialog("error", state.message);
+          }
         }
       },
       child: AlertDialog(
@@ -283,9 +640,13 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
             const SizedBox(width: 8),
             const Text('ชำระด้วย QR Code'),
             const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: _paymentSuccess ? null : _cancelPayment,
+            // ซ่อนปุ่มปิด (close) ไม่ให้ผู้ใช้กด
+            Visibility(
+              visible: false,
+              child: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _paymentSuccess ? null : _cancelPayment,
+              ),
             ),
           ],
         ),
@@ -415,19 +776,49 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
                       if (_txnNo != null && _txnNo!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Column(
                             children: [
-                              Icon(Icons.receipt, size: 16, color: Colors.grey[600]),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  'หมายเลขอ้างอิง: $_txnNo',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 14,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.receipt, size: 16, color: Colors.grey[600]),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      'หมายเลขอ้างอิง: $_txnNo',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
                                   ),
-                                  textAlign: TextAlign.center,
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.amber.shade200),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.info_outline, color: Colors.amber.shade800, size: 20),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        'กรุณากดปุ่ม "บันทึกรายการขาย" ด้านล่างเพื่อดำเนินการต่อ',
+                                        style: TextStyle(
+                                          color: Colors.amber.shade800,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.left,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -485,13 +876,55 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
               child: const Text('ยกเลิก'),
             ),
           if (_paymentSuccess)
-            ElevatedButton(
-              onPressed: () {
-                if (!_statusCheckTimer!.isActive) {
-                  _finishPayment();
-                }
-              },
-              child: const Text('ตกลง'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: () {
+                    // ตรวจสอบว่ามีการเพิ่มวิธีการชำระเงินแล้ว
+                    if (_txnUid != null && _txnUid!.isNotEmpty && _txnNo != null && _txnNo!.isNotEmpty) {
+                      try {
+                        // สร้าง JSON ของข้อมูลที่จะส่งไป
+                        final Map<String, dynamic> submitData = {
+                          'action': 'SubmitSale',
+                          'payload': {
+                            'qrPayment': {'txnUid': _txnUid, 'txnNo': _txnNo, 'amount': widget.amount, 'timestamp': DateTime.now().toIso8601String()},
+                            'docNumber': widget.docNumber
+                          }
+                        };
+
+                        // บันทึก log เพื่อการตรวจสอบ
+                        if (kDebugMode) {
+                          print("กำลังส่งข้อมูลไปที่ SubmitSale: ${jsonEncode(submitData)}");
+                        }
+
+                        // เรียกบันทึกรายการขาย
+                        context.read<CartBloc>().add(const SubmitSale());
+
+                        // แสดงข้อความกำลังบันทึกรายการ
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('กำลังบันทึกรายการขาย...'),
+                            backgroundColor: Colors.blue,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      } catch (e) {
+                        _showErrorDialog("เกิดข้อผิดพลาดในการเรียกบันทึกรายการขาย", e.toString());
+                      }
+                    } else {
+                      _showErrorDialog("ข้อมูลการชำระเงินไม่สมบูรณ์", "กรุณาติดต่อผู้ดูแลระบบ\n\nTxnUID: ${_txnUid ?? 'ไม่มีข้อมูล'}\nTxnNo: ${_txnNo ?? 'ไม่มีข้อมูล'}");
+                    }
+                  },
+                  child: const Text('บันทึกรายการขาย'),
+                ),
+              ],
             ),
         ],
       ),

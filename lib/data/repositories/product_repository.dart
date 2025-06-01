@@ -22,7 +22,7 @@ class ProductRepository {
       _logger.i('Fetching products with search: $search');
 
       final response = await _apiService.get(
-        '/getBarcodeList',
+        'getBarcodeList',
         queryParameters: {
           'search': search,
           'wh_code': whCode,
@@ -255,37 +255,6 @@ class ProductRepository {
 
   // ข้อมูลสินค้าจำลอง
   List<ProductModel> _getMockProducts() {
-    return [
-      ProductModel(
-        itemCode: '03-1433',
-        itemName: 'ยาแก้ปวดเมื่อยตราแรมโบ้150ซีซี',
-        barcode: '8852314999998',
-        price: 0,
-        unitCode: 'ชิ้น',
-        standValue: '1.00',
-        divideValue: '1.00',
-        ratio: '1.00',
-      ),
-      ProductModel(
-        itemCode: '05-2126',
-        itemName: 'กระเทียมเจียว ตราบุญทิพย์80กรัม/10บ.',
-        barcode: '3539629999107',
-        price: 0,
-        unitCode: 'ลัง200',
-        standValue: '200.00',
-        divideValue: '1.00',
-        ratio: '200.00',
-      ),
-      ProductModel(
-        itemCode: '06-4909',
-        itemName: 'พอนด์ส เอจ มิราเคิล ไนท์แคร์ ครีม10กรัม',
-        barcode: '8999999059934',
-        price: 0,
-        unitCode: 'ชิ้น',
-        standValue: '1.00',
-        divideValue: '1.00',
-        ratio: '1.00',
-      ),
-    ];
+    return [];
   }
 }

@@ -67,7 +67,12 @@ class _ReturnSummaryStepState extends State<ReturnSummaryStep> {
     final formattedDate = dateFormat.format(now);
     final random = Random();
     final randomNumber = random.nextInt(10000).toString().padLeft(4, '0');
-    final docNo = 'CNV$formattedDate-$randomNumber';
+    String docNo = 'CNV$formattedDate-$randomNumber';
+
+    // Check and limit to maximum 25 characters
+    if (docNo.length > 25) {
+      docNo = docNo.substring(0, 25);
+    }
 
     setState(() {
       generatedDocNumber = docNo;
