@@ -1,5 +1,5 @@
 // lib/ui/screens/sale/sale_payment_step.dart
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, unrelated_type_equality_checks
 
 import 'dart:io';
 

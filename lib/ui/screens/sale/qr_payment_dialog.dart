@@ -321,11 +321,11 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 16, color: Colors.blue),
-                    const SizedBox(width: 4),
-                    const Text(
+                    Icon(Icons.info_outline, size: 16, color: Colors.blue),
+                    SizedBox(width: 4),
+                    Text(
                       'รายละเอียดข้อผิดพลาด:',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),

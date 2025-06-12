@@ -64,7 +64,7 @@ class _ProductBalanceScreenState extends State<ProductBalanceScreen> {
   void _showWarehouseErrorDialog() {
     showDialog(
       context: context,
-      builder: (context) => ErrorDialog(
+      builder: (context) => const ErrorDialog(
         title: 'ไม่พบข้อมูลคลังสินค้า',
         message: 'กรุณาเลือกคลังสินค้าและพื้นที่เก็บก่อนตรวจสอบยอดคงเหลือ',
       ),

@@ -269,6 +269,9 @@ class ReceiptPrinterService {
       await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("------------------------------", smallSize, 1);
 
+      /// แสดงยอดรวม
+      await _printer.printLeftRight("ยอดรวม", currencyFormat.format(totalAmount), smallSize);
+
       // แสดงยอดก่อน VAT และ VAT เฉพาะในใบกำกับภาษี
       if (isTaxReceipt) {
         await _printer.printLeftRight("ราคาก่อน VAT", currencyFormat.format(priceBeforeVat), smallSize);
@@ -281,6 +284,11 @@ class ReceiptPrinterService {
         if (paymentType == PaymentType.creditCard && payment.charge > 0) {
           await _printer.printLeftRight("Charge 1.5%", currencyFormat.format(payment.charge), smallSize);
         }
+      }
+
+      // balanceAmount ถ้า ค่าเป็น - ให้แปลงเป็น ไม่ติดลบ เช่น -123 จะเป็น 123
+      if (balanceAmount < 0) {
+        balanceAmount = balanceAmount.abs();
       }
 
       // แสดงยอดลดหนี้ (ถ้ามี)

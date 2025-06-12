@@ -22,6 +22,7 @@ PreOrderHistoryModel _$PreOrderHistoryModelFromJson(
       totalCreditCharge: json['total_credit_charge'] as String? ?? '0',
       totalNetAmount: json['total_net_amount'] as String? ?? '0',
       totalAmountPay: json['total_amount_pay'] as String? ?? '0',
+      balanceAmount: json['balance_amount'] as String? ?? '0',
       transferRef: json['transfer_ref'] as String? ?? '',
     );
 
@@ -41,5 +42,6 @@ Map<String, dynamic> _$PreOrderHistoryModelToJson(
       'total_credit_charge': instance.totalCreditCharge,
       'total_net_amount': instance.totalNetAmount,
       'total_amount_pay': instance.totalAmountPay,
+      'balance_amount': instance.balanceAmount,
       'transfer_ref': instance.transferRef,
     };

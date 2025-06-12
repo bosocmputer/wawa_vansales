@@ -8,12 +8,12 @@ class ErrorDialog extends StatelessWidget {
   final VoidCallback? onButtonPressed;
 
   const ErrorDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.message,
     this.buttonLabel,
     this.onButtonPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

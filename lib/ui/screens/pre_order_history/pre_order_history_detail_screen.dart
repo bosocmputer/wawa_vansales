@@ -242,6 +242,7 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
         isCopy: true, // ระบุว่าเป็นการพิมพ์สำเนา
         changeAmount: changeAmount, // เพิ่มการส่งค่าเงินทอน
         isFromPreOrder: true, // เพิ่มค่า isFromPreOrder เป็น true เพื่อระบุว่าเป็นการพิมพ์จาก Pre-Order
+        balanceAmount: widget.orderHistory.balanceAmountValue, // เพิ่มยอดลดหนี้
       );
 
       // ปิด loading dialog
@@ -745,6 +746,45 @@ class _PreOrderHistoryDetailScreenState extends State<PreOrderHistoryDetailScree
                   child: Divider(color: Colors.grey.shade300, height: 1),
                 ),
               ],
+            ],
+
+            // Balance Amount - แสดงเมื่อมียอดลดหนี้
+            if (widget.orderHistory.balanceAmountValue != 0) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        widget.orderHistory.balanceAmountValue > 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
+                        size: 16,
+                        color: widget.orderHistory.balanceAmountValue > 0 ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'ยอดลดหนี้',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '฿${_currencyFormat.format(widget.orderHistory.balanceAmountValue.abs())}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: widget.orderHistory.balanceAmountValue > 0 ? Colors.green : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Divider(color: Colors.grey.shade300, height: 1),
+              ),
             ],
 
             Row(

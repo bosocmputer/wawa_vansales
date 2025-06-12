@@ -456,6 +456,36 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
                   ),
                 ],
               ),
+
+              // Balance Amount - แสดงเมื่อมียอดลดหนี้
+              if (preOrderHistory.balanceAmountValue != 0) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      preOrderHistory.balanceAmountValue > 0 ? Icons.add_circle_outline : Icons.remove_circle_outline,
+                      size: 18,
+                      color: preOrderHistory.balanceAmountValue > 0 ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'ยอดลดหนี้: ',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '฿${formatter.format(preOrderHistory.balanceAmountValue.abs())}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: preOrderHistory.balanceAmountValue > 0 ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

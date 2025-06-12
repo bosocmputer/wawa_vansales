@@ -13,6 +13,7 @@ import 'package:wawa_vansales/blocs/warehouse/warehouse_state.dart';
 import 'package:wawa_vansales/config/app_theme.dart';
 import 'package:wawa_vansales/data/models/location_model.dart';
 import 'package:wawa_vansales/data/models/warehouse_model.dart';
+import 'package:wawa_vansales/data/services/receipt_printer_service.dart';
 import 'package:wawa_vansales/ui/screens/customer_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/login_screen.dart';
 import 'package:wawa_vansales/ui/screens/pre_order_history/pre_order_history_list_screen.dart';
@@ -41,6 +42,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
+    // เชื่อมต่อปริ้นเตอร์โดยไม่รอผลลัพธ์
+    _initializePrinter();
+
     // ตรวจสอบข้อมูลคลังและพื้นที่เก็บที่เลือกเมื่อเปิดหน้า
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_isInitialized) {
@@ -58,6 +63,17 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  // แยก method สำหรับเชื่อมต่อปริ้นเตอร์
+  Future<void> _initializePrinter() async {
+    try {
+      final printerService = ReceiptPrinterService();
+      await printerService.autoConnect();
+    } catch (e) {
+      // จัดการข้อผิดพลาดในการเชื่อมต่อปริ้นเตอร์
+      print('Failed to auto-connect printer: $e');
+    }
   }
 
   @override
@@ -106,7 +122,25 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('WAWA Van Sales'),
+          title: RichText(
+            text: TextSpan(
+              text: 'WAWA Van Sales ',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+              children: [
+                TextSpan(
+                  text: 'v2.8',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[300],
+                  ),
+                ),
+              ],
+            ),
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),

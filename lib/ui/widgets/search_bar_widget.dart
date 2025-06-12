@@ -13,7 +13,7 @@ class SearchBarWidget extends StatelessWidget {
   final double? borderRadius;
 
   const SearchBarWidget({
-    Key? key,
+    super.key,
     required this.controller,
     required this.hintText,
     required this.onSearch,
@@ -23,7 +23,7 @@ class SearchBarWidget extends StatelessWidget {
     this.contentPadding,
     this.fillColor,
     this.borderRadius,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
