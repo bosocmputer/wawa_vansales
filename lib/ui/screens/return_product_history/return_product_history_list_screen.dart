@@ -302,6 +302,7 @@ class _ReturnProductHistoryListScreenState extends State<ReturnProductHistoryLis
                 docTime: returnHistory.docTime,
                 invNo: returnHistory.invNo,
                 totalAmount: totalAmount, // ส่งค่า totalAmount เข้าไปด้วย
+                remark: returnHistory.remark, // ส่งหมายเหตุเข้าไปด้วย
               ),
             ),
           );
@@ -445,6 +446,46 @@ class _ReturnProductHistoryListScreenState extends State<ReturnProductHistoryLis
                   ),
                 ],
               ),
+
+              // Remark (หมายเหตุ) - เพิ่มการแสดงหมายเหตุ
+              if (returnHistory.remark.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.note_alt,
+                      size: 18,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'หมายเหตุ:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            returnHistory.remark,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

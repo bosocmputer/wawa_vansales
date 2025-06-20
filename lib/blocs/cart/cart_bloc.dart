@@ -544,6 +544,14 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
   // คำนวณยอดรวม
   double _calculateTotal(List<CartItemModel> items) {
+    if (state is CartLoaded) {
+      final currentState = state as CartLoaded;
+      // ถ้าเป็น PreOrder ให้ใช้ sumAmount จาก API
+      if (currentState.preOrderDocNo.isNotEmpty) {
+        return items.fold(0, (sum, item) => sum + item.totalAmountForPreOrder);
+      }
+    }
+    // กรณีปกติใช้ price * qty
     return items.fold(0, (sum, item) => sum + item.totalAmount);
   }
 

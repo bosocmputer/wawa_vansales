@@ -767,13 +767,23 @@ class _SaleCartStepState extends State<SaleCartStep> {
                 const SizedBox(width: 12),
 
                 // ยอดรวม
-                Text(
-                  '฿${_currencyFormat.format(item.totalAmount)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryColor,
-                  ),
+                BlocBuilder<CartBloc, CartState>(
+                  builder: (context, cartState) {
+                    // ถ้าเป็น PreOrder ให้ใช้ totalAmountForPreOrder
+                    double itemTotal = item.totalAmount;
+                    if (cartState is CartLoaded && cartState.preOrderDocNo.isNotEmpty) {
+                      itemTotal = item.totalAmountForPreOrder;
+                    }
+
+                    return Text(
+                      '฿${_currencyFormat.format(itemTotal)}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

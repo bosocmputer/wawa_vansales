@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/auth/auth_bloc.dart';
@@ -72,7 +73,9 @@ class _HomeScreenState extends State<HomeScreen> {
       await printerService.autoConnect();
     } catch (e) {
       // จัดการข้อผิดพลาดในการเชื่อมต่อปริ้นเตอร์
-      print('Failed to auto-connect printer: $e');
+      if (kDebugMode) {
+        print('Failed to auto-connect printer: $e');
+      }
     }
   }
 

@@ -209,6 +209,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
         warehouseCode: _warehouseCode,
         empCode: _empCode,
         receiptType: receiptType,
+        remark: state.remark, // เพิ่มการส่ง remark
       );
 
       // ปิด loading dialog
@@ -250,6 +251,7 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
             warehouseCode: _warehouseCode,
             empCode: _empCode,
             receiptType: receiptType,
+            remark: state.remark, // เพิ่มการส่ง remark ในการพิมพ์ซ้ำด้วย
             isCopy: true,
           );
         }
@@ -450,8 +452,22 @@ class _ReturnProductScreenState extends State<ReturnProductScreen> {
                   SnackBar(
                     content: Text(state.message),
                     backgroundColor: AppTheme.errorColor,
+                    duration: const Duration(seconds: 4), // แสดงนานขึ้นเพื่อให้ผู้ใช้อ่านได้
                   ),
                 );
+
+                // ถ้าเป็น error จากการบันทึก ให้กลับไปหน้าแรกเพื่อให้ app ใช้งานได้ต่อ
+                if (state.message.contains('บันทึก') || state.message.contains('server') || state.message.contains('รูปแบบข้อมูล') || state.message.contains('เกิดข้อผิดพลาด')) {
+                  // รอ 2 วินาทีเพื่อให้ผู้ใช้อ่าน error message ได้
+                  await Future.delayed(const Duration(seconds: 2));
+
+                  // รีเซ็ตสถานะและกลับหน้าหลัก
+                  context.read<ReturnProductBloc>().add(ResetReturnProductState());
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    (route) => false,
+                  );
+                }
               } else if (state is ReturnSubmitSuccess && !_isTransactionCompleted) {
                 // ตั้งค่า flag เพื่อป้องกันการทำงานซ้ำซ้อน
                 setState(() {

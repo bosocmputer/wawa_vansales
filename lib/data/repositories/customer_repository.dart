@@ -133,18 +133,18 @@ class CustomerRepository {
     return [
       CustomerModel(
         code: 'AR00468',
-        name: 'ได้รับเงินจากคระกรรมการหมู่บ้าน โนนผาสุก หมู่ 9',
+        name: 'mockData1',
         taxId: '',
       ),
       CustomerModel(
         code: 'AR00472',
-        name: 'ร.ร.บ้านเชียงแหว',
+        name: 'mockData2',
         taxId: '',
         address: 'หมู่ 1 ต.เชียงแหว อ. กุมภวาปี จ. อุดรธานี',
       ),
       CustomerModel(
         code: 'AR00473',
-        name: 'ร้านค้าตัวอย่าง',
+        name: 'mockData3',
         taxId: '1234567890123',
         address: 'เลขที่ 123 ถ.สุขุมวิท กรุงเทพฯ',
         telephone: '02-123-4567',

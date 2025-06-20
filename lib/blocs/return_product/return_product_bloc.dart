@@ -290,7 +290,7 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
         final calculatedTotal = _calculateTotal(currentState.returnItems);
         final totalAmountStr = calculatedTotal.toString();
 
-        // สร้าง transaction model
+        // สร้าง transaction model โดยให้แน่ใจว่า remark ไม่เป็น null
         final transaction = ReturnProductModel(
           custCode: currentState.selectedCustomer!.code!,
           empCode: user?.userCode ?? 'TEST',
@@ -308,7 +308,7 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
           cardAmount: '0',
           totalAmount: totalAmountStr,
           totalValue: totalAmountStr,
-          remark: event.remark,
+          remark: event.remark, // remark จาก event ที่มี default เป็น '' อยู่แล้ว
         );
 
         // บันทึกข้อมูล
@@ -322,13 +322,27 @@ class ReturnProductBloc extends Bloc<ReturnProductEvent, ReturnProductState> {
             payments: currentState.payments,
             totalAmount: calculatedTotal,
             refSaleDocument: currentState.selectedSaleDocument!,
+            remark: event.remark, // เพิ่ม remark เข้าไปใน success state
           ));
         } else {
           emit(const ReturnProductError('ไม่สามารถบันทึกการรับคืนสินค้าได้'));
         }
       } catch (e) {
         _logger.e('Submit return error: $e');
-        emit(ReturnProductError('เกิดข้อผิดพลาด: ${e.toString()}'));
+
+        // แยกประเภทของ error และให้ข้อความที่เหมาะสม
+        String errorMessage;
+        if (e.toString().contains('รูปแบบข้อมูลไม่ถูกต้อง')) {
+          errorMessage = 'รูปแบบข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง';
+        } else if (e.toString().contains('บันทึกไม่สำเร็จ:')) {
+          errorMessage = e.toString().replaceFirst('Exception: ', '');
+        } else if (e.toString().contains('เกิดข้อผิดพลาดจาก server')) {
+          errorMessage = 'เกิดข้อผิดพลาดจาก server กรุณาลองใหม่อีกครั้ง';
+        } else {
+          errorMessage = 'เกิดข้อผิดพลาด: ${e.toString().replaceFirst('Exception: ', '')}';
+        }
+
+        emit(ReturnProductError(errorMessage));
       }
     }
   }

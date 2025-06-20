@@ -17,6 +17,9 @@ class ReturnProductHistoryModel {
   @JsonKey(name: 'cust_name')
   final String custName;
 
+  @JsonKey(name: 'remark')
+  final String remark;
+
   @JsonKey(name: 'inv_no')
   final String invNo;
 
@@ -31,6 +34,7 @@ class ReturnProductHistoryModel {
     required this.docNo,
     required this.docDate,
     required this.custName,
+    required this.remark,
     required this.invNo,
     required this.docTime,
     required this.totalAmount,

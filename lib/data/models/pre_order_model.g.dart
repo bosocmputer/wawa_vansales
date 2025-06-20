@@ -30,6 +30,7 @@ Map<String, dynamic> _$PreOrderResponseToJson(PreOrderResponse instance) => <Str
 PreOrderDetailModel _$PreOrderDetailModelFromJson(Map<String, dynamic> json) => PreOrderDetailModel(
       itemCode: json['item_code'] as String,
       standValue: json['stand_value'] as String,
+      sumAmount: json['sum_amount'] as String,
       price: json['price'] as String,
       qty: json['qty'] as String,
       shelfCode: json['shelf_code'] as String,
@@ -43,6 +44,7 @@ PreOrderDetailModel _$PreOrderDetailModelFromJson(Map<String, dynamic> json) => 
 Map<String, dynamic> _$PreOrderDetailModelToJson(PreOrderDetailModel instance) => <String, dynamic>{
       'item_code': instance.itemCode,
       'stand_value': instance.standValue,
+      'sum_amount': instance.sumAmount,
       'price': instance.price,
       'qty': instance.qty,
       'shelf_code': instance.shelfCode,

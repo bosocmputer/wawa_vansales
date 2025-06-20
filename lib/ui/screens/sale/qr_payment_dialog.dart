@@ -281,7 +281,10 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
   }
 
   // แสดง Dialog สำหรับข้อผิดพลาดที่ให้สามารถ copy ข้อความได้
-  void _showErrorDialog(String title, String errorMessage) {
+  void _showErrorDialog(
+    String title,
+    String errorMessage,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -626,11 +629,7 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
             _isLoading = false;
           });
 
-          if (state.transaction != null) {
-            _showErrorDialogWithTransaction("error", state.message, state.transaction!);
-          } else {
-            _showErrorDialog("error", state.message);
-          }
+          _showErrorDialogWithTransaction("error", state.message, state.transaction!);
         }
       },
       child: AlertDialog(

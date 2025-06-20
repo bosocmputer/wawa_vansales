@@ -46,7 +46,7 @@ class _PreOrderDetailScreenState extends State<PreOrderDetailScreen> {
               itemName: item.itemName,
               barcode: '',
               price: item.price,
-              sumAmount: item.totalAmount.toString(),
+              sumAmount: item.sumAmount, // ใช้ sum_amount จาก API โดยตรง
               unitCode: item.unitCode,
               whCode: item.whCode,
               shelfCode: item.shelfCode,
@@ -238,7 +238,6 @@ class _PreOrderDetailScreenState extends State<PreOrderDetailScreen> {
                               final item = items[index];
                               final price = double.tryParse(item.price) ?? 0;
                               final qty = double.tryParse(item.qty) ?? 0;
-                              final total = price * qty;
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
@@ -315,7 +314,7 @@ class _PreOrderDetailScreenState extends State<PreOrderDetailScreen> {
                                             ),
                                           ),
                                           Text(
-                                            '${currencyFormat.format(total)} บาท',
+                                            '${currencyFormat.format(double.tryParse(item.sumAmount) ?? 0)} บาท',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,

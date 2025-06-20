@@ -280,6 +280,14 @@ class ReceiptReturnPrinterService {
       await Future.delayed(const Duration(milliseconds: 50));
       await _printer.printCustom("==============================", smallSize, 1);
 
+      // 13.1. แสดงหมายเหตุ (ถ้ามี)
+      if (remark != null && remark.trim().isNotEmpty) {
+        await Future.delayed(const Duration(milliseconds: 30));
+        await _printer.printCustom("หมายเหตุ:", smallSize, 0);
+        await _printer.printCustom(remark.trim(), smallSize, 0);
+        await _printer.printCustom("------------------------------", smallSize, 1);
+      }
+
       // 14. ส่วนลายเซ็น
       await Future.delayed(const Duration(milliseconds: 100));
       await _printer.printNewLine();

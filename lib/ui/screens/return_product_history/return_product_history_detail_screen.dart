@@ -25,6 +25,7 @@ class ReturnProductHistoryDetailScreen extends StatefulWidget {
   final String docTime;
   final String invNo;
   final double totalAmount; // เพิ่ม totalAmount parameter
+  final String remark; // เพิ่ม remark parameter
 
   const ReturnProductHistoryDetailScreen({
     super.key,
@@ -35,6 +36,7 @@ class ReturnProductHistoryDetailScreen extends StatefulWidget {
     required this.docTime,
     required this.invNo,
     required this.totalAmount, // เพิ่มใน constructor
+    this.remark = '', // เพิ่มใน constructor with default value
   });
 
   @override
@@ -275,6 +277,44 @@ class _ReturnProductHistoryDetailScreenState extends State<ReturnProductHistoryD
               ),
             ],
           ),
+
+          // หมายเหตุ - เพิ่มการแสดงหมายเหตุ
+          if (widget.remark.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.note_alt,
+                  color: Colors.orange,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'หมายเหตุ',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        widget.remark,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.orange,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -606,6 +646,7 @@ class _ReturnProductHistoryDetailScreenState extends State<ReturnProductHistoryD
             docNumber: widget.docNo,
             warehouseCode: warehouseCode,
             empCode: empCode,
+            remark: widget.remark, // ส่งหมายเหตุไปพิมพ์ด้วย
             isCopy: true, // ระบุว่าเป็นการพิมพ์สำเนา
           );
 

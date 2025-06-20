@@ -64,6 +64,9 @@ class CartItemModel {
   // คำนวณยอดรวมสำหรับรายการนี้
   double get totalAmount => (double.tryParse(price) ?? 0) * (double.tryParse(qty) ?? 0);
 
+  // คำนวณยอดรวมสำหรับ PreOrder ที่ใช้ sumAmount จาก API
+  double get totalAmountForPreOrder => double.tryParse(sumAmount) ?? 0;
+
   // สร้าง copy with method
   CartItemModel copyWith({
     String? itemCode,

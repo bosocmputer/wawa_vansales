@@ -108,6 +108,7 @@ class ReturnSubmitSuccess extends ReturnProductState {
   final List<PaymentModel> payments;
   final double totalAmount;
   final SaleDocumentModel refSaleDocument;
+  final String remark;
 
   const ReturnSubmitSuccess({
     required this.documentNumber,
@@ -116,10 +117,11 @@ class ReturnSubmitSuccess extends ReturnProductState {
     required this.payments,
     required this.totalAmount,
     required this.refSaleDocument,
+    this.remark = '',
   });
 
   @override
-  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount, refSaleDocument];
+  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount, refSaleDocument, remark];
 }
 
 // เกิดข้อผิดพลาด

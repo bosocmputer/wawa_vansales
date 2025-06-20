@@ -59,6 +59,9 @@ class PreOrderDetailModel {
   @JsonKey(name: 'stand_value')
   final String standValue;
 
+  @JsonKey(name: 'sum_amount')
+  final String sumAmount;
+
   @JsonKey(name: 'price')
   final String price;
 
@@ -83,11 +86,13 @@ class PreOrderDetailModel {
   @JsonKey(name: 'ratio')
   final String ratio;
 
-  double get totalAmount => (double.tryParse(price) ?? 0) * (double.tryParse(qty) ?? 0);
+  // ใช้ sum_amount จาก API แทนการคำนวณ price * qty
+  double get totalAmount => double.tryParse(sumAmount) ?? 0;
 
   PreOrderDetailModel({
     required this.itemCode,
     required this.standValue,
+    required this.sumAmount,
     required this.price,
     required this.qty,
     required this.shelfCode,
