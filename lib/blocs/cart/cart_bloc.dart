@@ -40,6 +40,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<AddBalanceDetail>(_onAddBalanceDetail); // เพิ่มการจัดการ Event ใหม่
     on<UpdateBalanceDetails>(_onUpdateBalanceDetails); // เพิ่มการจัดการ Event ใหม่
     on<UpdatePartialPayStatus>(_onUpdatePartialPayStatus); // เพิ่มการจัดการการชำระเงินบางส่วน
+    on<SetPreOrderApiTotalAmount>(_onSetPreOrderApiTotalAmount); // เพิ่มการจัดการการตั้งค่ายอดจาก API
   }
 
   // เลือกลูกค้า
@@ -350,6 +351,10 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         // ยอดรวมการลดหนี้ (จาก state ที่เพิ่มเข้ามาใหม่)
         final double balanceAmount = currentState.balanceAmount;
 
+        // ใช้ยอดจาก API สำหรับ PreOrder หรือยอดคำนวณสำหรับการขายปกติ
+        final double effectiveBaseAmount =
+            currentState.preOrderDocNo.isNotEmpty && currentState.preOrderApiTotalAmount > 0 ? currentState.preOrderApiTotalAmount : currentState.totalAmount;
+
         // เตรียมรายการลดหนี้ - สร้าง list ใหม่ที่แก้ไขได้
         final List<BalanceDetailModel> balanceDetail = List<BalanceDetailModel>.from(currentState.balanceDetail);
 
@@ -360,11 +365,11 @@ class CartBloc extends Bloc<CartEvent, CartState> {
             // ใช้ totalAmountPay ซึ่งคือยอดรวมที่จ่ายจริงทั้งหมด
             final double paidAmount = totalAmountPay;
             // ยอดค้างชำระ = ยอดรวมทั้งหมดของบิล - ยอดที่ชำระแล้ว
-            final double balanceRef = currentState.totalAmount - paidAmount;
+            final double balanceRef = effectiveBaseAmount - paidAmount;
 
             _logger.i('กำลังเพิ่ม balance_detail สำหรับการชำระบางส่วน');
             _logger.i('เอกสาร: ${currentState.preOrderDocNo}');
-            _logger.i('ยอดรวมบิล: ${currentState.totalAmount}');
+            _logger.i('ยอดรวมบิล: $effectiveBaseAmount');
             _logger.i('ยอดชำระ: $paidAmount');
             _logger.i('ยอดค้างชำระ: $balanceRef');
 
@@ -385,8 +390,8 @@ class CartBloc extends Bloc<CartEvent, CartState> {
               transFlag: '44', // รหัสสำหรับ PreOrder
               docNo: currentState.preOrderDocNo, // เลขที่เอกสาร PreOrder
               docDate: docDate,
-              amount: currentState.totalAmount.toString(),
-              balanceRef: currentState.totalAmount.toString(),
+              amount: effectiveBaseAmount.toString(),
+              balanceRef: effectiveBaseAmount.toString(),
             );
 
             // เพิ่มเข้าไปใน list
@@ -395,7 +400,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         }
 
         // ปรับยอดรวมหลังจากหักลดหนี้
-        final double adjustedTotalAmount = currentState.totalAmount - balanceAmount;
+        final double adjustedTotalAmount = effectiveBaseAmount - balanceAmount;
 
         // กำหนดยอดรวมตามเงื่อนไขการชำระเงิน
         double totalAmount;
@@ -471,7 +476,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           cardAmount: cardAmount.toString(),
           walletAmount: walletAmount.toString(),
           totalAmount: totalAmount.toString(), // ใช้ยอดรวมที่คำนวณตามสถานะการชำระเงิน
-          totalValue: currentState.totalAmount.toString(), // totalValue ยังคงเก็บยอดรวมจริงก่อนหักลดหนี้
+          totalValue: effectiveBaseAmount.toString(), // ใช้ยอดจาก API สำหรับ PreOrder หรือยอดคำนวณสำหรับการขายปกติ
           totalCreditCharge: totalCreditCharge.toString(),
           totalNetAmount: totalNetAmount.toString(),
           totalAmountPay: totalAmountPay.toString(),
@@ -507,16 +512,21 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         }
 
         if (success) {
+          // ใช้ยอดจาก API สำหรับ PreOrder หรือยอดปกติสำหรับการขายทั่วไป
+          final effectiveTotalAmount =
+              currentState.preOrderDocNo.isNotEmpty && currentState.preOrderApiTotalAmount > 0 ? currentState.preOrderApiTotalAmount : currentState.totalAmount;
+
           // ส่ง CartSubmitSuccess เพียงครั้งเดียวและจบการทำงาน
           emit(CartSubmitSuccess(
             documentNumber: docNo,
             customer: currentState.selectedCustomer!,
             items: currentState.items,
             payments: currentState.payments,
-            totalAmount: currentState.totalAmount,
+            totalAmount: effectiveTotalAmount,
             balanceAmount: balanceAmount, // เพิ่มยอดลดหนี้
             balanceDetail: balanceDetail, // เพิ่มรายละเอียดการลดหนี้
             partialPay: currentState.partialPay, // เพิ่มสถานะการชำระเงินบางส่วน
+            preOrderApiTotalAmount: currentState.preOrderApiTotalAmount, // เพิ่มยอดจาก API
           ));
           return; // เพิ่ม return เพื่อจบการทำงานทันที
         } else {
@@ -623,6 +633,19 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
       emit(currentState.copyWith(
         partialPay: event.partialPayStatus,
+      ));
+    }
+  }
+
+  // ตั้งค่ายอด total_amount จาก API getDocPreSaleList
+  void _onSetPreOrderApiTotalAmount(SetPreOrderApiTotalAmount event, Emitter<CartState> emit) {
+    if (state is CartLoaded) {
+      final currentState = state as CartLoaded;
+
+      _logger.i('Setting preOrder API total amount to: ${event.totalAmount}');
+
+      emit(currentState.copyWith(
+        preOrderApiTotalAmount: event.totalAmount,
       ));
     }
   }

@@ -87,6 +87,9 @@ class _PreOrderDetailScreenState extends State<PreOrderDetailScreen> {
         // รีเซ็ตสถานะ
         context.read<PreOrderBloc>().add(ResetPreOrderState());
 
+        // ดึงยอด total_amount จาก widget.customer
+        final preOrderTotalAmount = double.tryParse(widget.customer.totalAmount) ?? 0.0;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -94,6 +97,7 @@ class _PreOrderDetailScreenState extends State<PreOrderDetailScreen> {
               isFromPreOrder: true,
               startAtCart: true,
               preOrderDocNo: docNo, // ส่งค่า docNo ไปยัง SaleScreen
+              preOrderTotalAmount: preOrderTotalAmount, // ส่งยอดเงินจาก API ไปด้วย
             ),
           ),
         );

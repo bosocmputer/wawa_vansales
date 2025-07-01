@@ -30,12 +30,14 @@ class SaleScreen extends StatefulWidget {
   final bool isFromPreOrder;
   final bool startAtCart;
   final String? preOrderDocNo; // เพิ่มพารามิเตอร์สำหรับเลขที่เอกสาร pre-order
+  final double? preOrderTotalAmount; // เพิ่มพารามิเตอร์สำหรับยอดเงินจาก API
 
   const SaleScreen({
     super.key,
     this.isFromPreOrder = false,
     this.startAtCart = false,
     this.preOrderDocNo,
+    this.preOrderTotalAmount,
   });
 
   @override
@@ -68,6 +70,11 @@ class _SaleScreenState extends State<SaleScreen> {
       if (widget.isFromPreOrder && widget.preOrderDocNo != null) {
         preOrderDocNo = widget.preOrderDocNo!;
         context.read<CartBloc>().add(SetPreOrderDocument(preOrderDocNo));
+
+        // ตั้งค่ายอด total_amount จาก API หากมีการส่งมา
+        if (widget.preOrderTotalAmount != null && widget.preOrderTotalAmount! > 0) {
+          context.read<CartBloc>().add(SetPreOrderApiTotalAmount(widget.preOrderTotalAmount!));
+        }
       }
 
       // ถ้าเริ่มจากหน้าตะกร้าให้ไปที่หน้าตะกร้าเลย
@@ -559,7 +566,7 @@ class _SaleScreenState extends State<SaleScreen> {
                           // Step 2: เลือกสินค้า
                           SaleCartStep(
                             cartItems: state.items,
-                            totalAmount: state.totalAmount,
+                            totalAmount: widget.isFromPreOrder && state.preOrderApiTotalAmount > 0 ? state.preOrderApiTotalAmount : state.totalAmount,
                             onNextStep: () => _goToStep(2),
                             onBackStep: () => _goToStep(0),
                             isFromPreOrder: widget.isFromPreOrder, // ส่งค่า isFromPreOrder ไปยัง SaleCartStep
@@ -567,7 +574,7 @@ class _SaleScreenState extends State<SaleScreen> {
                           if (state.selectedCustomer != null)
                             // Step 3: ชำระเงิน
                             SalePaymentStep(
-                              totalAmount: state.totalAmount,
+                              totalAmount: widget.isFromPreOrder && state.preOrderApiTotalAmount > 0 ? state.preOrderApiTotalAmount : state.totalAmount,
                               payments: state.payments,
                               remainingAmount: state.remainingAmount,
                               onBackStep: () => _goToStep(1),
@@ -581,7 +588,7 @@ class _SaleScreenState extends State<SaleScreen> {
                               customer: state.selectedCustomer!,
                               items: state.items,
                               payments: state.payments,
-                              totalAmount: state.totalAmount,
+                              totalAmount: widget.isFromPreOrder && state.preOrderApiTotalAmount > 0 ? state.preOrderApiTotalAmount : state.totalAmount,
                               onBackStep: () => _goToStep(2),
                               isConnected: _printerService.isConnected,
                               isConnecting: _printerService.isConnecting,

@@ -823,13 +823,24 @@ class _SaleCartStepState extends State<SaleCartStep> {
                       color: Colors.grey[600],
                     ),
                   ),
-                  Text(
-                    '฿${_currencyFormat.format(widget.totalAmount)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
-                    ),
+                  BlocBuilder<CartBloc, CartState>(
+                    builder: (context, cartState) {
+                      double displayAmount = widget.totalAmount;
+
+                      // ถ้าเป็น PreOrder และมียอดจาก API ให้ใช้ยอดนั้น
+                      if (widget.isFromPreOrder && cartState is CartLoaded && cartState.preOrderApiTotalAmount > 0) {
+                        displayAmount = cartState.preOrderApiTotalAmount;
+                      }
+
+                      return Text(
+                        '฿${_currencyFormat.format(displayAmount)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

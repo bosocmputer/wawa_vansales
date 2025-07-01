@@ -185,3 +185,13 @@ class UpdatePartialPayStatus extends CartEvent {
   @override
   List<Object?> get props => [partialPayStatus];
 }
+
+// Event สำหรับตั้งค่ายอด total_amount จาก API getDocPreSaleList (ใช้สำหรับขั้นตอนชำระเงิน)
+class SetPreOrderApiTotalAmount extends CartEvent {
+  final double totalAmount;
+
+  const SetPreOrderApiTotalAmount(this.totalAmount);
+
+  @override
+  List<Object?> get props => [totalAmount];
+}

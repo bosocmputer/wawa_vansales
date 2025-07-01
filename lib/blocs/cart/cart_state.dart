@@ -28,6 +28,7 @@ class CartLoaded extends CartState {
   final double balanceAmount; // เพิ่มฟิลด์สำหรับเก็บยอดลดหนี้
   final List<BalanceDetailModel> balanceDetail; // เพิ่มฟิลด์สำหรับเก็บรายละเอียดการลดหนี้
   final String partialPay; // เพิ่มฟิลด์สำหรับระบุการชำระบางส่วน (0=ชำระเต็มจำนวน, 1=ชำระบางส่วน)
+  final double preOrderApiTotalAmount; // เพิ่มฟิลด์สำหรับเก็บยอด total_amount จาก API getDocPreSaleList (ใช้สำหรับขั้นตอนชำระเงิน)
 
   const CartLoaded({
     this.selectedCustomer,
@@ -40,10 +41,12 @@ class CartLoaded extends CartState {
     this.balanceAmount = 0, // กำหนดค่าเริ่มต้นเป็น 0
     this.balanceDetail = const [], // กำหนดค่าเริ่มต้นเป็น list ว่าง
     this.partialPay = '0', // กำหนดค่าเริ่มต้นเป็น 0 (ชำระเต็มจำนวน)
+    this.preOrderApiTotalAmount = 0, // กำหนดค่าเริ่มต้นเป็น 0
   });
 
   @override
-  List<Object?> get props => [selectedCustomer, items, payments, totalAmount, currentStep, preOrderDocNo, documentNumber, balanceAmount, balanceDetail, partialPay];
+  List<Object?> get props =>
+      [selectedCustomer, items, payments, totalAmount, currentStep, preOrderDocNo, documentNumber, balanceAmount, balanceDetail, partialPay, preOrderApiTotalAmount];
 
   // สร้าง copyWith method
   CartLoaded copyWith({
@@ -57,6 +60,7 @@ class CartLoaded extends CartState {
     double? balanceAmount,
     List<BalanceDetailModel>? balanceDetail,
     String? partialPay,
+    double? preOrderApiTotalAmount,
   }) {
     return CartLoaded(
       selectedCustomer: selectedCustomer ?? this.selectedCustomer,
@@ -69,6 +73,7 @@ class CartLoaded extends CartState {
       balanceAmount: balanceAmount ?? this.balanceAmount,
       balanceDetail: balanceDetail ?? this.balanceDetail,
       partialPay: partialPay ?? this.partialPay,
+      preOrderApiTotalAmount: preOrderApiTotalAmount ?? this.preOrderApiTotalAmount,
     );
   }
 
@@ -77,14 +82,20 @@ class CartLoaded extends CartState {
     return payments.fold(0.0, (sum, payment) => sum + payment.payAmount) + balanceAmount;
   }
 
-  // คำนวณยอดคงเหลือ
+  // คำนวณยอดคงเหลือ - ใช้ยอดจาก API สำหรับ PreOrder ในขั้นตอนชำระเงิน
   double get remainingAmount {
-    return totalAmount - totalPaid;
+    final effectiveTotalAmount = preOrderDocNo.isNotEmpty && preOrderApiTotalAmount > 0 ? preOrderApiTotalAmount : totalAmount;
+    return effectiveTotalAmount - totalPaid;
   }
 
-  // ตรวจสอบว่าชำระครบหรือยัง
+  // ตรวจสอบว่าชำระครบหรือยัง - ใช้ยอดจาก API สำหรับ PreOrder ในขั้นตอนชำระเงิน
   bool get isFullyPaid {
     return remainingAmount <= 0;
+  }
+
+  // ยอดรวมที่ใช้ในขั้นตอนชำระเงิน (ใช้ยอดจาก API สำหรับ PreOrder)
+  double get effectivePaymentAmount {
+    return preOrderDocNo.isNotEmpty && preOrderApiTotalAmount > 0 ? preOrderApiTotalAmount : totalAmount;
   }
 }
 
@@ -101,6 +112,7 @@ class CartSubmitSuccess extends CartState {
   final double balanceAmount; // เพิ่มฟิลด์สำหรับเก็บยอดลดหนี้
   final List<BalanceDetailModel> balanceDetail; // เพิ่มฟิลด์สำหรับเก็บรายละเอียดการลดหนี้
   final String partialPay; // เพิ่มฟิลด์สำหรับระบุการชำระบางส่วน (0=ชำระเต็มจำนวน, 1=ชำระบางส่วน)
+  final double preOrderApiTotalAmount; // เพิ่มฟิลด์สำหรับเก็บยอด total_amount จาก API getDocPreSaleList (ใช้สำหรับขั้นตอนชำระเงิน)
 
   const CartSubmitSuccess({
     required this.documentNumber,
@@ -111,10 +123,11 @@ class CartSubmitSuccess extends CartState {
     this.balanceAmount = 0,
     this.balanceDetail = const [],
     this.partialPay = '0',
+    this.preOrderApiTotalAmount = 0,
   });
 
   @override
-  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount, balanceAmount, balanceDetail, partialPay];
+  List<Object?> get props => [documentNumber, customer, items, payments, totalAmount, balanceAmount, balanceDetail, partialPay, preOrderApiTotalAmount];
 }
 
 // เกิดข้อผิดพลาด
