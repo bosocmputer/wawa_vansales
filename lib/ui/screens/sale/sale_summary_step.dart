@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_bloc.dart';
 import 'package:wawa_vansales/blocs/cart/cart_event.dart';
 import 'package:wawa_vansales/blocs/cart/cart_state.dart';
+import 'package:wawa_vansales/blocs/network/network_bloc.dart';
+import 'package:wawa_vansales/blocs/network/network_event.dart';
+import 'package:wawa_vansales/blocs/network/network_state.dart';
 import 'package:wawa_vansales/data/models/cart_item_model.dart';
 import 'package:wawa_vansales/data/models/customer_model.dart';
 import 'package:wawa_vansales/data/models/payment_model.dart';
@@ -116,6 +119,52 @@ class _SaleSummaryStepState extends State<SaleSummaryStep> {
   }
 
   Future<void> _showSaveConfirmDialog(BuildContext context) async {
+    // ตรวจสอบสัญญาณอินเทอร์เน็ตก่อน
+    context.read<NetworkBloc>().add(CheckNetworkStatus());
+
+    // รอและตรวจสอบสถานะเครือข่าย
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final networkState = context.read<NetworkBloc>().state;
+
+    // ถ้าไม่มีสัญญาณอินเทอร์เน็ต แสดง dialog แจ้งเตือน
+    if (networkState is NetworkDisconnected) {
+      final bool? retryConfirm = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.signal_wifi_off, color: Colors.red),
+              const SizedBox(width: 8),
+              const Text('ไม่มีสัญญาณอินเทอร์เน็ต'),
+            ],
+          ),
+          content: const Text(
+            'ไม่สามารถบันทึกรายการขายได้ เนื่องจากไม่มีสัญญาณอินเทอร์เน็ต\nกรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตและลองใหม่อีกครั้ง',
+          ),
+          actions: [
+            ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.refresh),
+              label: const Text('บันทึกรายการขายใหม่'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      // ถ้าผู้ใช้กดปุ่ม "บันทึกรายการขายใหม่" ให้เรียกฟังก์ชันนี้ใหม่
+      if (retryConfirm == true) {
+        _showSaveConfirmDialog(context);
+      }
+      return;
+    }
+
+    // ถ้ามีสัญญาณอินเทอร์เน็ต แสดง dialog ยืนยันการบันทึกตามปกติ
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

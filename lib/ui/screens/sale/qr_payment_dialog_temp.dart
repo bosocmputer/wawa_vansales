@@ -457,8 +457,6 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
     // รอและตรวจสอบสถานะเครือข่าย
     await Future.delayed(const Duration(milliseconds: 500));
 
-    if (!mounted) return;
-
     final networkState = context.read<NetworkBloc>().state;
 
     // ถ้าไม่มีสัญญาณอินเทอร์เน็ต แสดง dialog แจ้งเตือน
@@ -467,11 +465,11 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.signal_wifi_off, color: Colors.red),
-              SizedBox(width: 8),
-              Text('ไม่มีสัญญาณอินเทอร์เน็ต'),
+              const SizedBox(width: 8),
+              const Text('ไม่มีสัญญาณอินเทอร์เน็ต'),
             ],
           ),
           content: const Text(
@@ -492,7 +490,7 @@ class _QrPaymentDialogState extends State<QrPaymentDialog> {
       );
 
       // ถ้าผู้ใช้กดปุ่ม "บันทึกรายการขายใหม่" ให้เรียกฟังก์ชันนี้ใหม่
-      if (retryConfirm == true && mounted) {
+      if (retryConfirm == true) {
         _handleSaveTransaction();
       }
       return;
