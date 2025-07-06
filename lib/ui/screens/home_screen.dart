@@ -8,6 +8,8 @@ import 'package:wawa_vansales/blocs/auth/auth_event.dart';
 import 'package:wawa_vansales/blocs/auth/auth_state.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/sales_summary/sales_summary_event.dart';
+import 'package:wawa_vansales/blocs/pre_order_summary/pre_order_summary_bloc.dart';
+import 'package:wawa_vansales/blocs/pre_order_summary/pre_order_summary_event.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_bloc.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_event.dart';
 import 'package:wawa_vansales/blocs/warehouse/warehouse_state.dart';
@@ -24,9 +26,9 @@ import 'package:wawa_vansales/ui/screens/return_product_history/return_product_h
 import 'package:wawa_vansales/ui/screens/sale/sale_screen.dart';
 import 'package:wawa_vansales/ui/screens/sale_history/sale_history_list_screen.dart';
 import 'package:wawa_vansales/ui/screens/warehouse/warehouse_selection_screen.dart';
+import 'package:wawa_vansales/ui/widgets/combined_summary_widget.dart';
 import 'package:wawa_vansales/ui/widgets/custom_button.dart';
 import 'package:wawa_vansales/ui/widgets/printer_status_widget.dart';
-import 'package:wawa_vansales/ui/widgets/sales_summary_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -83,9 +85,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // รีเฟรชข้อมูลยอดขายเมื่อกลับมาที่หน้าหลัก
+    // รีเฟรชข้อมูลยอดขายและพรีออเดอร์เมื่อกลับมาที่หน้าหลัก
     if (ModalRoute.of(context)?.isCurrent ?? false) {
       context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
+      context.read<PreOrderSummaryBloc>().add(RefreshTodaysPreOrderSummary());
     }
   }
 
@@ -135,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               children: [
                 TextSpan(
-                  text: 'v2.11',
+                  text: 'v2.13',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[300],
@@ -169,8 +172,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // เพิ่มแสดงสถานะเครื่องพิมพ์
             const PrinterStatusWidget(),
             _buildGreeting(context),
-            // Sales summary widget
-            const SalesSummaryWidget(),
+            // Combined sales and pre-order summary widget with carousel
+            const CombinedSummaryWidget(),
             const SizedBox(height: 8),
             _buildQuickActions(),
           ],

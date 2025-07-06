@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:wawa_vansales/blocs/sales_summary/sales_summary_bloc.dart';
-import 'package:wawa_vansales/blocs/sales_summary/sales_summary_event.dart';
-import 'package:wawa_vansales/blocs/sales_summary/sales_summary_state.dart';
-import 'package:wawa_vansales/config/app_theme.dart';
-import 'package:wawa_vansales/ui/screens/sale_history/sale_history_list_screen.dart';
+import 'package:wawa_vansales/blocs/pre_order_summary/pre_order_summary_bloc.dart';
+import 'package:wawa_vansales/blocs/pre_order_summary/pre_order_summary_event.dart';
+import 'package:wawa_vansales/blocs/pre_order_summary/pre_order_summary_state.dart';
+import 'package:wawa_vansales/ui/screens/pre_order_history/pre_order_history_list_screen.dart';
 import 'package:wawa_vansales/ui/widgets/skeleton_loading.dart';
 
-class SalesSummaryWidget extends StatefulWidget {
-  const SalesSummaryWidget({super.key});
+class PreOrderSummaryWidget extends StatefulWidget {
+  const PreOrderSummaryWidget({super.key});
 
   @override
-  State<SalesSummaryWidget> createState() => _SalesSummaryWidgetState();
+  State<PreOrderSummaryWidget> createState() => _PreOrderSummaryWidgetState();
 }
 
-class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
+class _PreOrderSummaryWidgetState extends State<PreOrderSummaryWidget> {
   final _currencyFormat = NumberFormat('#,##0.00', 'th_TH');
   final _dateFormat = DateFormat('dd/MM/yyyy HH:mm:ss');
 
   @override
   void initState() {
     super.initState();
-
-    // โหลดข้อมูลยอดขายตอนเปิดหน้าจอ
+    // โหลดข้อมูลยอดพรีออเดอร์ตอนเปิดหน้าจอ
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SalesSummaryBloc>().add(FetchTodaysSalesSummary());
+      context.read<PreOrderSummaryBloc>().add(FetchTodaysPreOrderSummary());
     });
   }
 
@@ -34,13 +32,13 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: BlocBuilder<SalesSummaryBloc, SalesSummaryState>(
+      child: BlocBuilder<PreOrderSummaryBloc, PreOrderSummaryState>(
         builder: (context, state) {
           return InkWell(
             onTap: () {
-              // เมื่อกดที่การ์ด ให้ไปที่หน้าประวัติการขาย
+              // เมื่อกดที่การ์ด ให้ไปที่หน้าประวัติพรีออเดอร์
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SaleHistoryListScreen()),
+                MaterialPageRoute(builder: (_) => const PreOrderHistoryListScreen()),
               );
             },
             borderRadius: BorderRadius.circular(16),
@@ -54,17 +52,17 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
                     Row(
                       children: [
                         const Icon(
-                          Icons.analytics,
-                          color: AppTheme.primaryColor,
+                          Icons.schedule,
+                          color: Colors.orange,
                           size: 24,
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'ยอดขายวันนี้',
+                          'ยอดขายพรีออเดอร์วันนี้',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryColor,
+                            color: Colors.orange,
                           ),
                         ),
                         const Spacer(),
@@ -72,9 +70,9 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
                         IconButton(
                           icon: const Icon(Icons.refresh, size: 20),
                           onPressed: () {
-                            context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
+                            context.read<PreOrderSummaryBloc>().add(RefreshTodaysPreOrderSummary());
                           },
-                          color: AppTheme.primaryColor,
+                          color: Colors.orange,
                           tooltip: 'รีเฟรชข้อมูล',
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -85,11 +83,11 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
                     const SizedBox(height: 16),
 
                     // แสดงข้อมูลตาม state
-                    if (state is SalesSummaryLoading && state is! SalesSummaryLoaded)
+                    if (state is PreOrderSummaryLoading && state is! PreOrderSummaryLoaded)
                       _buildLoadingState()
-                    else if (state is SalesSummaryLoaded)
+                    else if (state is PreOrderSummaryLoaded)
                       _buildLoadedState(state)
-                    else if (state is SalesSummaryError)
+                    else if (state is PreOrderSummaryError)
                       _buildErrorState(state)
                     else
                       _buildInitialState(),
@@ -132,7 +130,7 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
     );
   }
 
-  Widget _buildLoadedState(SalesSummaryLoaded state) {
+  Widget _buildLoadedState(PreOrderSummaryLoaded state) {
     final lastUpdated = _dateFormat.format(state.timestamp);
 
     return Column(
@@ -146,7 +144,7 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
                 title: 'ยอดขายรวม',
                 value: '฿${_currencyFormat.format(state.totalAmount)}',
                 icon: Icons.attach_money,
-                color: Colors.green,
+                color: Colors.orange,
               ),
             ),
             const SizedBox(width: 16),
@@ -178,7 +176,7 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
     );
   }
 
-  Widget _buildErrorState(SalesSummaryError state) {
+  Widget _buildErrorState(PreOrderSummaryError state) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -197,9 +195,10 @@ class _SalesSummaryWidgetState extends State<SalesSummaryWidget> {
               ),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 8),
             TextButton(
               onPressed: () {
-                context.read<SalesSummaryBloc>().add(RefreshTodaysSalesSummary());
+                context.read<PreOrderSummaryBloc>().add(RefreshTodaysPreOrderSummary());
               },
               child: const Text('ลองใหม่'),
             ),

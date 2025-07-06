@@ -8,12 +8,14 @@ import 'package:wawa_vansales/utils/local_storage.dart';
 
 class PreOrderHistoryRepository {
   final ApiService _apiService;
+  final LocalStorage? _localStorage;
   final Logger _logger = Logger();
 
   PreOrderHistoryRepository({
     required ApiService apiService,
     LocalStorage? localStorage,
-  }) : _apiService = apiService;
+  })  : _apiService = apiService,
+        _localStorage = localStorage;
 
   // ดึงรายการประวัติการขาย (พรีออเดอร์)
   Future<List<PreOrderHistoryModel>> getPreOrderHistoryList({
@@ -80,6 +82,71 @@ class PreOrderHistoryRepository {
     } catch (e) {
       _logger.e('Get pre-order history error: $e');
       return [];
+    }
+  }
+
+  // Get warehouse code from localStorage
+  Future<String> _getWarehouseCode() async {
+    try {
+      if (_localStorage != null) {
+        final warehouse = await _localStorage!.getWarehouse();
+        return warehouse?.code ?? 'NA';
+      }
+      return 'NA';
+    } catch (e) {
+      _logger.e('Error getting warehouse code: $e');
+      return 'NA';
+    }
+  }
+
+  // Get today's pre-order summary
+  Future<Map<String, dynamic>> getTodaysPreOrderSummary() async {
+    try {
+      final today = DateTime.now();
+      final dateFormatter = DateFormat('yyyy-MM-dd');
+      final todayStr = dateFormatter.format(today);
+
+      // Get warehouse code from storage
+      final whCode = await _getWarehouseCode();
+
+      _logger.i('Fetching today\'s pre-order summary for date: $todayStr, warehouse: $whCode');
+
+      final response = await _apiService.get(
+        'getDocPreorderHistory',
+        queryParameters: {
+          'search': '',
+          'from_date': todayStr,
+          'to_date': todayStr,
+          'wh_code': whCode,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data is Map && response.data.containsKey('data') && response.data.containsKey('success')) {
+        final preOrderHistoryResponse = PreOrderHistoryResponse.fromJson(response.data);
+
+        if (!preOrderHistoryResponse.success) {
+          return {'totalAmount': 0.0, 'billCount': 0};
+        }
+
+        final bills = preOrderHistoryResponse.data;
+        final billCount = bills.length;
+
+        // Calculate total amount by summing all bills
+        double totalAmount = 0.0;
+        for (var bill in bills) {
+          totalAmount += bill.totalAmount;
+        }
+
+        return {
+          'totalAmount': totalAmount,
+          'billCount': billCount,
+        };
+      } else {
+        return {'totalAmount': 0.0, 'billCount': 0};
+      }
+    } catch (e) {
+      _logger.e('Get today\'s pre-order summary error: $e');
+      return {'totalAmount': 0.0, 'billCount': 0};
     }
   }
 

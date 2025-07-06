@@ -1004,9 +1004,9 @@ class _SalePaymentStepState extends State<SalePaymentStep> {
         context,
         amount: widget.remainingAmount, // ใช้ยอดที่คำนวณใหม่
         docNumber: context.read<CartBloc>().state is CartLoaded ? (context.read<CartBloc>().state as CartLoaded).documentNumber : null,
-        timeoutSeconds: 180, // กำหนด timeout 3 นาที
+        timeoutSeconds: 900, // กำหนด timeout 15 นาที
       ).timeout(
-        const Duration(seconds: 180),
+        const Duration(seconds: 900),
         onTimeout: () {
           // ปิด dialog ที่อาจจะยังแสดงอยู่
           if (Navigator.of(context).canPop()) {

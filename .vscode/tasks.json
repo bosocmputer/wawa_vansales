@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Flutter: Run & Hot Reload",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"--hot"
+			],
+			"group": "test",
+			"isBackground": true,
+			"problemMatcher": [
+				"$dart-flutter"
+			]
+		}
+	]
+}

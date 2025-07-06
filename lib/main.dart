@@ -15,6 +15,7 @@ import 'package:wawa_vansales/blocs/pre_order_history/pre_order_history_bloc.dar
 import 'package:wawa_vansales/blocs/product/product_bloc.dart';
 import 'package:wawa_vansales/blocs/product_balance/product_balance_bloc.dart';
 import 'package:wawa_vansales/blocs/product_detail/product_detail_bloc.dart';
+import 'package:wawa_vansales/blocs/pre_order_summary/pre_order_summary_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product/return_product_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product_history/return_product_history_bloc.dart';
 import 'package:wawa_vansales/blocs/return_product_search/product_return_search_bloc.dart';
@@ -145,6 +146,7 @@ class MyApp extends StatelessWidget {
 
     final preOrderHistoryRepository = PreOrderHistoryRepository(
       apiService: apiService,
+      localStorage: localStorage,
     );
 
     final returnProductRepository = ReturnProductRepository(
@@ -221,6 +223,11 @@ class MyApp extends StatelessWidget {
         BlocProvider<SalesSummaryBloc>(
           create: (context) => SalesSummaryBloc(
             saleHistoryRepository: saleHistoryRepository,
+          ),
+        ),
+        BlocProvider<PreOrderSummaryBloc>(
+          create: (context) => PreOrderSummaryBloc(
+            preOrderHistoryRepository: preOrderHistoryRepository,
           ),
         ),
         BlocProvider<PreOrderBloc>(

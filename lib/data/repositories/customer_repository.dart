@@ -82,6 +82,7 @@ class CustomerRepository {
         'tax_id': customer.taxId,
         'website': customer.website,
         'price_level': customer.priceLevel,
+        'password': customer.password,
       };
 
       /// debug log customer data
