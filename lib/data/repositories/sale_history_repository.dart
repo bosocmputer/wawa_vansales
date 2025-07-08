@@ -37,6 +37,7 @@ class SaleHistoryRepository {
 
       // Get warehouse code from storage if not provided
       final whCode = warehouseCode ?? await _getWarehouseCode();
+      final shelfCode = await _localStorage.getLocationCode();
 
       _logger.i('Fetching sale history with search: $search, dates: $fromDateStr to $toDateStr, warehouse: $whCode');
 
@@ -47,6 +48,7 @@ class SaleHistoryRepository {
           'from_date': fromDateStr,
           'to_date': toDateStr,
           'wh_code': whCode,
+          'shelf_code': shelfCode,
         },
       );
 
@@ -147,6 +149,17 @@ class SaleHistoryRepository {
     }
   }
 
+  // get local storage location code
+  Future<String> _getLocationCode() async {
+    try {
+      final shelfCode = await _localStorage.getLocation();
+      return shelfCode?.code ?? 'NA';
+    } catch (e) {
+      _logger.e('Error getting location code: $e');
+      return 'NA';
+    }
+  }
+
   Future<Map<String, dynamic>> getTodaySalesSummary() async {
     try {
       final today = DateTime.now();
@@ -155,6 +168,7 @@ class SaleHistoryRepository {
 
       // Get warehouse code from storage
       final whCode = await _getWarehouseCode();
+      final shelfCode = await _getLocationCode();
 
       _logger.i('Fetching today\'s sales summary for date: $todayStr, warehouse: $whCode');
 
@@ -165,6 +179,7 @@ class SaleHistoryRepository {
           'from_date': todayStr,
           'to_date': todayStr,
           'wh_code': whCode,
+          'shelf_code': shelfCode,
         },
       );
 

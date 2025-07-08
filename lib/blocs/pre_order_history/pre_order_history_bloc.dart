@@ -14,6 +14,7 @@ class PreOrderHistoryBloc extends Bloc<PreOrderHistoryEvent, PreOrderHistoryStat
   DateTime? _toDate;
   String _searchQuery = '';
   String _warehouseCode = '';
+  String _shelfCode = '';
 
   PreOrderHistoryBloc({required PreOrderHistoryRepository preOrderHistoryRepository})
       : _preOrderHistoryRepository = preOrderHistoryRepository,
@@ -37,6 +38,7 @@ class PreOrderHistoryBloc extends Bloc<PreOrderHistoryEvent, PreOrderHistoryStat
       _toDate = event.toDate ?? _toDate;
       _searchQuery = event.search ?? _searchQuery;
       _warehouseCode = event.warehouseCode;
+      _shelfCode = event.shelfCode;
 
       emit(PreOrderHistoryLoading());
 
@@ -46,6 +48,7 @@ class PreOrderHistoryBloc extends Bloc<PreOrderHistoryEvent, PreOrderHistoryStat
         toDate: _toDate,
         search: _searchQuery.isNotEmpty ? _searchQuery : '',
         warehouseCode: _warehouseCode,
+        shelfCode: _shelfCode,
       );
 
       emit(PreOrderHistoryListLoaded(preOrderHistoryList));
@@ -102,6 +105,7 @@ class PreOrderHistoryBloc extends Bloc<PreOrderHistoryEvent, PreOrderHistoryStat
         toDate: _toDate,
         search: _searchQuery.isNotEmpty ? _searchQuery : null,
         warehouseCode: _warehouseCode,
+        shelfCode: _shelfCode,
       ));
     }
   }
@@ -120,6 +124,7 @@ class PreOrderHistoryBloc extends Bloc<PreOrderHistoryEvent, PreOrderHistoryStat
       toDate: _toDate,
       search: _searchQuery.isNotEmpty ? _searchQuery : null,
       warehouseCode: _warehouseCode,
+      shelfCode: _shelfCode,
     ));
   }
 
@@ -136,6 +141,7 @@ class PreOrderHistoryBloc extends Bloc<PreOrderHistoryEvent, PreOrderHistoryStat
       toDate: _toDate,
       search: _searchQuery.isNotEmpty ? _searchQuery : null,
       warehouseCode: _warehouseCode,
+      shelfCode: _shelfCode,
     ));
   }
 }

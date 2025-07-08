@@ -300,7 +300,9 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         // ดึงข้อมูลที่จำเป็น
         final user = await _localStorage.getUserData();
         final warehouse = await _localStorage.getWarehouse();
+        final location = await _localStorage.getLocation();
         final warehouseCode = warehouse?.code ?? 'NA';
+        final shelfCode = location?.code ?? '';
 
         // ปรับปรุงการจัดการเลขที่เอกสาร
         String docNo;
@@ -485,6 +487,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           remark: event.remark,
           carCode: warehouseCode, // ใช้ warehouseCode จาก localStorage แทน Global.whCode ที่อาจจะเป็น NA
           partialPay: currentState.partialPay, // เพิ่มสถานะการชำระเงินบางส่วน
+          shelfCode: shelfCode,
         );
 
         _logger.i('Transaction to save:');

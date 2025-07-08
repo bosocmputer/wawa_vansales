@@ -23,6 +23,7 @@ class PreOrderHistoryRepository {
     DateTime? fromDate,
     DateTime? toDate,
     required String warehouseCode,
+    required String shelfCode,
   }) async {
     try {
       // ตั้งค่าวันเริ่มต้นและวันสิ้นสุดเป็นวันนี้ถ้าไม่ได้ระบุ
@@ -45,6 +46,7 @@ class PreOrderHistoryRepository {
           'from_date': fromDateStr,
           'to_date': toDateStr,
           'wh_code': warehouseCode,
+          'shelf_code': shelfCode,
         },
       );
 
@@ -99,6 +101,20 @@ class PreOrderHistoryRepository {
     }
   }
 
+  // Get local storage shelf code
+  Future<String> _getShelfCode() async {
+    try {
+      if (_localStorage != null) {
+        final shelfCode = await _localStorage!.getLocation();
+        return shelfCode?.code ?? 'NA';
+      }
+      return '';
+    } catch (e) {
+      _logger.e('Error getting shelf code: $e');
+      return '';
+    }
+  }
+
   // Get today's pre-order summary
   Future<Map<String, dynamic>> getTodaysPreOrderSummary() async {
     try {
@@ -108,7 +124,7 @@ class PreOrderHistoryRepository {
 
       // Get warehouse code from storage
       final whCode = await _getWarehouseCode();
-
+      final shelfCode = await _getShelfCode();
       _logger.i('Fetching today\'s pre-order summary for date: $todayStr, warehouse: $whCode');
 
       final response = await _apiService.get(
@@ -118,6 +134,7 @@ class PreOrderHistoryRepository {
           'from_date': todayStr,
           'to_date': todayStr,
           'wh_code': whCode,
+          'shelf_code': shelfCode,
         },
       );
 

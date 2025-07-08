@@ -61,12 +61,15 @@ class _PreOrderHistoryListScreenState extends State<PreOrderHistoryListScreen> {
   void _loadPreOrderHistoryList() async {
     final warehouseCode = await context.read<LocalStorage>().getWarehouseCode();
     // ignore: use_build_context_synchronously
+    final shelfCode = await context.read<LocalStorage>().getLocationCode();
+    // ignore: use_build_context_synchronously
     context.read<PreOrderHistoryBloc>().add(
           FetchPreOrderHistoryList(
             fromDate: _fromDate,
             toDate: _toDate,
             search: _searchQuery,
             warehouseCode: warehouseCode,
+            shelfCode: shelfCode,
           ),
         );
   }

@@ -6,7 +6,8 @@ part of 'pre_order_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-PreOrderModel _$PreOrderModelFromJson(Map<String, dynamic> json) => PreOrderModel(
+PreOrderModel _$PreOrderModelFromJson(Map<String, dynamic> json) =>
+    PreOrderModel(
       custCode: json['cust_code'] as String,
       totalAmount: json['total_amount'] as String,
       docNo: json['doc_no'] as String,
@@ -14,7 +15,8 @@ PreOrderModel _$PreOrderModelFromJson(Map<String, dynamic> json) => PreOrderMode
       custName: json['cust_name'] as String,
     );
 
-Map<String, dynamic> _$PreOrderModelToJson(PreOrderModel instance) => <String, dynamic>{
+Map<String, dynamic> _$PreOrderModelToJson(PreOrderModel instance) =>
+    <String, dynamic>{
       'cust_code': instance.custCode,
       'total_amount': instance.totalAmount,
       'doc_no': instance.docNo,
@@ -22,12 +24,22 @@ Map<String, dynamic> _$PreOrderModelToJson(PreOrderModel instance) => <String, d
       'cust_name': instance.custName,
     };
 
-Map<String, dynamic> _$PreOrderResponseToJson(PreOrderResponse instance) => <String, dynamic>{
+PreOrderResponse _$PreOrderResponseFromJson(Map<String, dynamic> json) =>
+    PreOrderResponse(
+      success: json['success'] as bool,
+      data: (json['data'] as List<dynamic>)
+          .map((e) => PreOrderModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$PreOrderResponseToJson(PreOrderResponse instance) =>
+    <String, dynamic>{
       'success': instance.success,
       'data': instance.data,
     };
 
-PreOrderDetailModel _$PreOrderDetailModelFromJson(Map<String, dynamic> json) => PreOrderDetailModel(
+PreOrderDetailModel _$PreOrderDetailModelFromJson(Map<String, dynamic> json) =>
+    PreOrderDetailModel(
       itemCode: json['item_code'] as String,
       standValue: json['stand_value'] as String,
       sumAmount: json['sum_amount'] as String,
@@ -41,7 +53,9 @@ PreOrderDetailModel _$PreOrderDetailModelFromJson(Map<String, dynamic> json) => 
       ratio: json['ratio'] as String,
     );
 
-Map<String, dynamic> _$PreOrderDetailModelToJson(PreOrderDetailModel instance) => <String, dynamic>{
+Map<String, dynamic> _$PreOrderDetailModelToJson(
+        PreOrderDetailModel instance) =>
+    <String, dynamic>{
       'item_code': instance.itemCode,
       'stand_value': instance.standValue,
       'sum_amount': instance.sumAmount,
@@ -55,7 +69,18 @@ Map<String, dynamic> _$PreOrderDetailModelToJson(PreOrderDetailModel instance) =
       'ratio': instance.ratio,
     };
 
-Map<String, dynamic> _$PreOrderDetailResponseToJson(PreOrderDetailResponse instance) => <String, dynamic>{
+PreOrderDetailResponse _$PreOrderDetailResponseFromJson(
+        Map<String, dynamic> json) =>
+    PreOrderDetailResponse(
+      success: json['success'] as bool,
+      data: (json['data'] as List<dynamic>)
+          .map((e) => PreOrderDetailModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$PreOrderDetailResponseToJson(
+        PreOrderDetailResponse instance) =>
+    <String, dynamic>{
       'success': instance.success,
       'data': instance.data,
     };

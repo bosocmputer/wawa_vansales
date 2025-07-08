@@ -15,12 +15,14 @@ class FetchPreOrderHistoryList extends PreOrderHistoryEvent {
   final DateTime? toDate;
   final String? search;
   final String warehouseCode;
+  final String shelfCode;
 
   const FetchPreOrderHistoryList({
     this.fromDate,
     this.toDate,
     this.search,
     required this.warehouseCode,
+    required this.shelfCode,
   });
 
   @override

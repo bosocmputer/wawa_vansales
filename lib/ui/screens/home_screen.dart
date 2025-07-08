@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               children: [
                 TextSpan(
-                  text: 'v2.13',
+                  text: 'v2.14',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[300],
